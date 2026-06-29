@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.rnx.laranjada.core.design.theme.LaranjadaTheme
-import com.rnx.laranjada.feature.home.HomeScreen
+import com.rnx.laranjada.core.navigation.LaranjadaNavGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LaranjadaTheme {
-                HomeScreen()
+                LaranjadaNavGraph()
             }
         }
     }
