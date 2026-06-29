@@ -7,6 +7,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 object LaranjadaApiService {
 
@@ -22,9 +23,37 @@ object LaranjadaApiService {
         return getJson("/api/v1/series/$uuid/")
     }
 
-    private suspend fun getJson(path: String): JSONObject {
+    suspend fun getCollectionDetail(
+        uuid: String,
+        q: String = "",
+        year: String = "",
+        type: String = "",
+        order: String = "created_desc",
+        ratingMin: String = ""
+    ): JSONObject {
+        return getJson(
+            path = "/api/v1/collections/$uuid/",
+            queryParams = mapOf(
+                "q" to q,
+                "year" to year,
+                "type" to type,
+                "order" to order,
+                "rating_min" to ratingMin
+            )
+        )
+    }
+
+    private suspend fun getJson(
+        path: String,
+        queryParams: Map<String, String> = emptyMap()
+    ): JSONObject {
         return withContext(Dispatchers.IO) {
-            val url = URL(ApiConfig.buildUrl(path))
+            val finalPath = buildPathWithQueryParams(
+                path = path,
+                queryParams = queryParams
+            )
+
+            val url = URL(ApiConfig.buildUrl(finalPath))
             val connection = url.openConnection() as HttpURLConnection
 
             try {
@@ -54,5 +83,27 @@ object LaranjadaApiService {
                 connection.disconnect()
             }
         }
+    }
+
+    private fun buildPathWithQueryParams(
+        path: String,
+        queryParams: Map<String, String>
+    ): String {
+        val queryString = queryParams
+            .filter { (_, value) -> value.isNotBlank() }
+            .map { (key, value) ->
+                "${encode(key)}=${encode(value)}"
+            }
+            .joinToString("&")
+
+        if (queryString.isBlank()) {
+            return path
+        }
+
+        return "$path?$queryString"
+    }
+
+    private fun encode(value: String): String {
+        return URLEncoder.encode(value, "UTF-8")
     }
 }

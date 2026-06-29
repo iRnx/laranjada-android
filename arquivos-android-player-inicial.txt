@@ -1,0 +1,589 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+}
+
+android {
+    namespace = "com.rnx.laranjada"
+
+    compileSdk {
+        version = release(37)
+    }
+
+    defaultConfig {
+        applicationId = "com.rnx.laranjada"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            optimization {
+                enable = false
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlin {
+        jvmToolchain(11)
+    }
+
+    buildFeatures {
+        compose = true
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+
+    implementation(libs.androidx.activity.compose)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material.icons.extended)
+
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    implementation(libs.androidx.navigation.compose)
+
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.ui)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.junit)
+}[versions]
+agp = "9.2.1"
+kotlin = "2.2.21"
+
+coreKtx = "1.19.0"
+activityCompose = "1.12.1"
+composeBom = "2025.12.00"
+
+lifecycleRuntimeKtx = "2.10.0"
+lifecycleViewmodelCompose = "2.10.0"
+navigationCompose = "2.9.6"
+
+coilCompose = "3.3.0"
+
+media3 = "1.8.0"
+
+junit = "4.13.2"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coilCompose" }
+
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", version.ref = "media3" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }package com.rnx.laranjada.feature.player
+
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.rnx.laranjada.core.design.theme.LaranjadaBlack
+import com.rnx.laranjada.core.design.theme.LaranjadaText
+
+@OptIn(UnstableApi::class)
+@Composable
+fun PlayerScreen(
+    contentType: String,
+    uuid: String,
+    hlsUrl: String,
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit = {}
+) {
+    PlayerImmersiveMode()
+
+    BackHandler {
+        onBackClick()
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(LaranjadaBlack)
+    ) {
+        if (hlsUrl.isBlank()) {
+            MissingVideoMessage(
+                onBackClick = onBackClick
+            )
+        } else {
+            HlsPlayer(
+                url = hlsUrl,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerImmersiveMode() {
+    val view = LocalView.current
+
+    DisposableEffect(view) {
+        val activity = view.context.findActivity()
+        val window = activity?.window
+
+        if (window != null) {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+
+            val controller = WindowInsetsControllerCompat(
+                window,
+                window.decorView
+            )
+
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+
+            onDispose {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+                WindowCompat.setDecorFitsSystemWindows(window, true)
+            }
+        } else {
+            onDispose {}
+        }
+    }
+}
+
+@Composable
+private fun MissingVideoMessage(
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Esse vídeo ainda não tem uma playlist M3U8 cadastrada.",
+            color = LaranjadaText
+        )
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 18.dp)
+        ) {
+            Text(text = "Voltar")
+        }
+    }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun HlsPlayer(
+    url: String,
+    modifier: Modifier = Modifier
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val exoPlayer = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri(url)
+
+            setMediaItem(mediaItem)
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        modifier = modifier,
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                player = exoPlayer
+                useController = true
+                keepScreenOn = true
+                controllerShowTimeoutMs = 3000
+
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            }
+        },
+        update = { playerView ->
+            playerView.player = exoPlayer
+        }
+    )
+}
+
+private tailrec fun Context.findActivity(): Activity? {
+    return when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+}package com.rnx.laranjada.core.navigation
+
+import android.net.Uri
+
+object AppRoutes {
+    object Home {
+        const val route = "home"
+    }
+
+    object Detail {
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
+
+        const val route = "detail/{$contentTypeArg}/{$uuidArg}"
+
+        fun createRoute(
+            contentType: String,
+            uuid: String
+        ): String {
+            return "detail/${Uri.encode(contentType)}/${Uri.encode(uuid)}"
+        }
+    }
+
+    object Collection {
+        const val uuidArg = "uuid"
+
+        const val route = "collection/{$uuidArg}"
+
+        fun createRoute(uuid: String): String {
+            return "collection/${Uri.encode(uuid)}"
+        }
+    }
+
+    object Player {
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
+        const val hlsUrlArg = "hlsUrl"
+
+        const val route = "player/{$contentTypeArg}/{$uuidArg}?$hlsUrlArg={$hlsUrlArg}"
+
+        fun createRoute(
+            contentType: String,
+            uuid: String,
+            hlsUrl: String
+        ): String {
+            return "player/${Uri.encode(contentType)}/${Uri.encode(uuid)}?$hlsUrlArg=${Uri.encode(hlsUrl)}"
+        }
+    }
+}package com.rnx.laranjada.core.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.rnx.laranjada.feature.collections.CollectionDetailRoute
+import com.rnx.laranjada.feature.details.DetailRoute
+import com.rnx.laranjada.feature.home.HomeScreen
+import com.rnx.laranjada.feature.player.PlayerScreen
+
+@Composable
+fun LaranjadaNavGraph(
+    navController: NavHostController = rememberNavController()
+) {
+    NavHost(
+        navController = navController,
+        startDestination = AppRoutes.Home.route
+    ) {
+        composable(
+            route = AppRoutes.Home.route
+        ) {
+            HomeScreen(
+                onBannerClick = { banner ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = banner.contentType,
+                            uuid = banner.uuid
+                        )
+                    )
+                },
+                onMediaClick = { contentType, uuid ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = contentType,
+                            uuid = uuid
+                        )
+                    )
+                },
+                onCollectionClick = { collection ->
+                    navController.navigate(
+                        AppRoutes.Collection.createRoute(
+                            uuid = collection.uuid
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Detail.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Detail.contentTypeArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Detail.uuidArg) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val contentType = backStackEntry.arguments
+                ?.getString(AppRoutes.Detail.contentTypeArg)
+                .orEmpty()
+
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Detail.uuidArg)
+                .orEmpty()
+
+            DetailRoute(
+                contentType = contentType,
+                uuid = uuid,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPlayClick = { playerContentType, playerUuid, hlsUrl ->
+                    navController.navigate(
+                        AppRoutes.Player.createRoute(
+                            contentType = playerContentType,
+                            uuid = playerUuid,
+                            hlsUrl = hlsUrl
+                        )
+                    )
+                },
+                onRestartClick = {
+                    // Depois vamos usar progresso real para reiniciar do começo.
+                    // Por enquanto, o botão só existe quando tiver progresso.
+                },
+                onFavoriteClick = {
+                    // Depois salva favorito.
+                },
+                onEpisodeClick = { episode ->
+                    navController.navigate(
+                        AppRoutes.Player.createRoute(
+                            contentType = "episode",
+                            uuid = episode.uuid,
+                            hlsUrl = episode.hlsUrl
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Collection.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Collection.uuidArg) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Collection.uuidArg)
+                .orEmpty()
+
+            CollectionDetailRoute(
+                uuid = uuid,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onMediaClick = { contentType, mediaUuid ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = contentType,
+                            uuid = mediaUuid
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Player.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Player.contentTypeArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Player.uuidArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Player.hlsUrlArg) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val contentType = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.contentTypeArg)
+                .orEmpty()
+
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.uuidArg)
+                .orEmpty()
+
+            val hlsUrl = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.hlsUrlArg)
+                .orEmpty()
+
+            PlayerScreen(
+                contentType = contentType,
+                uuid = uuid,
+                hlsUrl = hlsUrl,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+}<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.Laranjada">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Laranjada">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>package com.rnx.laranjada.core.design.theme
+
+import androidx.compose.ui.graphics.Color
+
+val LaranjadaOrange = Color(0xFFFD6B00)
+val LaranjadaOrangeDark = Color(0xFFE85F00)
+
+val LaranjadaBlack = Color(0xFF050607)
+val LaranjadaSurface = Color(0xFF090B0E)
+val LaranjadaSurfaceLight = Color(0xFF111419)
+
+val LaranjadaText = Color(0xFFF5F5F5)
+val LaranjadaMutedText = Color(0xFF9EA0A6)package com.rnx.laranjada.core.design.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+
+private val DarkColorScheme = darkColorScheme(
+    primary = LaranjadaOrange,
+    secondary = LaranjadaOrangeDark,
+    background = LaranjadaBlack,
+    surface = LaranjadaSurface,
+    onPrimary = LaranjadaText,
+    onSecondary = LaranjadaText,
+    onBackground = LaranjadaText,
+    onSurface = LaranjadaText
+)
+
+@Composable
+fun LaranjadaTheme(
+    darkTheme: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = DarkColorScheme,
+        content = content
+    )
+}

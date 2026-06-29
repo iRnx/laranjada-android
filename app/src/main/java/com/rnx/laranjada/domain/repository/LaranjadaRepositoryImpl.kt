@@ -1,9 +1,12 @@
 package com.rnx.laranjada.data.repository
 
+import com.rnx.laranjada.data.mapper.CollectionDetailMapper
 import com.rnx.laranjada.data.mapper.DetailMapper
 import com.rnx.laranjada.data.mapper.HomeMapper
 import com.rnx.laranjada.data.remote.api.LaranjadaApiService
 import com.rnx.laranjada.domain.repository.LaranjadaRepository
+import com.rnx.laranjada.feature.collections.CollectionAppliedFiltersUi
+import com.rnx.laranjada.feature.collections.CollectionDetailUiState
 import com.rnx.laranjada.feature.details.DetailUiState
 import com.rnx.laranjada.feature.home.HomeUiState
 
@@ -30,5 +33,21 @@ class LaranjadaRepositoryImpl(
             json = json,
             requestedContentType = contentType
         )
+    }
+
+    override suspend fun getCollectionDetail(
+        uuid: String,
+        filters: CollectionAppliedFiltersUi
+    ): CollectionDetailUiState {
+        val json = apiService.getCollectionDetail(
+            uuid = uuid,
+            q = filters.q,
+            year = filters.year,
+            type = filters.type,
+            order = filters.order,
+            ratingMin = filters.ratingMin
+        )
+
+        return CollectionDetailMapper.fromJson(json)
     }
 }

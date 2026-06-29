@@ -24,10 +24,18 @@ fun DetailRoute(
     contentType: String,
     uuid: String,
     onBackClick: () -> Unit,
-    onPlayClick: () -> Unit = {},
+    onPlayClick: (
+        contentType: String,
+        uuid: String,
+        hlsUrl: String,
+        seriesUuid: String
+    ) -> Unit = { _, _, _, _ -> },
     onRestartClick: () -> Unit = {},
     onFavoriteClick: (Boolean) -> Unit = {},
-    onEpisodeClick: (EpisodeUi) -> Unit = {},
+    onEpisodeClick: (
+        episode: EpisodeUi,
+        seriesUuid: String
+    ) -> Unit = { _, _ -> },
     viewModel: DetailViewModel = viewModel()
 ) {
     LaunchedEffect(contentType, uuid) {
@@ -62,10 +70,35 @@ fun DetailRoute(
             DetailScreen(
                 uiState = uiState,
                 onBackClick = onBackClick,
-                onPlayClick = onPlayClick,
+                onPlayClick = {
+                    if (uiState.isSeries) {
+                        val firstEpisode = uiState.firstAvailableEpisode
+
+                        if (firstEpisode != null) {
+                            onPlayClick(
+                                "episode",
+                                firstEpisode.uuid,
+                                firstEpisode.hlsUrl,
+                                uiState.uuid
+                            )
+                        }
+                    } else {
+                        onPlayClick(
+                            "movie",
+                            uiState.uuid,
+                            uiState.hlsUrl,
+                            ""
+                        )
+                    }
+                },
                 onRestartClick = onRestartClick,
                 onFavoriteClick = onFavoriteClick,
-                onEpisodeClick = onEpisodeClick
+                onEpisodeClick = { episode ->
+                    onEpisodeClick(
+                        episode,
+                        uiState.uuid
+                    )
+                }
             )
         }
     }

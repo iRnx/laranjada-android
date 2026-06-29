@@ -56,6 +56,7 @@ data class MediaItemUi(
 )
 
 data class CollectionUi(
+    val uuid: String,
     val title: String,
     val imageUrl: String,
     val gradientColors: List<Color>

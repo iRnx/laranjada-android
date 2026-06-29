@@ -52,6 +52,16 @@ object HomeMockData {
                 )
             )
         ),
-        collections = emptyList()
+        collections = listOf(
+            CollectionUi(
+                uuid = "mock-dc-collection",
+                title = "DC",
+                imageUrl = "https://picsum.photos/seed/collection-dc/640/360",
+                gradientColors = listOf(
+                    Color(0xFF08121A),
+                    Color(0xFF0A0A0B)
+                )
+            )
+        )
     )
 }

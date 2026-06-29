@@ -1,3 +1,303 @@
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/feature/details/DetailUiState.kt
+==============================
+package com.rnx.laranjada.feature.details
+
+enum class DetailContentType {
+    Movie,
+    Series
+}
+
+data class DetailUiState(
+    val uuid: String = "",
+    val contentType: DetailContentType,
+    val title: String,
+    val originalTitle: String,
+    val year: String,
+    val endYear: String? = null,
+    val rating: String,
+    val genres: List<String>,
+    val durationInfo: String,
+    val synopsis: String,
+    val imageDetailUrl: String,
+    val imageThumbUrl: String,
+    val hlsUrl: String = "",
+    val hasVideo: Boolean = false,
+    val watchProgress: WatchProgressUi? = null,
+    val seasons: List<SeasonUi> = emptyList()
+) {
+    val isSeries: Boolean
+        get() = contentType == DetailContentType.Series
+
+    val hasWatchProgress: Boolean
+        get() = watchProgress != null && watchProgress.progress > 0f
+
+    val firstAvailableEpisode: EpisodeUi?
+        get() {
+            seasons.forEach { season ->
+                val episode = season.episodes.firstOrNull { item ->
+                    item.hlsUrl.isNotBlank()
+                }
+
+                if (episode != null) {
+                    return episode
+                }
+            }
+
+            return null
+        }
+
+    val canPlay: Boolean
+        get() {
+            return if (isSeries) {
+                firstAvailableEpisode != null
+            } else {
+                hlsUrl.isNotBlank()
+            }
+        }
+}
+
+data class WatchProgressUi(
+    val progress: Float,
+    val remainingText: String,
+    val seasonNumber: Int? = null,
+    val episodeNumber: Int? = null,
+    val episodeTitle: String? = null
+) {
+    val hasEpisodeInfo: Boolean
+        get() = seasonNumber != null &&
+                episodeNumber != null &&
+                !episodeTitle.isNullOrBlank()
+}
+
+data class SeasonUi(
+    val id: String,
+    val number: Int,
+    val episodes: List<EpisodeUi>
+)
+
+data class EpisodeUi(
+    val id: String,
+    val uuid: String,
+    val number: Int,
+    val title: String,
+    val runtime: String,
+    val rating: String,
+    val synopsis: String,
+    val imageUrl: String,
+    val hasVideo: Boolean,
+    val hlsUrl: String = ""
+)
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/feature/details/DetailViewModel.kt
+==============================
+package com.rnx.laranjada.feature.details
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.rnx.laranjada.data.repository.LaranjadaRepositoryImpl
+import com.rnx.laranjada.domain.repository.LaranjadaRepository
+import kotlinx.coroutines.launch
+
+class DetailViewModel(
+    private val repository: LaranjadaRepository = LaranjadaRepositoryImpl()
+) : ViewModel() {
+
+    var uiState by mutableStateOf<DetailUiState?>(null)
+        private set
+
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    private var currentKey: String? = null
+
+    fun loadDetail(
+        contentType: String,
+        uuid: String
+    ) {
+        val nextKey = "$contentType:$uuid"
+
+        if (currentKey == nextKey && uiState != null) {
+            return
+        }
+
+        currentKey = nextKey
+
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            uiState = null
+
+            try {
+                uiState = repository.getDetail(
+                    contentType = contentType,
+                    uuid = uuid
+                )
+            } catch (exception: Exception) {
+                errorMessage = exception.message
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/feature/details/DetailRoute.kt
+==============================
+package com.rnx.laranjada.feature.details
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rnx.laranjada.core.design.theme.LaranjadaBlack
+import com.rnx.laranjada.core.design.theme.LaranjadaOrange
+import com.rnx.laranjada.core.design.theme.LaranjadaText
+
+@Composable
+fun DetailRoute(
+    contentType: String,
+    uuid: String,
+    onBackClick: () -> Unit,
+    onPlayClick: (contentType: String, uuid: String, hlsUrl: String) -> Unit = { _, _, _ -> },
+    onRestartClick: () -> Unit = {},
+    onFavoriteClick: (Boolean) -> Unit = {},
+    onEpisodeClick: (EpisodeUi) -> Unit = {},
+    viewModel: DetailViewModel = viewModel()
+) {
+    LaunchedEffect(contentType, uuid) {
+        viewModel.loadDetail(
+            contentType = contentType,
+            uuid = uuid
+        )
+    }
+
+    val uiState = viewModel.uiState
+    val errorMessage = viewModel.errorMessage
+
+    when {
+        viewModel.isLoading -> {
+            DetailLoading()
+        }
+
+        errorMessage != null -> {
+            DetailError(
+                message = errorMessage,
+                onBackClick = onBackClick,
+                onRetryClick = {
+                    viewModel.loadDetail(
+                        contentType = contentType,
+                        uuid = uuid
+                    )
+                }
+            )
+        }
+
+        uiState != null -> {
+            DetailScreen(
+                uiState = uiState,
+                onBackClick = onBackClick,
+                onPlayClick = {
+                    if (uiState.isSeries) {
+                        val firstEpisode = uiState.firstAvailableEpisode
+
+                        if (firstEpisode != null) {
+                            onPlayClick(
+                                "episode",
+                                firstEpisode.uuid,
+                                firstEpisode.hlsUrl
+                            )
+                        }
+                    } else {
+                        onPlayClick(
+                            "movie",
+                            uiState.uuid,
+                            uiState.hlsUrl
+                        )
+                    }
+                },
+                onRestartClick = onRestartClick,
+                onFavoriteClick = onFavoriteClick,
+                onEpisodeClick = onEpisodeClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailLoading() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LaranjadaBlack),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = LaranjadaOrange
+        )
+    }
+}
+
+@Composable
+private fun DetailError(
+    message: String,
+    onBackClick: () -> Unit,
+    onRetryClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LaranjadaBlack)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Não foi possível carregar o detalhe.",
+            color = LaranjadaText
+        )
+
+        Text(
+            text = message,
+            color = LaranjadaText,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Button(
+            onClick = onRetryClick,
+            modifier = Modifier.padding(top = 20.dp)
+        ) {
+            Text(text = "Tentar novamente")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 10.dp)
+        ) {
+            Text(text = "Voltar")
+        }
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/feature/details/DetailScreen.kt
+==============================
 package com.rnx.laranjada.feature.details
 
 import androidx.compose.foundation.background
@@ -833,5 +1133,491 @@ private fun EpisodeCard(
             lineHeight = 27.sp,
             fontWeight = FontWeight.Normal
         )
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/data/mapper/DetailMapper.kt
+==============================
+package com.rnx.laranjada.data.mapper
+
+import com.rnx.laranjada.feature.details.DetailContentType
+import com.rnx.laranjada.feature.details.DetailUiState
+import com.rnx.laranjada.feature.details.EpisodeUi
+import com.rnx.laranjada.feature.details.SeasonUi
+import org.json.JSONArray
+import org.json.JSONObject
+
+object DetailMapper {
+
+    fun fromJson(
+        json: JSONObject,
+        requestedContentType: String
+    ): DetailUiState {
+        val contentType = json.optNullableString("content_type")
+            ?: requestedContentType
+
+        val normalizedContentType = when (contentType.lowercase()) {
+            "series", "serie" -> DetailContentType.Series
+            else -> DetailContentType.Movie
+        }
+
+        val seasons = if (normalizedContentType == DetailContentType.Series) {
+            mapSeasons(json.optJSONArray("seasons"))
+        } else {
+            emptyList()
+        }
+
+        return DetailUiState(
+            uuid = json.optNullableString("uuid") ?: "",
+            contentType = normalizedContentType,
+            title = json.optString("title"),
+            originalTitle = json.optNullableString("original_title") ?: json.optString("title"),
+            year = json.optInt("year").takeIf { it > 0 }?.toString() ?: "",
+            endYear = null,
+            rating = formatRating(json.opt("rating")),
+            genres = mapGenres(json.optJSONArray("genres")),
+            durationInfo = if (normalizedContentType == DetailContentType.Series) {
+                formatSeasonsCount(seasons.size)
+            } else {
+                json.optNullableString("runtime") ?: ""
+            },
+            synopsis = json.optNullableString("sinopse") ?: "",
+            imageDetailUrl = json.optNullableString("image_detail_url") ?: "",
+            imageThumbUrl = json.optNullableString("image_thumb_url") ?: "",
+            hlsUrl = json.optNullableString("hls_url") ?: "",
+            hasVideo = json.optBoolean("has_video", false),
+            watchProgress = null,
+            seasons = seasons
+        )
+    }
+
+    private fun mapGenres(array: JSONArray?): List<String> {
+        if (array == null) return emptyList()
+
+        return buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val name = item.optNullableString("name") ?: continue
+                add(name)
+            }
+        }
+    }
+
+    private fun mapSeasons(array: JSONArray?): List<SeasonUi> {
+        if (array == null) return emptyList()
+
+        return buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val seasonNumber = item.optInt("number")
+
+                add(
+                    SeasonUi(
+                        id = item.optInt("id").toString(),
+                        number = seasonNumber,
+                        episodes = mapEpisodes(item.optJSONArray("episodes"))
+                    )
+                )
+            }
+        }
+    }
+
+    private fun mapEpisodes(array: JSONArray?): List<EpisodeUi> {
+        if (array == null) return emptyList()
+
+        return buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+
+                add(
+                    EpisodeUi(
+                        id = item.optInt("id").toString(),
+                        uuid = item.optString("uuid"),
+                        number = item.optInt("episode_number"),
+                        title = item.optString("title"),
+                        runtime = item.optNullableString("runtime") ?: "",
+                        rating = formatRating(item.opt("rating")),
+                        synopsis = item.optNullableString("sinopse") ?: "",
+                        imageUrl = item.optNullableString("image_url") ?: "",
+                        hasVideo = item.optBoolean("has_video", false),
+                        hlsUrl = item.optNullableString("hls_url") ?: ""
+                    )
+                )
+            }
+        }
+    }
+
+    private fun formatSeasonsCount(count: Int): String {
+        return when (count) {
+            0 -> "Sem temporadas"
+            1 -> "1 temporada"
+            else -> "$count temporadas"
+        }
+    }
+
+    private fun formatRating(value: Any?): String {
+        if (value == null) return ""
+
+        val text = value.toString()
+
+        return if (text.endsWith(".0")) {
+            text.removeSuffix(".0")
+        } else {
+            text
+        }
+    }
+
+    private fun JSONObject.optNullableString(name: String): String? {
+        if (isNull(name)) return null
+
+        val value = optString(name).trim()
+
+        return value.ifBlank { null }
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/data/remote/api/LaranjadaApiService.kt
+==============================
+package com.rnx.laranjada.data.remote.api
+
+import com.rnx.laranjada.core.network.ApiConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+
+object LaranjadaApiService {
+
+    suspend fun getHome(): JSONObject {
+        return getJson("/api/v1/home/")
+    }
+
+    suspend fun getMovieDetail(uuid: String): JSONObject {
+        return getJson("/api/v1/movies/$uuid/")
+    }
+
+    suspend fun getSeriesDetail(uuid: String): JSONObject {
+        return getJson("/api/v1/series/$uuid/")
+    }
+
+    suspend fun getCollectionDetail(
+        uuid: String,
+        q: String = "",
+        year: String = "",
+        type: String = "",
+        order: String = "created_desc",
+        ratingMin: String = ""
+    ): JSONObject {
+        return getJson(
+            path = "/api/v1/collections/$uuid/",
+            queryParams = mapOf(
+                "q" to q,
+                "year" to year,
+                "type" to type,
+                "order" to order,
+                "rating_min" to ratingMin
+            )
+        )
+    }
+
+    private suspend fun getJson(
+        path: String,
+        queryParams: Map<String, String> = emptyMap()
+    ): JSONObject {
+        return withContext(Dispatchers.IO) {
+            val finalPath = buildPathWithQueryParams(
+                path = path,
+                queryParams = queryParams
+            )
+
+            val url = URL(ApiConfig.buildUrl(finalPath))
+            val connection = url.openConnection() as HttpURLConnection
+
+            try {
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 15_000
+                connection.readTimeout = 15_000
+                connection.setRequestProperty("Accept", "application/json")
+
+                val statusCode = connection.responseCode
+
+                val stream = if (statusCode in 200..299) {
+                    connection.inputStream
+                } else {
+                    connection.errorStream
+                }
+
+                val body = stream.bufferedReader().use { reader ->
+                    reader.readText()
+                }
+
+                if (statusCode !in 200..299) {
+                    throw IOException("Erro HTTP $statusCode: $body")
+                }
+
+                JSONObject(body)
+            } finally {
+                connection.disconnect()
+            }
+        }
+    }
+
+    private fun buildPathWithQueryParams(
+        path: String,
+        queryParams: Map<String, String>
+    ): String {
+        val queryString = queryParams
+            .filter { (_, value) -> value.isNotBlank() }
+            .map { (key, value) ->
+                "${encode(key)}=${encode(value)}"
+            }
+            .joinToString("&")
+
+        if (queryString.isBlank()) {
+            return path
+        }
+
+        return "$path?$queryString"
+    }
+
+    private fun encode(value: String): String {
+        return URLEncoder.encode(value, "UTF-8")
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/data/remote/dto
+==============================
+
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/domain/model
+==============================
+
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/core/navigation/AppRoutes.kt
+==============================
+package com.rnx.laranjada.core.navigation
+
+import android.net.Uri
+
+object AppRoutes {
+    object Home {
+        const val route = "home"
+    }
+
+    object Detail {
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
+
+        const val route = "detail/{$contentTypeArg}/{$uuidArg}"
+
+        fun createRoute(
+            contentType: String,
+            uuid: String
+        ): String {
+            return "detail/${Uri.encode(contentType)}/${Uri.encode(uuid)}"
+        }
+    }
+
+    object Collection {
+        const val uuidArg = "uuid"
+
+        const val route = "collection/{$uuidArg}"
+
+        fun createRoute(uuid: String): String {
+            return "collection/${Uri.encode(uuid)}"
+        }
+    }
+
+    object Player {
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
+        const val hlsUrlArg = "hlsUrl"
+
+        const val route = "player/{$contentTypeArg}/{$uuidArg}?$hlsUrlArg={$hlsUrlArg}"
+
+        fun createRoute(
+            contentType: String,
+            uuid: String,
+            hlsUrl: String
+        ): String {
+            return "player/${Uri.encode(contentType)}/${Uri.encode(uuid)}?$hlsUrlArg=${Uri.encode(hlsUrl)}"
+        }
+    }
+}
+==============================
+ARQUIVO: app/src/main/java/com/rnx/laranjada/core/navigation/LaranjadaNavGraph.kt
+==============================
+package com.rnx.laranjada.core.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.rnx.laranjada.feature.collections.CollectionDetailRoute
+import com.rnx.laranjada.feature.details.DetailRoute
+import com.rnx.laranjada.feature.home.HomeScreen
+import com.rnx.laranjada.feature.player.PlayerScreen
+
+@Composable
+fun LaranjadaNavGraph(
+    navController: NavHostController = rememberNavController()
+) {
+    NavHost(
+        navController = navController,
+        startDestination = AppRoutes.Home.route
+    ) {
+        composable(
+            route = AppRoutes.Home.route
+        ) {
+            HomeScreen(
+                onBannerClick = { banner ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = banner.contentType,
+                            uuid = banner.uuid
+                        )
+                    )
+                },
+                onMediaClick = { contentType, uuid ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = contentType,
+                            uuid = uuid
+                        )
+                    )
+                },
+                onCollectionClick = { collection ->
+                    navController.navigate(
+                        AppRoutes.Collection.createRoute(
+                            uuid = collection.uuid
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Detail.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Detail.contentTypeArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Detail.uuidArg) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val contentType = backStackEntry.arguments
+                ?.getString(AppRoutes.Detail.contentTypeArg)
+                .orEmpty()
+
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Detail.uuidArg)
+                .orEmpty()
+
+            DetailRoute(
+                contentType = contentType,
+                uuid = uuid,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPlayClick = { playerContentType, playerUuid, hlsUrl ->
+                    navController.navigate(
+                        AppRoutes.Player.createRoute(
+                            contentType = playerContentType,
+                            uuid = playerUuid,
+                            hlsUrl = hlsUrl
+                        )
+                    )
+                },
+                onRestartClick = {
+                    // Depois vamos usar progresso real para reiniciar do começo.
+                    // Por enquanto, o botão só existe quando tiver progresso.
+                },
+                onFavoriteClick = {
+                    // Depois salva favorito.
+                },
+                onEpisodeClick = { episode ->
+                    navController.navigate(
+                        AppRoutes.Player.createRoute(
+                            contentType = "episode",
+                            uuid = episode.uuid,
+                            hlsUrl = episode.hlsUrl
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Collection.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Collection.uuidArg) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Collection.uuidArg)
+                .orEmpty()
+
+            CollectionDetailRoute(
+                uuid = uuid,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onMediaClick = { contentType, mediaUuid ->
+                    navController.navigate(
+                        AppRoutes.Detail.createRoute(
+                            contentType = contentType,
+                            uuid = mediaUuid
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = AppRoutes.Player.route,
+            arguments = listOf(
+                navArgument(AppRoutes.Player.contentTypeArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Player.uuidArg) {
+                    type = NavType.StringType
+                },
+                navArgument(AppRoutes.Player.hlsUrlArg) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val contentType = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.contentTypeArg)
+                .orEmpty()
+
+            val uuid = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.uuidArg)
+                .orEmpty()
+
+            val hlsUrl = backStackEntry.arguments
+                ?.getString(AppRoutes.Player.hlsUrlArg)
+                .orEmpty()
+
+            PlayerScreen(
+                contentType = contentType,
+                uuid = uuid,
+                hlsUrl = hlsUrl,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }

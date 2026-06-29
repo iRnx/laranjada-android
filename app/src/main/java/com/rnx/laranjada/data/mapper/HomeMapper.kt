@@ -146,8 +146,11 @@ object HomeMapper {
             for (index in 0 until array.length()) {
                 val item = array.optJSONObject(index) ?: continue
 
+                val uuid = item.optNullableString("uuid") ?: continue
+
                 add(
                     CollectionUi(
+                        uuid = uuid,
                         title = item.optString("title"),
                         imageUrl = item.optNullableString("image_url") ?: "",
                         gradientColors = defaultGradient(index)

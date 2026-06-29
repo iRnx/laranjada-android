@@ -32,6 +32,7 @@ import com.rnx.laranjada.feature.home.components.SectionHeader
 fun HomeScreen(
     onBannerClick: (HeroBannerUi) -> Unit = {},
     onMediaClick: (contentType: String, uuid: String) -> Unit = { _, _ -> },
+    onCollectionClick: (CollectionUi) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState = viewModel.uiState
@@ -117,7 +118,8 @@ fun HomeScreen(
             if (uiState.collections.isNotEmpty()) {
                 item {
                     CollectionsSection(
-                        collections = uiState.collections
+                        collections = uiState.collections,
+                        onCollectionClick = onCollectionClick
                     )
                 }
             }

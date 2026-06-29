@@ -28,6 +28,7 @@ object DetailMapper {
         }
 
         return DetailUiState(
+            uuid = json.optNullableString("uuid") ?: "",
             contentType = normalizedContentType,
             title = json.optString("title"),
             originalTitle = json.optNullableString("original_title") ?: json.optString("title"),
@@ -43,6 +44,8 @@ object DetailMapper {
             synopsis = json.optNullableString("sinopse") ?: "",
             imageDetailUrl = json.optNullableString("image_detail_url") ?: "",
             imageThumbUrl = json.optNullableString("image_thumb_url") ?: "",
+            hlsUrl = json.optNullableString("hls_url") ?: "",
+            hasVideo = json.optBoolean("has_video", false),
             watchProgress = null,
             seasons = seasons
         )
@@ -96,7 +99,8 @@ object DetailMapper {
                         rating = formatRating(item.opt("rating")),
                         synopsis = item.optNullableString("sinopse") ?: "",
                         imageUrl = item.optNullableString("image_url") ?: "",
-                        hasVideo = item.optBoolean("has_video", false)
+                        hasVideo = item.optBoolean("has_video", false),
+                        hlsUrl = item.optNullableString("hls_url") ?: ""
                     )
                 )
             }
