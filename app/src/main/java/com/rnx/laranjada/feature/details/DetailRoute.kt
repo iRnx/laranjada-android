@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rnx.laranjada.core.design.theme.LaranjadaBlack
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+import com.rnx.laranjada.feature.home.MediaItemUi
 
 @Composable
 fun DetailRoute(
@@ -32,6 +33,7 @@ fun DetailRoute(
     ) -> Unit = { _, _, _, _ -> },
     onRestartClick: () -> Unit = {},
     onFavoriteClick: (Boolean) -> Unit = {},
+    onRelatedClick: (MediaItemUi) -> Unit = {},
     onEpisodeClick: (
         episode: EpisodeUi,
         seriesUuid: String
@@ -69,6 +71,9 @@ fun DetailRoute(
         uiState != null -> {
             DetailScreen(
                 uiState = uiState,
+                relatedItems = viewModel.relatedItems,
+                isRelatedLoading = viewModel.isRelatedLoading,
+                relatedErrorMessage = viewModel.relatedErrorMessage,
                 onBackClick = onBackClick,
                 onPlayClick = {
                     if (uiState.isSeries) {
@@ -93,6 +98,8 @@ fun DetailRoute(
                 },
                 onRestartClick = onRestartClick,
                 onFavoriteClick = onFavoriteClick,
+                onRelatedClick = onRelatedClick,
+                onRetryRelatedClick = viewModel::reloadRelatedContent,
                 onEpisodeClick = { episode ->
                     onEpisodeClick(
                         episode,

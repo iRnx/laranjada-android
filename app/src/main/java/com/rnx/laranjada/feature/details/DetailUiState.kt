@@ -26,6 +26,9 @@ data class DetailUiState(
     val isSeries: Boolean
         get() = contentType == DetailContentType.Series
 
+    val contentTypeForApi: String
+        get() = if (isSeries) "series" else "movie"
+
     val hasWatchProgress: Boolean
         get() = watchProgress != null && watchProgress.progress > 0f
 

@@ -1,6 +1,7 @@
 package com.rnx.laranjada.data.mapper
 
 import androidx.compose.ui.graphics.Color
+import com.rnx.laranjada.core.network.MediaUrlResolver
 import com.rnx.laranjada.feature.home.CategoryUi
 import com.rnx.laranjada.feature.home.CollectionUi
 import com.rnx.laranjada.feature.home.ContinueWatchingUi
@@ -48,9 +49,10 @@ object HomeMapper {
                         duration = "",
                         quality = "",
                         synopsis = "",
-                        imageUrl = item.optNullableString("image_mobile_url")
-                            ?: item.optNullableString("image_url")
-                            ?: "",
+                        imageUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("image_mobile_url")
+                                ?: item.optNullableString("image_url")
+                        ),
                         gradientColors = defaultGradient(index),
                         uuid = contentUuid,
                         contentType = contentType
@@ -69,7 +71,9 @@ object HomeMapper {
 
                 add(
                     CategoryUi(
-                        name = item.optString("title")
+                        name = item.optString("title"),
+                        slug = item.optNullableString("slug") ?: "",
+                        contentType = item.optNullableString("content_type")
                     )
                 )
             }
@@ -104,6 +108,7 @@ object HomeMapper {
                 add(
                     HomeContentSectionUi(
                         title = section.optString("title"),
+                        slug = section.optNullableString("slug") ?: "",
                         contentType = contentType,
                         items = items
                     )
@@ -124,11 +129,25 @@ object HomeMapper {
                 val item = array.optJSONObject(index) ?: continue
                 val uuid = item.optNullableString("uuid") ?: continue
 
+                val year = item.optNullableString("year")
+                val rating = item.optNullableString("rating")
+
+                val subtitle = buildString {
+                    if (!year.isNullOrBlank()) append(year)
+
+                    if (!rating.isNullOrBlank() && rating != "0" && rating != "0.0") {
+                        if (isNotBlank()) append(" • ")
+                        append(rating)
+                    }
+                }
+
                 add(
                     MediaItemUi(
                         title = item.optString("title"),
-                        subtitle = item.optNullableString("original_title") ?: "",
-                        imageUrl = item.optNullableString("image_url") ?: "",
+                        subtitle = subtitle,
+                        imageUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("image_url")
+                        ),
                         progress = null,
                         gradientColors = defaultGradient(sectionIndex + index),
                         uuid = uuid,
@@ -145,14 +164,15 @@ object HomeMapper {
         return buildList {
             for (index in 0 until array.length()) {
                 val item = array.optJSONObject(index) ?: continue
-
                 val uuid = item.optNullableString("uuid") ?: continue
 
                 add(
                     CollectionUi(
                         uuid = uuid,
                         title = item.optString("title"),
-                        imageUrl = item.optNullableString("image_url") ?: "",
+                        imageUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("image_url")
+                        ),
                         gradientColors = defaultGradient(index)
                     )
                 )

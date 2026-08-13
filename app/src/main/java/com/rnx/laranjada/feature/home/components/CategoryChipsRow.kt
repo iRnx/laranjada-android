@@ -29,7 +29,8 @@ fun CategoryChipsRow(
 ) {
     LazyRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(end = 18.dp)
     ) {
         itemsIndexed(categories) { index, category ->
             val selected = index == selectedIndex
@@ -42,14 +43,14 @@ fun CategoryChipsRow(
                     color = if (selected) {
                         LaranjadaOrange
                     } else {
-                        LaranjadaText.copy(alpha = 0.04f)
+                        LaranjadaText.copy(alpha = 0.06f)
                     }
                 ),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = if (selected) {
                         LaranjadaOrange
                     } else {
-                        LaranjadaSurface.copy(alpha = 0.84f)
+                        LaranjadaSurface.copy(alpha = 0.72f)
                     },
                     contentColor = if (selected) {
                         LaranjadaText
@@ -57,15 +58,16 @@ fun CategoryChipsRow(
                         LaranjadaMutedText
                     }
                 ),
-                modifier = Modifier.height(44.dp),
+                modifier = Modifier.height(42.dp),
                 contentPadding = PaddingValues(
-                    horizontal = 22.dp,
+                    horizontal = 21.dp,
                     vertical = 0.dp
                 )
             ) {
                 Text(
                     text = category.name,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    maxLines = 1
                 )
             }
         }

@@ -20,6 +20,62 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("local") {
+            dimension = "environment"
+            applicationIdSuffix = ".local"
+            versionNameSuffix = "-local"
+
+            buildConfigField("String", "APP_ENVIRONMENT", "\"local\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8000\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8000\"")
+
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+
+            resValue(
+                type = "string",
+                name = "app_name",
+                value = "Laranjada Local"
+            )
+        }
+
+        create("hml") {
+            dimension = "environment"
+            applicationIdSuffix = ".hml"
+            versionNameSuffix = "-hml"
+
+            buildConfigField("String", "APP_ENVIRONMENT", "\"hml\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://laranjada.eu\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"https://laranjada.eu\"")
+
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+
+            resValue(
+                type = "string",
+                name = "app_name",
+                value = "Laranjada HML"
+            )
+        }
+
+        create("prod") {
+            dimension = "environment"
+
+            buildConfigField("String", "APP_ENVIRONMENT", "\"prod\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://laranjada.zip\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"https://laranjada.zip\"")
+
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+
+            resValue(
+                type = "string",
+                name = "app_name",
+                value = "Laranjada"
+            )
+        }
+    }
+
     buildTypes {
         release {
             optimization {
@@ -39,6 +95,8 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+        resValues = true
     }
 }
 

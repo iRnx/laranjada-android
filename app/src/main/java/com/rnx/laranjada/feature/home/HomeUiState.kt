@@ -27,7 +27,9 @@ data class HeroBannerUi(
 )
 
 data class CategoryUi(
-    val name: String
+    val name: String,
+    val slug: String = "",
+    val contentType: String? = null
 )
 
 data class ContinueWatchingUi(
@@ -41,6 +43,7 @@ data class ContinueWatchingUi(
 
 data class HomeContentSectionUi(
     val title: String,
+    val slug: String = "",
     val contentType: String,
     val items: List<MediaItemUi>
 )

@@ -1,7 +1,10 @@
 package com.rnx.laranjada.feature.details
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,16 +18,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -33,6 +39,7 @@ import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -52,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,21 +72,43 @@ import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaSurface
 import com.rnx.laranjada.core.design.theme.LaranjadaSurfaceLight
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+import com.rnx.laranjada.feature.home.MediaItemUi
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
+
+private enum class DetailTab {
+    Episodes,
+    Suggestions,
+    Details
+}
 
 @Composable
 fun DetailScreen(
     uiState: DetailUiState,
+    relatedItems: List<MediaItemUi> = emptyList(),
+    isRelatedLoading: Boolean = false,
+    relatedErrorMessage: String? = null,
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onPlayClick: () -> Unit = {},
     onRestartClick: () -> Unit = {},
     onFavoriteClick: (Boolean) -> Unit = {},
+    onRelatedClick: (MediaItemUi) -> Unit = {},
+    onRetryRelatedClick: () -> Unit = {},
     onEpisodeClick: (EpisodeUi) -> Unit = {}
 ) {
     val selectedBottomIndex = remember { mutableIntStateOf(0) }
     var selectedSeasonIndex by remember { mutableIntStateOf(0) }
     var isFavorite by remember { mutableStateOf(false) }
+
+    var selectedTab by remember(uiState.uuid, uiState.isSeries) {
+        mutableStateOf(
+            if (uiState.isSeries) {
+                DetailTab.Episodes
+            } else {
+                DetailTab.Suggestions
+            }
+        )
+    }
 
     LaunchedEffect(uiState.seasons.size) {
         if (selectedSeasonIndex >= uiState.seasons.size) {
@@ -97,7 +125,7 @@ fun DetailScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 132.dp)
+            contentPadding = PaddingValues(bottom = 124.dp)
         ) {
             item {
                 DetailHero(
@@ -119,30 +147,60 @@ fun DetailScreen(
                 )
             }
 
-            if (uiState.isSeries) {
-                item {
-                    EpisodesTitle()
-                }
+            item {
+                DetailTabs(
+                    isSeries = uiState.isSeries,
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        selectedTab = tab
+                    }
+                )
+            }
 
-                item {
-                    SeasonHeader(
-                        seasons = uiState.seasons,
-                        selectedSeasonIndex = selectedSeasonIndex,
-                        onSeasonSelected = { index ->
-                            selectedSeasonIndex = index
-                        }
-                    )
-                }
-
-                if (selectedSeason != null) {
-                    items(selectedSeason.episodes) { episode ->
-                        EpisodeCard(
-                            episode = episode,
-                            onClick = {
-                                if (episode.hlsUrl.isNotBlank()) {
-                                    onEpisodeClick(episode)
+            when (selectedTab) {
+                DetailTab.Episodes -> {
+                    if (uiState.isSeries) {
+                        item {
+                            SeasonHeader(
+                                seasons = uiState.seasons,
+                                selectedSeasonIndex = selectedSeasonIndex,
+                                onSeasonSelected = { index ->
+                                    selectedSeasonIndex = index
                                 }
+                            )
+                        }
+
+                        if (selectedSeason != null) {
+                            items(selectedSeason.episodes) { episode ->
+                                EpisodeCard(
+                                    episode = episode,
+                                    onClick = {
+                                        if (episode.hlsUrl.isNotBlank()) {
+                                            onEpisodeClick(episode)
+                                        }
+                                    }
+                                )
                             }
+                        }
+                    }
+                }
+
+                DetailTab.Suggestions -> {
+                    item {
+                        RelatedSuggestionsSection(
+                            relatedItems = relatedItems,
+                            isLoading = isRelatedLoading,
+                            errorMessage = relatedErrorMessage,
+                            onItemClick = onRelatedClick,
+                            onRetryClick = onRetryRelatedClick
+                        )
+                    }
+                }
+
+                DetailTab.Details -> {
+                    item {
+                        DetailInfoSection(
+                            uiState = uiState
                         )
                     }
                 }
@@ -171,7 +229,7 @@ private fun DetailHero(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(480.dp)
+            .height(460.dp)
             .background(LaranjadaBlack)
     ) {
         AsyncImage(
@@ -187,29 +245,20 @@ private fun DetailHero(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0.00f to Color.Black.copy(alpha = 0.15f),
-                            0.35f to Color.Black.copy(alpha = 0.05f),
-                            0.75f to Color.Black.copy(alpha = 0.74f),
+                            0.00f to Color.Black.copy(alpha = 0.42f),
+                            0.18f to Color.Black.copy(alpha = 0.12f),
+                            0.62f to Color.Black.copy(alpha = 0.34f),
+                            0.84f to Color.Black.copy(alpha = 0.82f),
                             1.00f to LaranjadaBlack
                         )
                     )
                 )
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 18.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CircleIconButton(
-                icon = Icons.Rounded.Close,
-                contentDescription = "Fechar",
-                onClick = onBackClick
-            )
-        }
+        DetailTopBar(
+            title = uiState.title,
+            onBackClick = onBackClick
+        )
 
         Column(
             modifier = Modifier
@@ -221,8 +270,8 @@ private fun DetailHero(
             Text(
                 text = uiState.title,
                 color = LaranjadaText,
-                fontSize = 31.sp,
-                lineHeight = 35.sp,
+                fontSize = 29.sp,
+                lineHeight = 33.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
                 maxLines = 3,
@@ -237,24 +286,40 @@ private fun DetailHero(
 }
 
 @Composable
-private fun CircleIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit
+private fun DetailTopBar(
+    title: String,
+    onBackClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.size(44.dp),
-        shape = CircleShape,
-        color = Color.Black.copy(alpha = 0.45f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(start = 6.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onClick) {
+        IconButton(
+            onClick = onBackClick
+        ) {
             Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = Color.White,
+                imageVector = Icons.Rounded.ArrowBack,
+                contentDescription = "Voltar",
+                tint = LaranjadaText,
                 modifier = Modifier.size(27.dp)
             )
         }
+
+        Text(
+            text = title,
+            color = LaranjadaText,
+            fontSize = 18.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp)
+        )
     }
 }
 
@@ -281,7 +346,7 @@ private fun MetadataLine(
             Text(
                 text = years,
                 color = LaranjadaMutedText,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -294,7 +359,7 @@ private fun MetadataLine(
             Text(
                 text = uiState.durationInfo,
                 color = LaranjadaMutedText,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -305,7 +370,7 @@ private fun MetadataLine(
             Text(
                 text = genresText,
                 color = LaranjadaMutedText,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -319,7 +384,7 @@ private fun MetaDot() {
     Text(
         text = " • ",
         color = LaranjadaMutedText,
-        fontSize = 14.sp,
+        fontSize = 13.sp,
         fontWeight = FontWeight.Bold
     )
 }
@@ -336,7 +401,7 @@ private fun DetailMainInfo(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
-            .padding(top = 8.dp),
+            .padding(top = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         RatingWithStar(
@@ -344,20 +409,20 @@ private fun DetailMainInfo(
         )
 
         if (uiState.hasWatchProgress) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             WatchProgressBar(
                 watchProgress = uiState.watchProgress
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Button(
             onClick = onPlayClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
+                .height(56.dp),
             enabled = uiState.canPlay,
             shape = RoundedCornerShape(7.dp),
             colors = ButtonDefaults.buttonColors(
@@ -370,20 +435,20 @@ private fun DetailMainInfo(
             Icon(
                 imageVector = Icons.Rounded.PlayArrow,
                 contentDescription = null,
-                modifier = Modifier.size(31.dp)
+                modifier = Modifier.size(30.dp)
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
                 text = if (uiState.hasWatchProgress) "CONTINUAR" else "ASSISTIR",
-                fontSize = 23.sp,
+                fontSize = 21.sp,
                 fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 4.sp
+                letterSpacing = 3.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         DetailActionsRow(
             hasWatchProgress = uiState.hasWatchProgress,
@@ -393,25 +458,25 @@ private fun DetailMainInfo(
         )
 
         if (uiState.isSeries && uiState.watchProgress?.hasEpisodeInfo == true) {
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             ContinueEpisodeInfo(
                 watchProgress = uiState.watchProgress
             )
         }
 
-        Spacer(modifier = Modifier.height(22.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = uiState.synopsis,
             color = LaranjadaText,
-            fontSize = 20.sp,
-            lineHeight = 28.sp,
+            fontSize = 16.sp,
+            lineHeight = 23.sp,
             fontWeight = FontWeight.Normal,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(26.dp))
     }
 }
 
@@ -428,7 +493,7 @@ private fun RatingWithStar(
         Text(
             text = rating,
             color = LaranjadaText,
-            fontSize = 17.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.ExtraBold
         )
 
@@ -438,7 +503,7 @@ private fun RatingWithStar(
             imageVector = Icons.Rounded.Star,
             contentDescription = "Avaliação",
             tint = Color(0xFFFFC107),
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(19.dp)
         )
     }
 }
@@ -476,7 +541,7 @@ private fun WatchProgressBar(
         Text(
             text = watchProgress.remainingText,
             color = LaranjadaMutedText,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
     }
@@ -515,13 +580,13 @@ private fun RestartButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(54.dp)
+        modifier = Modifier.size(52.dp)
     ) {
         Icon(
             imageVector = Icons.Rounded.Replay,
             contentDescription = "Reiniciar",
             tint = LaranjadaText,
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier.size(31.dp)
         )
     }
 }
@@ -533,7 +598,7 @@ private fun FavoriteButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(54.dp)
+        modifier = Modifier.size(52.dp)
     ) {
         Icon(
             imageVector = if (isFavorite) {
@@ -551,7 +616,7 @@ private fun FavoriteButton(
             } else {
                 LaranjadaText
             },
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier.size(31.dp)
         )
     }
 }
@@ -566,8 +631,8 @@ private fun ContinueEpisodeInfo(
         Text(
             text = "T${watchProgress.seasonNumber}:E${watchProgress.episodeNumber} ${watchProgress.episodeTitle}",
             color = LaranjadaText,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
+            fontSize = 21.sp,
+            lineHeight = 27.sp,
             fontWeight = FontWeight.ExtraBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -576,66 +641,108 @@ private fun ContinueEpisodeInfo(
 }
 
 @Composable
-private fun RatingBadge(
-    text: String
+private fun DetailTabs(
+    isSeries: Boolean,
+    selectedTab: DetailTab,
+    onTabSelected: (DetailTab) -> Unit
 ) {
-    if (text.isBlank()) return
-
-    Surface(
-        shape = RoundedCornerShape(5.dp),
-        color = LaranjadaSurfaceLight
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = text,
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            Icon(
-                imageVector = Icons.Rounded.Star,
-                contentDescription = "Avaliação",
-                tint = Color(0xFFFFC107),
-                modifier = Modifier.size(16.dp)
-            )
-        }
+    val tabs = if (isSeries) {
+        listOf(
+            DetailTab.Episodes to "EPISÓDIOS",
+            DetailTab.Suggestions to "SUGESTÕES",
+            DetailTab.Details to "DETALHES"
+        )
+    } else {
+        listOf(
+            DetailTab.Suggestions to "SUGESTÕES",
+            DetailTab.Details to "DETALHES"
+        )
     }
-}
 
-@Composable
-private fun EpisodesTitle() {
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
     ) {
-        Text(
-            text = "EPISÓDIOS",
-            color = LaranjadaText,
-            fontSize = 21.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 4.sp
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Box(
+        Row(
             modifier = Modifier
-                .height(5.dp)
-                .width(122.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-        )
+                .fillMaxWidth()
+                .horizontalScroll(scrollState),
+            horizontalArrangement = Arrangement.spacedBy(34.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEach { (tab, label) ->
+                DetailTabItem(
+                    label = label,
+                    selected = selectedTab == tab,
+                    onClick = {
+                        onTabSelected(tab)
+                    }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         HorizontalDivider(
             color = LaranjadaSurfaceLight,
             thickness = 1.dp
+        )
+    }
+}
+
+@Composable
+private fun DetailTabItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        modifier = Modifier
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            color = if (selected) LaranjadaText else LaranjadaMutedText,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 2.6.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Visible
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
+            modifier = Modifier
+                .height(4.dp)
+                .width(
+                    when (label) {
+                        "EPISÓDIOS" -> 104.dp
+                        "SUGESTÕES" -> 108.dp
+                        "DETALHES" -> 96.dp
+                        else -> 90.dp
+                    }
+                )
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (selected) {
+                        Color.White
+                    } else {
+                        Color.Transparent
+                    }
+                )
         )
     }
 }
@@ -650,7 +757,7 @@ private fun SeasonHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
-            .padding(top = 24.dp, bottom = 18.dp)
+            .padding(top = 22.dp, bottom = 18.dp)
     ) {
         SeasonSelector(
             seasons = seasons,
@@ -677,13 +784,13 @@ private fun SeasonSelector(
             }
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Temporada ${seasons.getOrNull(selectedSeasonIndex)?.number ?: 1}",
                     color = LaranjadaText,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
 
@@ -693,7 +800,7 @@ private fun SeasonSelector(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = null,
                     tint = LaranjadaText,
-                    modifier = Modifier.size(27.dp)
+                    modifier = Modifier.size(25.dp)
                 )
             }
         }
@@ -741,14 +848,14 @@ private fun EpisodeCard(
                 onClick = onClick
             )
             .padding(horizontal = 18.dp)
-            .padding(bottom = 30.dp)
+            .padding(bottom = 26.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .width(150.dp)
+                    .width(136.dp)
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(LaranjadaSurfaceLight)
@@ -762,7 +869,7 @@ private fun EpisodeCard(
 
                 Surface(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(38.dp)
                         .align(Alignment.Center),
                     shape = CircleShape,
                     color = if (hasVideo) {
@@ -780,7 +887,7 @@ private fun EpisodeCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(
                 modifier = Modifier.weight(1f)
@@ -792,14 +899,14 @@ private fun EpisodeCard(
                     } else {
                         LaranjadaMutedText
                     },
-                    fontSize = 20.sp,
-                    lineHeight = 24.sp,
+                    fontSize = 16.sp,
+                    lineHeight = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(7.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -808,7 +915,7 @@ private fun EpisodeCard(
                         Text(
                             text = episode.runtime,
                             color = LaranjadaMutedText,
-                            fontSize = 15.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
 
@@ -820,7 +927,7 @@ private fun EpisodeCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Text(
             text = episode.synopsis,
@@ -829,9 +936,341 @@ private fun EpisodeCard(
             } else {
                 LaranjadaMutedText
             },
-            fontSize = 18.sp,
-            lineHeight = 27.sp,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
             fontWeight = FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+private fun RatingBadge(
+    text: String
+) {
+    if (text.isBlank()) return
+
+    Surface(
+        shape = RoundedCornerShape(5.dp),
+        color = LaranjadaSurfaceLight
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Icon(
+                imageVector = Icons.Rounded.Star,
+                contentDescription = "Avaliação",
+                tint = Color(0xFFFFC107),
+                modifier = Modifier.size(14.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun RelatedSuggestionsSection(
+    relatedItems: List<MediaItemUi>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onItemClick: (MediaItemUi) -> Unit,
+    onRetryClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 22.dp, bottom = 10.dp)
+    ) {
+        Text(
+            text = "Sugestões",
+            color = LaranjadaText,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(horizontal = 18.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = LaranjadaOrange,
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+
+            errorMessage != null -> {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = LaranjadaSurface.copy(alpha = 0.72f),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.05f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp)
+                    ) {
+                        Text(
+                            text = "Não foi possível carregar sugestões.",
+                            color = LaranjadaText,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Text(
+                            text = errorMessage,
+                            color = LaranjadaMutedText,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+
+                        Text(
+                            text = "Tentar novamente",
+                            color = LaranjadaOrange,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .clickable {
+                                    onRetryClick()
+                                }
+                        )
+                    }
+                }
+            }
+
+            relatedItems.isEmpty() -> {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = LaranjadaSurface.copy(alpha = 0.72f),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.05f)
+                    )
+                ) {
+                    Text(
+                        text = "Nenhuma sugestão encontrada por enquanto.",
+                        color = LaranjadaMutedText,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(18.dp)
+                    )
+                }
+            }
+
+            else -> {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(
+                        items = relatedItems,
+                        key = { item -> "${item.contentType}-${item.uuid}" }
+                    ) { item ->
+                        RelatedContentCard(
+                            item = item,
+                            onClick = {
+                                onItemClick(item)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RelatedContentCard(
+    item: MediaItemUi,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        modifier = Modifier
+            .width(154.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(item.gradientColors))
+        ) {
+            AsyncImage(
+                model = item.imageUrl,
+                contentDescription = item.title,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.20f)
+                            )
+                        )
+                    )
+            )
+        }
+
+        Text(
+            text = item.title,
+            color = LaranjadaText,
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 7.dp)
+        )
+
+        if (item.subtitle.isNotBlank()) {
+            Text(
+                text = item.subtitle,
+                color = LaranjadaMutedText,
+                fontSize = 11.sp,
+                lineHeight = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailInfoSection(
+    uiState: DetailUiState
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp)
+            .padding(top = 24.dp, bottom = 10.dp)
+    ) {
+        Text(
+            text = "Detalhes",
+            color = LaranjadaText,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = LaranjadaSurface.copy(alpha = 0.72f),
+            border = BorderStroke(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.05f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                DetailInfoRow(
+                    label = "Título original",
+                    value = uiState.originalTitle.ifBlank { uiState.title }
+                )
+
+                DetailInfoRow(
+                    label = "Ano",
+                    value = if (uiState.endYear != null) {
+                        "${uiState.year} – ${uiState.endYear}"
+                    } else {
+                        uiState.year
+                    }
+                )
+
+                DetailInfoRow(
+                    label = "Duração",
+                    value = uiState.durationInfo
+                )
+
+                DetailInfoRow(
+                    label = "Nota",
+                    value = uiState.rating
+                )
+
+                DetailInfoRow(
+                    label = "Tipo",
+                    value = if (uiState.isSeries) "Série" else "Filme"
+                )
+
+                DetailInfoRow(
+                    label = "Gêneros",
+                    value = uiState.genres.joinToString(", ")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailInfoRow(
+    label: String,
+    value: String
+) {
+    if (value.isBlank()) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 7.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            color = LaranjadaMutedText,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.width(116.dp)
+        )
+
+        Text(
+            text = value,
+            color = LaranjadaText,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
         )
     }
 }

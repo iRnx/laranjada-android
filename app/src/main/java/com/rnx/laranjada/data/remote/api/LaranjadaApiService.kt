@@ -1,26 +1,83 @@
 package com.rnx.laranjada.data.remote.api
 
-import com.rnx.laranjada.core.network.ApiConfig
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.rnx.laranjada.core.network.ApiHttpClient
 import org.json.JSONObject
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 object LaranjadaApiService {
 
     suspend fun getHome(): JSONObject {
-        return getJson("/api/v1/home/")
+        return getJson(
+            "/api/v1/home/"
+        )
     }
 
-    suspend fun getMovieDetail(uuid: String): JSONObject {
-        return getJson("/api/v1/movies/$uuid/")
+    suspend fun getHomeSection(
+        sectionSlug: String,
+        page: Int,
+        pageSize: Int,
+        q: String = "",
+        year: String = "",
+        order: String = "updated_desc",
+        ratingMin: String = "",
+        kind: String = ""
+    ): JSONObject {
+        return getJson(
+            path = "/api/v1/home/sections/$sectionSlug/",
+            queryParams = mapOf(
+                "page" to page.toString(),
+                "page_size" to pageSize.toString(),
+                "q" to q,
+                "year" to year,
+                "order" to order,
+                "rating_min" to ratingMin,
+                "kind" to kind
+            )
+        )
     }
 
-    suspend fun getSeriesDetail(uuid: String): JSONObject {
-        return getJson("/api/v1/series/$uuid/")
+    suspend fun getMovieDetail(
+        uuid: String
+    ): JSONObject {
+        return getJson(
+            "/api/v1/movies/$uuid/"
+        )
+    }
+
+    suspend fun getSeriesDetail(
+        uuid: String
+    ): JSONObject {
+        return getJson(
+            "/api/v1/series/$uuid/"
+        )
+    }
+
+    suspend fun getRelatedContent(
+        contentType: String,
+        uuid: String,
+        limit: Int = 20
+    ): JSONObject {
+        val normalizedContentType = contentType.lowercase()
+
+        val path = when (
+            normalizedContentType
+        ) {
+            "series",
+            "serie" -> {
+                "/api/v1/series/$uuid/related/"
+            }
+
+            else -> {
+                "/api/v1/movies/$uuid/related/"
+            }
+        }
+
+        return getJson(
+            path = path,
+            queryParams = mapOf(
+                "limit" to limit.toString()
+            )
+        )
     }
 
     suspend fun getCollectionDetail(
@@ -47,42 +104,16 @@ object LaranjadaApiService {
         path: String,
         queryParams: Map<String, String> = emptyMap()
     ): JSONObject {
-        return withContext(Dispatchers.IO) {
-            val finalPath = buildPathWithQueryParams(
-                path = path,
-                queryParams = queryParams
-            )
+        val finalPath = buildPathWithQueryParams(
+            path = path,
+            queryParams = queryParams
+        )
 
-            val url = URL(ApiConfig.buildUrl(finalPath))
-            val connection = url.openConnection() as HttpURLConnection
+        val response = ApiHttpClient.get(
+            finalPath
+        )
 
-            try {
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 15_000
-                connection.readTimeout = 15_000
-                connection.setRequestProperty("Accept", "application/json")
-
-                val statusCode = connection.responseCode
-
-                val stream = if (statusCode in 200..299) {
-                    connection.inputStream
-                } else {
-                    connection.errorStream
-                }
-
-                val body = stream.bufferedReader().use { reader ->
-                    reader.readText()
-                }
-
-                if (statusCode !in 200..299) {
-                    throw IOException("Erro HTTP $statusCode: $body")
-                }
-
-                JSONObject(body)
-            } finally {
-                connection.disconnect()
-            }
-        }
+        return response.requireSuccessJson()
     }
 
     private fun buildPathWithQueryParams(
@@ -90,7 +121,9 @@ object LaranjadaApiService {
         queryParams: Map<String, String>
     ): String {
         val queryString = queryParams
-            .filter { (_, value) -> value.isNotBlank() }
+            .filter { (_, value) ->
+                value.isNotBlank()
+            }
             .map { (key, value) ->
                 "${encode(key)}=${encode(value)}"
             }
@@ -103,7 +136,12 @@ object LaranjadaApiService {
         return "$path?$queryString"
     }
 
-    private fun encode(value: String): String {
-        return URLEncoder.encode(value, "UTF-8")
+    private fun encode(
+        value: String
+    ): String {
+        return URLEncoder.encode(
+            value,
+            "UTF-8"
+        )
     }
 }

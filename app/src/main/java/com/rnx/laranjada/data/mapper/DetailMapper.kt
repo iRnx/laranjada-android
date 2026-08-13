@@ -1,5 +1,6 @@
 package com.rnx.laranjada.data.mapper
 
+import com.rnx.laranjada.core.network.MediaUrlResolver
 import com.rnx.laranjada.feature.details.DetailContentType
 import com.rnx.laranjada.feature.details.DetailUiState
 import com.rnx.laranjada.feature.details.EpisodeUi
@@ -42,9 +43,15 @@ object DetailMapper {
                 json.optNullableString("runtime") ?: ""
             },
             synopsis = json.optNullableString("sinopse") ?: "",
-            imageDetailUrl = json.optNullableString("image_detail_url") ?: "",
-            imageThumbUrl = json.optNullableString("image_thumb_url") ?: "",
-            hlsUrl = json.optNullableString("hls_url") ?: "",
+            imageDetailUrl = MediaUrlResolver.resolve(
+                json.optNullableString("image_detail_url")
+            ),
+            imageThumbUrl = MediaUrlResolver.resolve(
+                json.optNullableString("image_thumb_url")
+            ),
+            hlsUrl = MediaUrlResolver.resolve(
+                json.optNullableString("hls_url")
+            ),
             hasVideo = json.optBoolean("has_video", false),
             watchProgress = null,
             seasons = seasons
@@ -98,9 +105,13 @@ object DetailMapper {
                         runtime = item.optNullableString("runtime") ?: "",
                         rating = formatRating(item.opt("rating")),
                         synopsis = item.optNullableString("sinopse") ?: "",
-                        imageUrl = item.optNullableString("image_url") ?: "",
+                        imageUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("image_url")
+                        ),
                         hasVideo = item.optBoolean("has_video", false),
-                        hlsUrl = item.optNullableString("hls_url") ?: ""
+                        hlsUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("hls_url")
+                        )
                     )
                 )
             }

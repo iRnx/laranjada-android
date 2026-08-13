@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Home
@@ -29,15 +28,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rnx.laranjada.core.design.theme.LaranjadaMutedText
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
-import com.rnx.laranjada.core.design.theme.LaranjadaSurface
 import com.rnx.laranjada.core.design.theme.LaranjadaSurfaceLight
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+
+private val LaranjadaBottomBarBackground = Color(0xFF101417)
 
 private enum class BottomNavItemType {
     Icon,
@@ -75,29 +77,34 @@ fun HomeBottomBar(
         )
     )
 
-    Box(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 42.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        shape = RectangleShape,
+        color = LaranjadaBottomBarBackground.copy(alpha = 0.96f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        Surface(
-            shape = RoundedCornerShape(34.dp),
-            color = LaranjadaSurface.copy(alpha = 0.94f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(34.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEachIndexed { index, item ->
-                    BottomNavItem(
-                        item = item,
-                        selected = index == selectedIndex,
-                        onClick = { onItemClick(index) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.05f)
                     )
-                }
+                )
+                .padding(horizontal = 34.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                BottomNavItem(
+                    item = item,
+                    selected = index == selectedIndex,
+                    onClick = { onItemClick(index) }
+                )
             }
         }
     }
@@ -113,7 +120,8 @@ private fun BottomNavItem(
 
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(44.dp)
+            .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -128,7 +136,7 @@ private fun BottomNavItem(
                     contentDescription = item.label,
                     tint = if (selected) LaranjadaOrange else LaranjadaMutedText,
                     modifier = Modifier.size(
-                        if (selected) 29.dp else 27.dp
+                        if (selected) 28.dp else 26.dp
                     )
                 )
             }
@@ -150,9 +158,9 @@ private fun ProfileAvatarPlaceholder(
 ) {
     Box(
         modifier = Modifier
-            .requiredSize(30.dp)
+            .requiredSize(27.dp)
             .clip(CircleShape)
-            .background(LaranjadaSurfaceLight)
+            .background(LaranjadaSurfaceLight.copy(alpha = 0.82f))
             .border(
                 border = BorderStroke(
                     width = if (selected) 2.dp else 1.dp,
@@ -169,9 +177,9 @@ private fun ProfileAvatarPlaceholder(
         Text(
             text = initial.take(1).uppercase(),
             color = if (selected) LaranjadaOrange else LaranjadaText,
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 13.sp
+            lineHeight = 11.sp
         )
     }
 }

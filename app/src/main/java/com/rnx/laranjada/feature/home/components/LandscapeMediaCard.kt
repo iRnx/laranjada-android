@@ -27,9 +27,9 @@ fun LandscapeMediaCard(
 
     Box(
         modifier = modifier
-            .width(190.dp)
+            .width(150.dp)
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Brush.linearGradient(item.gradientColors))
             .clickable(
                 interactionSource = interactionSource,

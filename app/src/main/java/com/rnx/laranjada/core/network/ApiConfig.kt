@@ -1,12 +1,31 @@
 package com.rnx.laranjada.core.network
 
-object ApiConfig {
-//    const val BASE_URL = "http://10.0.2.2:8000"
-    const val BASE_URL = "http://127.0.0.1:8000"
-    fun buildUrl(path: String): String {
-        val normalizedBaseUrl = BASE_URL.trimEnd('/')
-        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+import com.rnx.laranjada.BuildConfig
 
-        return "$normalizedBaseUrl$normalizedPath"
+object ApiConfig {
+    val ENVIRONMENT: String = BuildConfig.APP_ENVIRONMENT
+    val BASE_URL: String = BuildConfig.API_BASE_URL.trimEnd('/')
+    val MEDIA_BASE_URL: String = BuildConfig.MEDIA_BASE_URL.trimEnd('/')
+
+    fun buildUrl(path: String): String {
+        return buildAbsoluteUrl(
+            baseUrl = BASE_URL,
+            path = path
+        )
+    }
+
+    fun buildMediaUrl(path: String): String {
+        return buildAbsoluteUrl(
+            baseUrl = MEDIA_BASE_URL,
+            path = path
+        )
+    }
+
+    private fun buildAbsoluteUrl(
+        baseUrl: String,
+        path: String
+    ): String {
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        return "$baseUrl$normalizedPath"
     }
 }

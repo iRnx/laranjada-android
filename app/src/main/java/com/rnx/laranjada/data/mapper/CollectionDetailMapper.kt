@@ -1,6 +1,7 @@
 package com.rnx.laranjada.data.mapper
 
 import androidx.compose.ui.graphics.Color
+import com.rnx.laranjada.core.network.MediaUrlResolver
 import com.rnx.laranjada.feature.collections.CollectionAppliedFiltersUi
 import com.rnx.laranjada.feature.collections.CollectionAvailableFiltersUi
 import com.rnx.laranjada.feature.collections.CollectionDetailUiState
@@ -17,7 +18,9 @@ object CollectionDetailMapper {
         return CollectionDetailUiState(
             uuid = collection.optNullableString("uuid") ?: "",
             title = collection.optNullableString("title") ?: "",
-            imageUrl = collection.optNullableString("image_url") ?: "",
+            imageUrl = MediaUrlResolver.resolve(
+                collection.optNullableString("image_url")
+            ),
             movies = mapMediaItems(json.optJSONArray("movies"), fallbackContentType = "movie"),
             series = mapMediaItems(json.optJSONArray("series"), fallbackContentType = "series"),
             hasMovies = json.optBoolean("has_movies", false),
@@ -46,7 +49,9 @@ object CollectionDetailMapper {
                     MediaItemUi(
                         title = item.optNullableString("title") ?: "",
                         subtitle = if (contentType == "series") "Série" else "Filme",
-                        imageUrl = item.optNullableString("image_url") ?: "",
+                        imageUrl = MediaUrlResolver.resolve(
+                            item.optNullableString("image_url")
+                        ),
                         progress = null,
                         gradientColors = defaultGradient(index),
                         uuid = uuid,
