@@ -59,7 +59,9 @@ class ApiHttpException(
             }.getOrNull()
 
             return responseMessage
-                ?.takeIf { it.isNotBlank() }
+                ?.takeIf {
+                    it.isNotBlank()
+                }
                 ?: "Erro HTTP $statusCode."
         }
     }
@@ -69,7 +71,9 @@ object ApiHttpClient {
 
     private lateinit var cookieStore: SecureCookieStore
 
-    fun initialize(context: Context) {
+    fun initialize(
+        context: Context
+    ) {
         if (::cookieStore.isInitialized) {
             return
         }
@@ -103,16 +107,19 @@ object ApiHttpClient {
 
     fun clearAuthenticationCookies() {
         ensureInitialized()
+
         cookieStore.clearAuthentication()
     }
 
     fun hasSessionCookie(): Boolean {
         ensureInitialized()
+
         return cookieStore.hasSessionCookie()
     }
 
     fun currentCookieHeader(): String {
         ensureInitialized()
+
         return cookieStore.buildCookieHeader()
     }
 
@@ -124,13 +131,15 @@ object ApiHttpClient {
     ): ApiHttpResponse {
         ensureInitialized()
 
-        return withContext(Dispatchers.IO) {
+        return withContext(
+            Dispatchers.IO
+        ) {
             val url = URL(
                 ApiConfig.buildUrl(path)
             )
 
-            val connection = url.openConnection()
-                    as HttpURLConnection
+            val connection =
+                url.openConnection() as HttpURLConnection
 
             try {
                 connection.requestMethod = method
@@ -143,9 +152,12 @@ object ApiHttpClient {
                     "application/json"
                 )
 
-                val cookieHeader = cookieStore.buildCookieHeader()
+                val cookieHeader =
+                    cookieStore.buildCookieHeader()
 
-                if (cookieHeader.isNotBlank()) {
+                if (
+                    cookieHeader.isNotBlank()
+                ) {
                     connection.setRequestProperty(
                         "Cookie",
                         cookieHeader
@@ -153,11 +165,14 @@ object ApiHttpClient {
                 }
 
                 if (requiresCsrf) {
-                    val csrfToken = cookieStore.getCookie(
-                        "csrftoken"
-                    )
+                    val csrfToken =
+                        cookieStore.getCookie(
+                            "csrftoken"
+                        )
 
-                    if (csrfToken.isNullOrBlank()) {
+                    if (
+                        csrfToken.isNullOrBlank()
+                    ) {
                         throw IOException(
                             "O token CSRF não está disponível."
                         )
@@ -166,6 +181,28 @@ object ApiHttpClient {
                     connection.setRequestProperty(
                         "X-CSRFToken",
                         csrfToken
+                    )
+
+                    /*
+                     * Importante para Django CSRF,
+                     * principalmente em HML/PROD.
+                     *
+                     * Exemplos:
+                     *
+                     * local:
+                     * http://127.0.0.1:8000
+                     *
+                     * hml:
+                     * https://laranjada.eu
+                     *
+                     * Nenhum domínio fica hardcoded.
+                     */
+                    val origin =
+                        "${url.protocol}://${url.authority}"
+
+                    connection.setRequestProperty(
+                        "Origin",
+                        origin
                     )
                 }
 
@@ -186,7 +223,8 @@ object ApiHttpClient {
                     }
                 }
 
-                val statusCode = connection.responseCode
+                val statusCode =
+                    connection.responseCode
 
                 cookieStore.saveFromResponseHeaders(
                     connection.headerFields
@@ -202,12 +240,15 @@ object ApiHttpClient {
                     connection.errorStream
                 }
 
-                val responseBody = responseStream
-                    ?.bufferedReader(Charsets.UTF_8)
-                    ?.use { reader ->
-                        reader.readText()
-                    }
-                    .orEmpty()
+                val responseBody =
+                    responseStream
+                        ?.bufferedReader(
+                            Charsets.UTF_8
+                        )
+                        ?.use { reader ->
+                            reader.readText()
+                        }
+                        .orEmpty()
 
                 ApiHttpResponse(
                     statusCode = statusCode,
@@ -220,7 +261,9 @@ object ApiHttpClient {
     }
 
     private fun ensureInitialized() {
-        check(::cookieStore.isInitialized) {
+        check(
+            ::cookieStore.isInitialized
+        ) {
             "ApiHttpClient.initialize(context) precisa ser chamado antes das requisições."
         }
     }

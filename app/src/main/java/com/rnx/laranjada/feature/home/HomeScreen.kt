@@ -29,9 +29,10 @@ import com.rnx.laranjada.feature.home.components.HomeFooter
 import com.rnx.laranjada.feature.home.components.LandscapeMediaCard
 import com.rnx.laranjada.feature.home.components.SectionHeader
 
-private val LaranjadaDarkBackground = Color(
-    0xFF070B0F
-)
+private val LaranjadaDarkBackground =
+    Color(
+        0xFF070B0F
+    )
 
 @Composable
 fun HomeScreen(
@@ -50,13 +51,19 @@ fun HomeScreen(
         title: String
     ) -> Unit = { _, _ -> },
     onAccountClick: () -> Unit = {},
+    profileName: String = "",
+    profileAvatarUrl: String? = null,
     viewModel: HomeViewModel = viewModel()
 ) {
-    val uiState = viewModel.uiState
+    val uiState =
+        viewModel.uiState
 
-    val selectedBottomIndex = remember {
-        mutableIntStateOf(0)
-    }
+    val selectedBottomIndex =
+        remember {
+            mutableIntStateOf(
+                0
+            )
+        }
 
     Box(
         modifier = Modifier
@@ -66,23 +73,33 @@ fun HomeScreen(
             )
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                bottom = 118.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(
-                18.dp
-            )
+            modifier =
+                Modifier.fillMaxSize(),
+            contentPadding =
+                PaddingValues(
+                    bottom = 118.dp
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    18.dp
+                )
         ) {
             item {
                 HeroSection(
-                    banners = uiState.heroBanners,
-                    onBannerClick = { banner ->
+                    banners =
+                        uiState.heroBanners,
+                    onBannerClick = {
+                            banner ->
+
                         if (
-                            banner.uuid.isNotBlank() &&
-                            banner.contentType.isNotBlank()
+                            banner.uuid
+                                .isNotBlank() &&
+                            banner.contentType
+                                .isNotBlank()
                         ) {
-                            onBannerClick(banner)
+                            onBannerClick(
+                                banner
+                            )
                         }
                     }
                 )
@@ -90,15 +107,25 @@ fun HomeScreen(
 
             item {
                 CategoryChipsRow(
-                    categories = uiState.categories,
-                    selectedIndex = uiState.selectedCategoryIndex,
-                    modifier = Modifier.padding(
-                        horizontal = 18.dp
-                    ),
-                    onCategoryClick = { index ->
-                        val category = uiState.categories
-                            .getOrNull(index)
-                            ?: return@CategoryChipsRow
+                    categories =
+                        uiState.categories,
+                    selectedIndex =
+                        uiState
+                            .selectedCategoryIndex,
+                    modifier =
+                        Modifier.padding(
+                            horizontal =
+                                18.dp
+                        ),
+                    onCategoryClick = {
+                            index ->
+
+                        val category =
+                            uiState.categories
+                                .getOrNull(
+                                    index
+                                )
+                                ?: return@CategoryChipsRow
 
                         val sectionSlug =
                             categoryToSectionSlug(
@@ -106,7 +133,8 @@ fun HomeScreen(
                             )
 
                         if (
-                            sectionSlug.isNotBlank()
+                            sectionSlug
+                                .isNotBlank()
                         ) {
                             onCategoryGridClick(
                                 sectionSlug,
@@ -118,36 +146,47 @@ fun HomeScreen(
             }
 
             if (
-                uiState.continueWatching.isNotEmpty()
+                uiState.continueWatching
+                    .isNotEmpty()
             ) {
                 item {
                     SectionHeader(
-                        title = "Continue assistindo",
-                        modifier = Modifier.padding(
-                            horizontal = 18.dp
-                        ),
-                        showSeeAll = false
+                        title =
+                            "Continue assistindo",
+                        modifier =
+                            Modifier.padding(
+                                horizontal =
+                                    18.dp
+                            ),
+                        showSeeAll =
+                            false
                     )
 
                     Spacer(
-                        modifier = Modifier.height(
-                            6.dp
-                        )
+                        modifier =
+                            Modifier.height(
+                                6.dp
+                            )
                     )
 
                     LazyRow(
-                        contentPadding = PaddingValues(
-                            horizontal = 18.dp
-                        ),
-                        horizontalArrangement = Arrangement.spacedBy(
-                            14.dp
-                        )
+                        contentPadding =
+                            PaddingValues(
+                                horizontal =
+                                    18.dp
+                            ),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                14.dp
+                            )
                     ) {
                         items(
-                            uiState.continueWatching
+                            uiState
+                                .continueWatching
                         ) { item ->
                             ContinueWatchingCard(
-                                item = item
+                                item =
+                                    item
                             )
                         }
                     }
@@ -158,21 +197,27 @@ fun HomeScreen(
                 uiState.contentSections
             ) { section ->
                 SectionHeader(
-                    title = section.title,
-                    modifier = Modifier.padding(
-                        horizontal = 18.dp
-                    ),
-                    showSeeAll = true,
+                    title =
+                        section.title,
+                    modifier =
+                        Modifier.padding(
+                            horizontal =
+                                18.dp
+                        ),
+                    showSeeAll =
+                        true,
                     onSeeAllClick = {
                         val sectionSlug =
-                            section.slug.ifBlank {
-                                sectionTitleToSlug(
-                                    section.title
-                                )
-                            }
+                            section.slug
+                                .ifBlank {
+                                    sectionTitleToSlug(
+                                        section.title
+                                    )
+                                }
 
                         if (
-                            sectionSlug.isNotBlank()
+                            sectionSlug
+                                .isNotBlank()
                         ) {
                             onSeeAllClick(
                                 sectionSlug,
@@ -183,47 +228,65 @@ fun HomeScreen(
                 )
 
                 Spacer(
-                    modifier = Modifier.height(
-                        6.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            6.dp
+                        )
                 )
 
                 TwoRowsMediaCarousel(
-                    items = section.items,
-                    onMediaClick = onMediaClick
+                    items =
+                        section.items,
+                    onMediaClick =
+                        onMediaClick
                 )
             }
 
             if (
-                uiState.collections.isNotEmpty()
+                uiState.collections
+                    .isNotEmpty()
             ) {
                 item {
                     CollectionsSection(
-                        collections = uiState.collections,
-                        onCollectionClick = onCollectionClick
+                        collections =
+                            uiState.collections,
+                        onCollectionClick =
+                            onCollectionClick
                     )
                 }
             }
 
             item {
                 HomeFooter(
-                    modifier = Modifier.padding(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = 28.dp,
-                        bottom = 20.dp
-                    )
+                    modifier =
+                        Modifier.padding(
+                            start = 24.dp,
+                            end = 24.dp,
+                            top = 28.dp,
+                            bottom = 20.dp
+                        )
                 )
             }
         }
 
         HomeBottomBar(
-            selectedIndex = selectedBottomIndex.intValue,
-            onItemClick = { index ->
-                if (index == 3) {
+            selectedIndex =
+                selectedBottomIndex
+                    .intValue,
+            profileName =
+                profileName,
+            profileAvatarUrl =
+                profileAvatarUrl,
+            onItemClick = {
+                    index ->
+
+                if (
+                    index == 3
+                ) {
                     onAccountClick()
                 } else {
-                    selectedBottomIndex.intValue =
+                    selectedBottomIndex
+                        .intValue =
                         index
                 }
             },
@@ -242,31 +305,46 @@ private fun TwoRowsMediaCarousel(
         uuid: String
     ) -> Unit
 ) {
-    val columns = remember(items) {
-        items.chunked(2)
-    }
+    val columns =
+        remember(
+            items
+        ) {
+            items.chunked(
+                2
+            )
+        }
 
     LazyRow(
-        contentPadding = PaddingValues(
-            horizontal = 18.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(
-            10.dp
-        )
+        contentPadding =
+            PaddingValues(
+                horizontal = 18.dp
+            ),
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                10.dp
+            )
     ) {
-        items(columns) { columnItems ->
+        items(
+            columns
+        ) { columnItems ->
             Column(
-                verticalArrangement = Arrangement.spacedBy(
-                    10.dp
-                )
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
             ) {
-                columnItems.forEach { item ->
+                columnItems.forEach {
+                        item ->
+
                     LandscapeMediaCard(
-                        item = item,
+                        item =
+                            item,
                         onClick = {
                             if (
-                                item.uuid.isNotBlank() &&
-                                item.contentType.isNotBlank()
+                                item.uuid
+                                    .isNotBlank() &&
+                                item.contentType
+                                    .isNotBlank()
                             ) {
                                 onMediaClick(
                                     item.contentType,
@@ -284,13 +362,26 @@ private fun TwoRowsMediaCarousel(
 private fun categoryToSectionSlug(
     categorySlug: String
 ): String {
-    return when (categorySlug) {
-        "movies" -> "movies"
-        "series" -> "series"
-        "cartoons" -> "all-cartoons"
-        "animes" -> "all-animes"
-        "doramas" -> "doramas"
-        else -> ""
+    return when (
+        categorySlug
+    ) {
+        "movies" ->
+            "movies"
+
+        "series" ->
+            "series"
+
+        "cartoons" ->
+            "all-cartoons"
+
+        "animes" ->
+            "all-animes"
+
+        "doramas" ->
+            "doramas"
+
+        else ->
+            ""
     }
 }
 
@@ -298,7 +389,8 @@ private fun sectionTitleToSlug(
     title: String
 ): String {
     return when (
-        title.trim().lowercase()
+        title.trim()
+            .lowercase()
     ) {
         "novos filmes" ->
             "recent-movies"
@@ -344,6 +436,7 @@ private fun sectionTitleToSlug(
         "animes" ->
             "all-animes"
 
-        else -> ""
+        else ->
+            ""
     }
 }

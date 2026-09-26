@@ -1,13 +1,24 @@
 package com.rnx.laranjada.core.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.rnx.laranjada.domain.model.AuthenticatedUser
+import com.rnx.laranjada.domain.model.ViewerProfile
 import com.rnx.laranjada.feature.account.AccountScreen
+import com.rnx.laranjada.feature.account.AvatarOptionUi
+import com.rnx.laranjada.feature.account.AvatarPickerScreen
+import com.rnx.laranjada.feature.account.CreateProfileScreen
+import com.rnx.laranjada.feature.account.DeleteProfileScreen
+import com.rnx.laranjada.feature.account.EditProfileScreen
+import com.rnx.laranjada.feature.account.EditProfilesScreen
+import com.rnx.laranjada.feature.account.MenuProfileUi
+import com.rnx.laranjada.feature.account.ProfilePinScreen
+import com.rnx.laranjada.feature.account.ProfileViewModel
 import com.rnx.laranjada.feature.collections.CollectionDetailRoute
 import com.rnx.laranjada.feature.details.DetailRoute
 import com.rnx.laranjada.feature.home.HomeScreen
@@ -22,45 +33,135 @@ fun LaranjadaNavGraph(
     isLoggingOut: Boolean,
     logoutErrorMessage: String?,
     onLogoutClick: () -> Unit,
-    startDestination: String = AppRoutes.Home.route
+    startDestination: String =
+        AppRoutes.Home.route
 ) {
+    val profileViewModel:
+            ProfileViewModel =
+        viewModel()
+
+    val profileState =
+        profileViewModel.uiState
+
+    val menuProfiles =
+        profileState.profiles.map {
+                profile ->
+
+            profile.toMenuProfileUi()
+        }
+
+    /*
+     * Perfil atualmente selecionado.
+     *
+     * Primeiro usamos selectedProfileUuid,
+     * que é o valor oficial retornado pelo
+     * backend.
+     *
+     * O isSelected fica como fallback.
+     */
+    val selectedProfile =
+        profileState.profiles
+            .firstOrNull {
+                    profile ->
+
+                profile.uuid ==
+                        profileState
+                            .selectedProfileUuid
+            }
+            ?: profileState.profiles
+                .firstOrNull {
+                        profile ->
+
+                    profile.isSelected
+                }
+
+    fun returnToHome() {
+        navController.navigate(
+            AppRoutes.Home.route
+        ) {
+            popUpTo(
+                AppRoutes.Home.route
+            ) {
+                inclusive = false
+            }
+
+            launchSingleTop = true
+        }
+    }
+
     NavHost(
-        navController = navController,
-        startDestination = startDestination
+        navController =
+            navController,
+        startDestination =
+            startDestination
     ) {
+
+        /*
+         * HOME
+         */
         composable(
-            route = AppRoutes.Home.route
+            route =
+                AppRoutes.Home.route
         ) {
             HomeScreen(
-                onMediaClick = { contentType, uuid ->
+                profileName =
+                    selectedProfile?.name
+                        ?: currentUser.displayName,
+                profileAvatarUrl =
+                    selectedProfile
+                        ?.avatar
+                        ?.imageUrl,
+                onMediaClick = {
+                        contentType,
+                        uuid ->
+
                     navController.navigate(
-                        AppRoutes.Detail.createRoute(
-                            contentType = contentType,
-                            uuid = uuid
-                        )
+                        AppRoutes.Detail
+                            .createRoute(
+                                contentType =
+                                    contentType,
+                                uuid =
+                                    uuid
+                            )
                     )
                 },
-                onCollectionClick = { collection ->
+                onCollectionClick = {
+                        collection ->
+
                     navController.navigate(
-                        AppRoutes.Collection.createRoute(
-                            uuid = collection.uuid
-                        )
+                        AppRoutes.Collection
+                            .createRoute(
+                                uuid =
+                                    collection.uuid
+                            )
                     )
                 },
-                onSeeAllClick = { sectionSlug, title ->
+                onSeeAllClick = {
+                        sectionSlug,
+                        title ->
+
                     navController.navigate(
-                        AppRoutes.MediaGrid.createRoute(
-                            sectionSlug = sectionSlug,
-                            title = title
-                        )
+                        AppRoutes.MediaGrid
+                            .createRoute(
+                                sectionSlug =
+                                    sectionSlug,
+                                title =
+                                    title
+                            )
                     )
                 },
-                onCategoryGridClick = { sectionSlug, title ->
+                onCategoryGridClick = {
+                        sectionSlug,
+                        title ->
+
                     navController.navigate(
-                        AppRoutes.MediaGrid.createRoute(
-                            sectionSlug = sectionSlug,
-                            title = title
-                        )
+                        AppRoutes.MediaGrid
+                            .createRoute(
+                                sectionSlug =
+                                    sectionSlug,
+                                title =
+                                    title
+                            )
                     )
                 },
                 onAccountClick = {
@@ -71,131 +172,589 @@ fun LaranjadaNavGraph(
             )
         }
 
+        /*
+         * MENU
+         */
         composable(
-            route = AppRoutes.Account.route
+            route =
+                AppRoutes.Account.route
         ) {
             AccountScreen(
-                user = currentUser,
-                isLoggingOut = isLoggingOut,
-                logoutErrorMessage = logoutErrorMessage,
+                user =
+                    currentUser,
+                isLoggingOut =
+                    isLoggingOut,
+                logoutErrorMessage =
+                    logoutErrorMessage
+                        ?: profileState
+                            .loadErrorMessage
+                        ?: profileState
+                            .selectionErrorMessage,
                 onBackClick = {
-                    navController.popBackStack()
+                    navController
+                        .popBackStack()
                 },
-                onLogoutClick = onLogoutClick
+                onLogoutClick =
+                    onLogoutClick,
+                profiles =
+                    menuProfiles,
+                onProfileClick = {
+                        profile ->
+
+                    profileViewModel
+                        .clearSelectionError()
+
+                    if (
+                        profile.hasPin
+                    ) {
+                        navController.navigate(
+                            AppRoutes.ProfilePin
+                                .createRoute(
+                                    profileUuid =
+                                        profile.uuid
+                                )
+                        )
+                    } else {
+                        profileViewModel
+                            .selectProfile(
+                                profileUuid =
+                                    profile.uuid,
+                                onSuccess = {
+                                    returnToHome()
+                                },
+                                onPinRequired = {
+                                    navController.navigate(
+                                        AppRoutes.ProfilePin
+                                            .createRoute(
+                                                profileUuid =
+                                                    profile.uuid
+                                            )
+                                    )
+                                }
+                            )
+                    }
+                },
+                onCreateProfileClick = {
+                    navController.navigate(
+                        AppRoutes.CreateProfile.route
+                    )
+                },
+                onEditProfilesClick = {
+                    navController.navigate(
+                        AppRoutes.EditProfiles.route
+                    )
+                }
             )
         }
 
+        /*
+         * PIN DO PERFIL
+         */
         composable(
-            route = AppRoutes.MediaGrid.route,
+            route =
+                AppRoutes.ProfilePin.route,
             arguments = listOf(
                 navArgument(
-                    AppRoutes.MediaGrid.sectionSlugArg
+                    AppRoutes.ProfilePin
+                        .profileUuidArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val profileUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.ProfilePin
+                            .profileUuidArg
+                    )
+                    .orEmpty()
+
+            val profile =
+                profileState.profiles
+                    .firstOrNull {
+                        it.uuid ==
+                                profileUuid
+                    }
+
+            ProfilePinScreen(
+                profileName =
+                    profile?.name
+                        ?: "Perfil",
+                avatarUrl =
+                    profile
+                        ?.avatar
+                        ?.imageUrl,
+                isSubmitting =
+                    profileState.isSelecting &&
+                            profileState
+                                .selectingProfileUuid ==
+                            profileUuid,
+                errorMessage =
+                    profileState
+                        .selectionErrorMessage,
+                onBackClick = {
+                    profileViewModel
+                        .clearSelectionError()
+
+                    navController
+                        .popBackStack()
+                },
+                onSubmitClick = {
+                        pin ->
+
+                    profileViewModel
+                        .selectProfile(
+                            profileUuid =
+                                profileUuid,
+                            pin = pin,
+                            onSuccess = {
+                                returnToHome()
+                            }
+                        )
+                }
+            )
+        }
+
+        /*
+         * CRIAR PERFIL
+         */
+        composable(
+            route =
+                AppRoutes.CreateProfile.route
+        ) {
+            CreateProfileScreen(
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+                onCancelClick = {
+                    navController
+                        .popBackStack()
+                },
+                onDoneClick = {
+                        _,
+                        _,
+                        _ ->
+                }
+            )
+        }
+
+        /*
+         * ESCOLHER PERFIL PARA EDITAR
+         */
+        composable(
+            route =
+                AppRoutes.EditProfiles.route
+        ) {
+            EditProfilesScreen(
+                profiles =
+                    menuProfiles,
+                onProfileClick = {
+                        profile ->
+
+                    navController.navigate(
+                        AppRoutes.EditProfile
+                            .createRoute(
+                                profileUuid =
+                                    profile.uuid
+                            )
+                    )
+                },
+                onDoneClick = {
+                    navController
+                        .popBackStack()
+                }
+            )
+        }
+
+        /*
+         * EDITAR PERFIL
+         */
+        composable(
+            route =
+                AppRoutes.EditProfile.route,
+            arguments = listOf(
+                navArgument(
+                    AppRoutes.EditProfile
+                        .profileUuidArg
+                ) {
+                    type =
+                        NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val profileUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.EditProfile
+                            .profileUuidArg
+                    )
+                    .orEmpty()
+
+            val profile =
+                profileState.profiles
+                    .firstOrNull {
+                        it.uuid ==
+                                profileUuid
+                    }
+
+            EditProfileScreen(
+                profileUuid =
+                    profileUuid,
+                initialName =
+                    profile?.name
+                        ?: "",
+                avatarUrl =
+                    profile
+                        ?.avatar
+                        ?.imageUrl,
+                initialHasPin =
+                    profile?.hasPin
+                        ?: false,
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+                onAvatarClick = {
+                    navController.navigate(
+                        AppRoutes.AvatarPicker
+                            .createRoute(
+                                profileUuid =
+                                    profileUuid
+                            )
+                    )
+                },
+                onSaveClick = {
+                        _,
+                        _,
+                        _ ->
+                },
+                onCancelClick = {
+                    navController
+                        .popBackStack()
+                },
+                onDeleteClick = {
+                    navController.navigate(
+                        AppRoutes.DeleteProfile
+                            .createRoute(
+                                profileUuid =
+                                    profileUuid
+                            )
+                    )
+                }
+            )
+        }
+
+        /*
+         * ESCOLHER AVATAR
+         */
+        composable(
+            route =
+                AppRoutes.AvatarPicker.route,
+            arguments = listOf(
+                navArgument(
+                    AppRoutes.AvatarPicker
+                        .profileUuidArg
+                ) {
+                    type =
+                        NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val profileUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.AvatarPicker
+                            .profileUuidArg
+                    )
+                    .orEmpty()
+
+            val profile =
+                profileState.profiles
+                    .firstOrNull {
+                        it.uuid ==
+                                profileUuid
+                    }
+
+            val temporaryAvatars =
+                listOf(
+                    AvatarOptionUi(
+                        uuid =
+                            "avatar-hermione",
+                        name =
+                            "Hermione",
+                        collection =
+                            "Harry Potter",
+                        imageUrl =
+                            null
+                    ),
+                    AvatarOptionUi(
+                        uuid =
+                            "avatar-slytherin",
+                        name =
+                            "Slytherin",
+                        collection =
+                            "Harry Potter",
+                        imageUrl =
+                            null
+                    ),
+                    AvatarOptionUi(
+                        uuid =
+                            "avatar-voldemort",
+                        name =
+                            "Voldemort",
+                        collection =
+                            "Harry Potter",
+                        imageUrl =
+                            null
+                    ),
+                    AvatarOptionUi(
+                        uuid =
+                            "avatar-robin",
+                        name =
+                            "Robin",
+                        collection =
+                            "Os Jovens Titãs em Ação",
+                        imageUrl =
+                            null
+                    )
+                )
+
+            AvatarPickerScreen(
+                profileName =
+                    profile?.name
+                        ?: "Perfil",
+                avatars =
+                    temporaryAvatars,
+                initialSelectedAvatarUuid =
+                    profile
+                        ?.avatar
+                        ?.uuid,
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+                onAvatarClick = {
+                }
+            )
+        }
+
+        /*
+         * EXCLUIR PERFIL
+         */
+        composable(
+            route =
+                AppRoutes.DeleteProfile.route,
+            arguments = listOf(
+                navArgument(
+                    AppRoutes.DeleteProfile
+                        .profileUuidArg
+                ) {
+                    type =
+                        NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val profileUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.DeleteProfile
+                            .profileUuidArg
+                    )
+                    .orEmpty()
+
+            val profile =
+                profileState.profiles
+                    .firstOrNull {
+                        it.uuid ==
+                                profileUuid
+                    }
+
+            DeleteProfileScreen(
+                profileName =
+                    profile?.name
+                        ?: "Perfil",
+                avatarUrl =
+                    profile
+                        ?.avatar
+                        ?.imageUrl,
+                onConfirmClick = {
+                },
+                onCancelClick = {
+                    navController
+                        .popBackStack()
+                }
+            )
+        }
+
+        /*
+         * GRID
+         */
+        composable(
+            route =
+                AppRoutes.MediaGrid.route,
+            arguments = listOf(
+                navArgument(
+                    AppRoutes.MediaGrid
+                        .sectionSlugArg
+                ) {
+                    type =
+                        NavType.StringType
                 },
                 navArgument(
-                    AppRoutes.MediaGrid.titleArg
+                    AppRoutes.MediaGrid
+                        .titleArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
+
                     defaultValue = ""
                 }
             )
         ) { backStackEntry ->
-            val sectionSlug = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.MediaGrid.sectionSlugArg
-                )
-                .orEmpty()
+            val sectionSlug =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.MediaGrid
+                            .sectionSlugArg
+                    )
+                    .orEmpty()
 
-            val encodedTitle = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.MediaGrid.titleArg
-                )
-                .orEmpty()
+            val encodedTitle =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.MediaGrid
+                            .titleArg
+                    )
+                    .orEmpty()
 
-            val title = encodedTitle.decodeRouteValue()
+            val title =
+                encodedTitle
+                    .decodeRouteValue()
 
             MediaGridScreen(
-                sectionSlug = sectionSlug,
-                title = title,
+                sectionSlug =
+                    sectionSlug,
+                title =
+                    title,
                 onBackClick = {
-                    navController.popBackStack()
+                    navController
+                        .popBackStack()
                 },
-                onMediaClick = { contentType, uuid ->
+                onMediaClick = {
+                        contentType,
+                        uuid ->
+
                     navController.navigate(
-                        AppRoutes.Detail.createRoute(
-                            contentType = contentType,
-                            uuid = uuid
-                        )
+                        AppRoutes.Detail
+                            .createRoute(
+                                contentType =
+                                    contentType,
+                                uuid =
+                                    uuid
+                            )
                     )
                 }
             )
         }
 
+        /*
+         * COLEÇÃO
+         */
         composable(
-            route = AppRoutes.Collection.route,
+            route =
+                AppRoutes.Collection.route,
             arguments = listOf(
                 navArgument(
-                    AppRoutes.Collection.uuidArg
+                    AppRoutes.Collection
+                        .uuidArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
                 }
             )
         ) { backStackEntry ->
-            val uuid = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Collection.uuidArg
-                )
-                .orEmpty()
+            val uuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Collection
+                            .uuidArg
+                    )
+                    .orEmpty()
 
             CollectionDetailRoute(
-                uuid = uuid,
+                uuid =
+                    uuid,
                 onBackClick = {
-                    navController.popBackStack()
+                    navController
+                        .popBackStack()
                 },
-                onMediaClick = { contentType, mediaUuid ->
+                onMediaClick = {
+                        contentType,
+                        mediaUuid ->
+
                     navController.navigate(
-                        AppRoutes.Detail.createRoute(
-                            contentType = contentType,
-                            uuid = mediaUuid
-                        )
+                        AppRoutes.Detail
+                            .createRoute(
+                                contentType =
+                                    contentType,
+                                uuid =
+                                    mediaUuid
+                            )
                     )
                 }
             )
         }
 
+        /*
+         * DETALHE
+         */
         composable(
-            route = AppRoutes.Detail.route,
+            route =
+                AppRoutes.Detail.route,
             arguments = listOf(
                 navArgument(
-                    AppRoutes.Detail.contentTypeArg
+                    AppRoutes.Detail
+                        .contentTypeArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
                 },
                 navArgument(
-                    AppRoutes.Detail.uuidArg
+                    AppRoutes.Detail
+                        .uuidArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
                 }
             )
         ) { backStackEntry ->
-            val contentType = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Detail.contentTypeArg
-                )
-                .orEmpty()
+            val contentType =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Detail
+                            .contentTypeArg
+                    )
+                    .orEmpty()
 
-            val uuid = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Detail.uuidArg
-                )
-                .orEmpty()
+            val uuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Detail
+                            .uuidArg
+                    )
+                    .orEmpty()
 
             DetailRoute(
-                contentType = contentType,
-                uuid = uuid,
+                contentType =
+                    contentType,
+                uuid =
+                    uuid,
                 onBackClick = {
-                    navController.popBackStack()
+                    navController
+                        .popBackStack()
                 },
                 onPlayClick = {
                         playerContentType,
@@ -204,26 +763,34 @@ fun LaranjadaNavGraph(
                         seriesUuid ->
 
                     navController.navigate(
-                        AppRoutes.Player.createRoute(
-                            contentType = playerContentType,
-                            uuid = playerUuid,
-                            hlsUrl = hlsUrl,
-                            seriesUuid = seriesUuid
-                        )
+                        AppRoutes.Player
+                            .createRoute(
+                                contentType =
+                                    playerContentType,
+                                uuid =
+                                    playerUuid,
+                                hlsUrl =
+                                    hlsUrl,
+                                seriesUuid =
+                                    seriesUuid
+                            )
                     )
                 },
                 onRestartClick = {
-                    // Depois vamos ligar isso no progresso real.
                 },
                 onFavoriteClick = {
-                    // Depois vamos ligar isso na API de favoritos.
                 },
-                onRelatedClick = { item ->
+                onRelatedClick = {
+                        item ->
+
                     navController.navigate(
-                        AppRoutes.Detail.createRoute(
-                            contentType = item.contentType,
-                            uuid = item.uuid
-                        )
+                        AppRoutes.Detail
+                            .createRoute(
+                                contentType =
+                                    item.contentType,
+                                uuid =
+                                    item.uuid
+                            )
                     )
                 },
                 onEpisodeClick = {
@@ -231,88 +798,140 @@ fun LaranjadaNavGraph(
                         seriesUuid ->
 
                     navController.navigate(
-                        AppRoutes.Player.createRoute(
-                            contentType = "episode",
-                            uuid = episode.uuid,
-                            hlsUrl = episode.hlsUrl,
-                            seriesUuid = seriesUuid
-                        )
+                        AppRoutes.Player
+                            .createRoute(
+                                contentType =
+                                    "episode",
+                                uuid =
+                                    episode.uuid,
+                                hlsUrl =
+                                    episode.hlsUrl,
+                                seriesUuid =
+                                    seriesUuid
+                            )
                     )
                 }
             )
         }
 
+        /*
+         * PLAYER ANTIGO
+         *
+         * Será substituído pela task
+         * Playback Authorization.
+         */
         composable(
-            route = AppRoutes.Player.route,
+            route =
+                AppRoutes.Player.route,
             arguments = listOf(
                 navArgument(
-                    AppRoutes.Player.contentTypeArg
+                    AppRoutes.Player
+                        .contentTypeArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
                 },
                 navArgument(
-                    AppRoutes.Player.uuidArg
+                    AppRoutes.Player
+                        .uuidArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
                 },
                 navArgument(
-                    AppRoutes.Player.hlsUrlArg
+                    AppRoutes.Player
+                        .hlsUrlArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
+
                     defaultValue = ""
                 },
                 navArgument(
-                    AppRoutes.Player.seriesUuidArg
+                    AppRoutes.Player
+                        .seriesUuidArg
                 ) {
-                    type = NavType.StringType
+                    type =
+                        NavType.StringType
+
                     defaultValue = ""
                 }
             )
         ) { backStackEntry ->
-            val contentType = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Player.contentTypeArg
-                )
-                .orEmpty()
+            val contentType =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Player
+                            .contentTypeArg
+                    )
+                    .orEmpty()
 
-            val uuid = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Player.uuidArg
-                )
-                .orEmpty()
+            val uuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Player
+                            .uuidArg
+                    )
+                    .orEmpty()
 
-            val hlsUrl = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Player.hlsUrlArg
-                )
-                .orEmpty()
-                .decodeRouteValue()
+            val hlsUrl =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Player
+                            .hlsUrlArg
+                    )
+                    .orEmpty()
+                    .decodeRouteValue()
 
-            val seriesUuid = backStackEntry.arguments
-                ?.getString(
-                    AppRoutes.Player.seriesUuidArg
-                )
-                .orEmpty()
-                .decodeRouteValue()
+            val seriesUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.Player
+                            .seriesUuidArg
+                    )
+                    .orEmpty()
+                    .decodeRouteValue()
 
             PlayerScreen(
-                contentType = contentType,
-                uuid = uuid,
-                hlsUrl = hlsUrl,
-                seriesUuid = seriesUuid,
+                contentType =
+                    contentType,
+                uuid =
+                    uuid,
+                hlsUrl =
+                    hlsUrl,
+                seriesUuid =
+                    seriesUuid,
                 onBackClick = {
-                    navController.popBackStack()
+                    navController
+                        .popBackStack()
                 }
             )
         }
     }
 }
 
-private fun String.decodeRouteValue(): String {
+private fun ViewerProfile.toMenuProfileUi():
+        MenuProfileUi {
+    return MenuProfileUi(
+        uuid = uuid,
+        name = name,
+        avatarUrl =
+            avatar?.imageUrl,
+        hasPin =
+            hasPin,
+        isSelected =
+            isSelected
+    )
+}
+
+private fun String.decodeRouteValue():
+        String {
     return runCatching {
         URLDecoder.decode(
             this,
             "UTF-8"
         )
-    }.getOrDefault(this)
+    }.getOrDefault(
+        this
+    )
 }

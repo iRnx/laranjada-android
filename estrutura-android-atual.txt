@@ -1,0 +1,171 @@
+Laranjada
+├── app
+│   ├── src
+│   │   ├── androidTest
+│   │   │   └── java
+│   │   │       └── com
+│   │   │           └── rnx
+│   │   │               └── laranjada
+│   │   │                   └── ExampleInstrumentedTest.kt
+│   │   ├── main
+│   │   │   ├── java
+│   │   │   │   └── com
+│   │   │   │       └── rnx
+│   │   │   │           └── laranjada
+│   │   │   │               ├── core
+│   │   │   │               │   ├── design
+│   │   │   │               │   │   ├── components
+│   │   │   │               │   │   └── theme
+│   │   │   │               │   │       ├── Color.kt
+│   │   │   │               │   │       └── Theme.kt
+│   │   │   │               │   ├── navigation
+│   │   │   │               │   │   ├── AppRoutes.kt
+│   │   │   │               │   │   └── LaranjadaNavGraph.kt
+│   │   │   │               │   ├── network
+│   │   │   │               │   │   ├── ApiConfig.kt
+│   │   │   │               │   │   ├── ApiHttpClient.kt
+│   │   │   │               │   │   ├── MediaUrlResolver.kt
+│   │   │   │               │   │   └── SecureCookieStore.kt
+│   │   │   │               │   └── utils
+│   │   │   │               ├── data
+│   │   │   │               │   ├── mapper
+│   │   │   │               │   │   ├── AuthMapper.kt
+│   │   │   │               │   │   ├── CollectionDetailMapper.kt
+│   │   │   │               │   │   ├── DetailMapper.kt
+│   │   │   │               │   │   ├── HomeMapper.kt
+│   │   │   │               │   │   ├── MediaGridMapper.kt
+│   │   │   │               │   │   └── RelatedContentMapper.kt
+│   │   │   │               │   ├── remote
+│   │   │   │               │   │   ├── api
+│   │   │   │               │   │   │   ├── AuthApiService.kt
+│   │   │   │               │   │   │   └── LaranjadaApiService.kt
+│   │   │   │               │   │   └── dto
+│   │   │   │               │   └── repository
+│   │   │   │               ├── domain
+│   │   │   │               │   ├── model
+│   │   │   │               │   │   └── AuthenticatedUser.kt
+│   │   │   │               │   └── repository
+│   │   │   │               │       ├── AuthRepository.kt
+│   │   │   │               │       ├── AuthRepositoryImpl.kt
+│   │   │   │               │       ├── LaranjadaRepository.kt
+│   │   │   │               │       └── LaranjadaRepositoryImpl.kt
+│   │   │   │               ├── feature
+│   │   │   │               │   ├── account
+│   │   │   │               │   │   └── AccountScreen.kt
+│   │   │   │               │   ├── auth
+│   │   │   │               │   │   ├── AppSessionViewModel.kt
+│   │   │   │               │   │   ├── LoginScreen.kt
+│   │   │   │               │   │   ├── LoginUiState.kt
+│   │   │   │               │   │   └── LoginViewModel.kt
+│   │   │   │               │   ├── collections
+│   │   │   │               │   │   ├── data
+│   │   │   │               │   │   │   └── CollectionDetailMockData.kt
+│   │   │   │               │   │   ├── CollectionDetailRoute.kt
+│   │   │   │               │   │   ├── CollectionDetailScreen.kt
+│   │   │   │               │   │   ├── CollectionDetailUiState.kt
+│   │   │   │               │   │   └── CollectionDetailViewModel.kt
+│   │   │   │               │   ├── details
+│   │   │   │               │   │   ├── data
+│   │   │   │               │   │   │   └── DetailMockData.kt
+│   │   │   │               │   │   ├── DetailRoute.kt
+│   │   │   │               │   │   ├── DetailScreen.kt
+│   │   │   │               │   │   ├── DetailUiState.kt
+│   │   │   │               │   │   └── DetailViewModel.kt
+│   │   │   │               │   ├── favorites
+│   │   │   │               │   ├── home
+│   │   │   │               │   │   ├── components
+│   │   │   │               │   │   │   ├── CategoryChipsRow.kt
+│   │   │   │               │   │   │   ├── CollectionCard.kt
+│   │   │   │               │   │   │   ├── CollectionsSection.kt
+│   │   │   │               │   │   │   ├── ContinueWatchingCard.kt
+│   │   │   │               │   │   │   ├── HeroSection.kt
+│   │   │   │               │   │   │   ├── HomeBottomBar.kt
+│   │   │   │               │   │   │   ├── HomeFooter.kt
+│   │   │   │               │   │   │   ├── HomeTopBar.kt
+│   │   │   │               │   │   │   ├── LandscapeMediaCard.kt
+│   │   │   │               │   │   │   └── SectionHeader.kt
+│   │   │   │               │   │   ├── data
+│   │   │   │               │   │   │   └── HomeMockData.kt
+│   │   │   │               │   │   ├── HomeScreen.kt
+│   │   │   │               │   │   ├── HomeUiState.kt
+│   │   │   │               │   │   └── HomeViewModel.kt
+│   │   │   │               │   ├── mediagrid
+│   │   │   │               │   │   ├── MediaGridScreen.kt
+│   │   │   │               │   │   ├── MediaGridUiState.kt
+│   │   │   │               │   │   └── MediaGridViewModel.kt
+│   │   │   │               │   ├── player
+│   │   │   │               │   │   ├── PlayerControlsOverlay.kt
+│   │   │   │               │   │   ├── PlayerEpisodesPanel.kt
+│   │   │   │               │   │   ├── PlayerEpisodeUi.kt
+│   │   │   │               │   │   ├── PlayerFormatUtils.kt
+│   │   │   │               │   │   ├── PlayerInternalModels.kt
+│   │   │   │               │   │   ├── PlayerMediaActions.kt
+│   │   │   │               │   │   ├── PlayerOrientation.kt
+│   │   │   │               │   │   ├── PlayerPanels.kt
+│   │   │   │               │   │   ├── PlayerScreen.kt
+│   │   │   │               │   │   ├── PlayerSubtitleOverlay.kt
+│   │   │   │               │   │   ├── PlayerSubtitleSettings.kt
+│   │   │   │               │   │   ├── PlayerTrackUtils.kt
+│   │   │   │               │   │   └── PlayerViewModel.kt
+│   │   │   │               │   ├── profile
+│   │   │   │               │   └── search
+│   │   │   │               └── MainActivity.kt
+│   │   │   ├── keepRules
+│   │   │   │   └── rules.keep
+│   │   │   ├── res
+│   │   │   │   ├── drawable
+│   │   │   │   │   ├── empregada_puowz9l.jpeg
+│   │   │   │   │   ├── ic_launcher_background.xml
+│   │   │   │   │   ├── ic_launcher_foreground.xml
+│   │   │   │   │   └── one.jpeg
+│   │   │   │   ├── mipmap-anydpi-v26
+│   │   │   │   │   ├── ic_launcher.xml
+│   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   ├── mipmap-hdpi
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-mdpi
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xhdpi
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xxhdpi
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xxxhdpi
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── values
+│   │   │   │   │   ├── colors.xml
+│   │   │   │   │   ├── strings.xml
+│   │   │   │   │   └── themes.xml
+│   │   │   │   ├── values-night
+│   │   │   │   │   └── themes.xml
+│   │   │   │   └── xml
+│   │   │   │       ├── backup_rules.xml
+│   │   │   │       └── data_extraction_rules.xml
+│   │   │   └── AndroidManifest.xml
+│   │   └── test
+│   │       └── java
+│   │           └── com
+│   │               └── rnx
+│   │                   └── laranjada
+│   │                       └── ExampleUnitTest.kt
+│   ├── .gitignore
+│   └── build.gradle.kts
+├── gradle
+│   ├── wrapper
+│   │   ├── gradle-wrapper.jar
+│   │   └── gradle-wrapper.properties
+│   ├── gradle-daemon-jvm.properties
+│   └── libs.versions.toml
+├── .gitignore
+├── build.gradle.kts
+├── gerar_estrutura_android.py
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── local.properties
+├── README.md
+└── settings.gradle.kts

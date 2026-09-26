@@ -12,6 +12,66 @@ object AppRoutes {
         const val route = "account"
     }
 
+    object CreateProfile {
+        const val route = "profile/create"
+    }
+
+    object EditProfiles {
+        const val route = "profiles/edit"
+    }
+
+    object EditProfile {
+        const val profileUuidArg = "profileUuid"
+
+        const val route =
+            "profiles/edit/{$profileUuidArg}"
+
+        fun createRoute(
+            profileUuid: String
+        ): String {
+            return "profiles/edit/${Uri.encode(profileUuid)}"
+        }
+    }
+
+    object ProfilePin {
+        const val profileUuidArg = "profileUuid"
+
+        const val route =
+            "profiles/pin/{$profileUuidArg}"
+
+        fun createRoute(
+            profileUuid: String
+        ): String {
+            return "profiles/pin/${Uri.encode(profileUuid)}"
+        }
+    }
+
+    object AvatarPicker {
+        const val profileUuidArg = "profileUuid"
+
+        const val route =
+            "profiles/avatar/{$profileUuidArg}"
+
+        fun createRoute(
+            profileUuid: String
+        ): String {
+            return "profiles/avatar/${Uri.encode(profileUuid)}"
+        }
+    }
+
+    object DeleteProfile {
+        const val profileUuidArg = "profileUuid"
+
+        const val route =
+            "profiles/delete/{$profileUuidArg}"
+
+        fun createRoute(
+            profileUuid: String
+        ): String {
+            return "profiles/delete/${Uri.encode(profileUuid)}"
+        }
+    }
+
     object Detail {
         const val contentTypeArg = "contentType"
         const val uuidArg = "uuid"
