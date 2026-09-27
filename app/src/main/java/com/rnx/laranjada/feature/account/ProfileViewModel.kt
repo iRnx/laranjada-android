@@ -19,10 +19,23 @@ data class ProfileUiState(
         null,
     val loadErrorMessage: String? =
         null,
+
     val isSelecting: Boolean = false,
     val selectingProfileUuid: String? =
         null,
     val selectionErrorMessage: String? =
+        null,
+
+    val isCreatingProfile: Boolean =
+        false,
+    val createErrorMessage: String? =
+        null,
+
+    val isUpdatingProfile: Boolean =
+        false,
+    val updatingProfileUuid: String? =
+        null,
+    val updateErrorMessage: String? =
         null
 )
 
@@ -45,8 +58,10 @@ class ProfileViewModel(
         viewModelScope.launch {
             uiState =
                 uiState.copy(
-                    isLoading = true,
-                    loadErrorMessage = null
+                    isLoading =
+                        true,
+                    loadErrorMessage =
+                        null
                 )
 
             try {
@@ -55,19 +70,22 @@ class ProfileViewModel(
 
                 uiState =
                     uiState.copy(
-                        isLoading = false,
+                        isLoading =
+                            false,
                         profiles =
                             result.profiles,
                         selectedProfileUuid =
                             result.selectedProfileUuid,
-                        loadErrorMessage = null
+                        loadErrorMessage =
+                            null
                     )
             } catch (
                 exception: Exception
             ) {
                 uiState =
                     uiState.copy(
-                        isLoading = false,
+                        isLoading =
+                            false,
                         loadErrorMessage =
                             exception.message
                                 ?: "Não foi possível carregar os perfis."
@@ -79,7 +97,24 @@ class ProfileViewModel(
     fun clearSelectionError() {
         uiState =
             uiState.copy(
-                selectionErrorMessage = null
+                selectionErrorMessage =
+                    null
+            )
+    }
+
+    fun clearCreateError() {
+        uiState =
+            uiState.copy(
+                createErrorMessage =
+                    null
+            )
+    }
+
+    fun clearUpdateError() {
+        uiState =
+            uiState.copy(
+                updateErrorMessage =
+                    null
             )
     }
 
@@ -98,7 +133,8 @@ class ProfileViewModel(
         viewModelScope.launch {
             uiState =
                 uiState.copy(
-                    isSelecting = true,
+                    isSelecting =
+                        true,
                     selectingProfileUuid =
                         profileUuid,
                     selectionErrorMessage =
@@ -107,11 +143,13 @@ class ProfileViewModel(
 
             try {
                 val selectedProfile =
-                    repository.selectProfile(
-                        profileUuid =
-                            profileUuid,
-                        pin = pin
-                    )
+                    repository
+                        .selectProfile(
+                            profileUuid =
+                                profileUuid,
+                            pin =
+                                pin
+                        )
 
                 val updatedProfiles =
                     uiState.profiles.map {
@@ -126,7 +164,8 @@ class ProfileViewModel(
 
                 uiState =
                     uiState.copy(
-                        isSelecting = false,
+                        isSelecting =
+                            false,
                         selectingProfileUuid =
                             null,
                         profiles =
@@ -139,11 +178,13 @@ class ProfileViewModel(
 
                 onSuccess()
             } catch (
-                exception: ProfileApiException
+                exception:
+                ProfileApiException
             ) {
                 uiState =
                     uiState.copy(
-                        isSelecting = false,
+                        isSelecting =
+                            false,
                         selectingProfileUuid =
                             null,
                         selectionErrorMessage =
@@ -161,12 +202,234 @@ class ProfileViewModel(
             ) {
                 uiState =
                     uiState.copy(
-                        isSelecting = false,
+                        isSelecting =
+                            false,
                         selectingProfileUuid =
                             null,
                         selectionErrorMessage =
                             exception.message
                                 ?: "Não foi possível selecionar o perfil."
+                    )
+            }
+        }
+    }
+
+    fun createProfile(
+        name: String,
+        usePin: Boolean,
+        pin: String? = null,
+        onSuccess: (
+            ViewerProfile
+        ) -> Unit = {}
+    ) {
+        if (
+            uiState.isCreatingProfile
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isCreatingProfile =
+                        true,
+                    createErrorMessage =
+                        null
+                )
+
+            try {
+                val createdProfile =
+                    repository
+                        .createProfile(
+                            name =
+                                name.trim(),
+                            usePin =
+                                usePin,
+                            pin =
+                                pin
+                        )
+
+                val updatedProfiles =
+                    (
+                            uiState.profiles
+                                .filterNot {
+                                    it.uuid ==
+                                            createdProfile.uuid
+                                }
+                                .map {
+                                    it.copy(
+                                        isSelected =
+                                            false
+                                    )
+                                } +
+                                    createdProfile.copy(
+                                        isSelected =
+                                            true
+                                    )
+                            )
+                        .sortedWith(
+                            compareByDescending<
+                                    ViewerProfile
+                                    > {
+                                it.isDefault
+                            }.thenBy {
+                                it.name
+                                    .lowercase()
+                            }
+                        )
+
+                uiState =
+                    uiState.copy(
+                        isCreatingProfile =
+                            false,
+                        profiles =
+                            updatedProfiles,
+                        selectedProfileUuid =
+                            createdProfile.uuid,
+                        createErrorMessage =
+                            null
+                    )
+
+                onSuccess(
+                    createdProfile
+                )
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isCreatingProfile =
+                            false,
+                        createErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isCreatingProfile =
+                            false,
+                        createErrorMessage =
+                            exception.message
+                                ?: "Não foi possível criar o perfil."
+                    )
+            }
+        }
+    }
+
+    fun updateProfile(
+        profileUuid: String,
+        name: String? = null,
+        usePin: Boolean? = null,
+        pin: String? = null,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (
+            uiState.isUpdatingProfile
+        ) {
+            return
+        }
+
+        if (
+            name == null &&
+            usePin == null &&
+            pin == null
+        ) {
+            onSuccess()
+
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isUpdatingProfile =
+                        true,
+                    updatingProfileUuid =
+                        profileUuid,
+                    updateErrorMessage =
+                        null
+                )
+
+            try {
+                val updatedProfile =
+                    repository
+                        .updateProfile(
+                            profileUuid =
+                                profileUuid,
+                            name =
+                                name,
+                            usePin =
+                                usePin,
+                            pin =
+                                pin
+                        )
+
+                val updatedProfiles =
+                    uiState.profiles
+                        .map {
+                                profile ->
+
+                            if (
+                                profile.uuid ==
+                                updatedProfile.uuid
+                            ) {
+                                updatedProfile
+                            } else {
+                                profile
+                            }
+                        }
+                        .sortedWith(
+                            compareByDescending<
+                                    ViewerProfile
+                                    > {
+                                it.isDefault
+                            }.thenBy {
+                                it.name
+                                    .lowercase()
+                            }
+                        )
+
+                uiState =
+                    uiState.copy(
+                        isUpdatingProfile =
+                            false,
+                        updatingProfileUuid =
+                            null,
+                        profiles =
+                            updatedProfiles,
+                        updateErrorMessage =
+                            null
+                    )
+
+                onSuccess()
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingProfile =
+                            false,
+                        updatingProfileUuid =
+                            null,
+                        updateErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingProfile =
+                            false,
+                        updatingProfileUuid =
+                            null,
+                        updateErrorMessage =
+                            exception.message
+                                ?: "Não foi possível atualizar o perfil."
                     )
             }
         }

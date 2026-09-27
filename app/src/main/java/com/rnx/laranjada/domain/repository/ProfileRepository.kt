@@ -12,4 +12,17 @@ interface ProfileRepository {
         profileUuid: String,
         pin: String? = null
     ): ViewerProfile
+
+    suspend fun createProfile(
+        name: String,
+        usePin: Boolean,
+        pin: String? = null
+    ): ViewerProfile
+
+    suspend fun updateProfile(
+        profileUuid: String,
+        name: String? = null,
+        usePin: Boolean? = null,
+        pin: String? = null
+    ): ViewerProfile
 }

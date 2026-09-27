@@ -8,7 +8,8 @@ import com.rnx.laranjada.domain.repository.ProfileRepository
 
 class ProfileRepositoryImpl(
     private val apiService:
-    ProfileApiService = ProfileApiService
+    ProfileApiService =
+        ProfileApiService
 ) : ProfileRepository {
 
     override suspend fun getProfiles():
@@ -16,9 +17,10 @@ class ProfileRepositoryImpl(
         val response =
             apiService.getProfiles()
 
-        return ProfileMapper.fromListResponse(
-            response
-        )
+        return ProfileMapper
+            .fromListResponse(
+                response
+            )
     }
 
     override suspend fun selectProfile(
@@ -27,12 +29,60 @@ class ProfileRepositoryImpl(
     ): ViewerProfile {
         val response =
             apiService.selectProfile(
-                profileUuid = profileUuid,
-                pin = pin
+                profileUuid =
+                    profileUuid,
+                pin =
+                    pin
             )
 
-        return ProfileMapper.fromSelectResponse(
-            response
-        )
+        return ProfileMapper
+            .fromSelectResponse(
+                response
+            )
+    }
+
+    override suspend fun createProfile(
+        name: String,
+        usePin: Boolean,
+        pin: String?
+    ): ViewerProfile {
+        val response =
+            apiService.createProfile(
+                name =
+                    name,
+                usePin =
+                    usePin,
+                pin =
+                    pin
+            )
+
+        return ProfileMapper
+            .fromMutationResponse(
+                response
+            )
+    }
+
+    override suspend fun updateProfile(
+        profileUuid: String,
+        name: String?,
+        usePin: Boolean?,
+        pin: String?
+    ): ViewerProfile {
+        val response =
+            apiService.updateProfile(
+                profileUuid =
+                    profileUuid,
+                name =
+                    name,
+                usePin =
+                    usePin,
+                pin =
+                    pin
+            )
+
+        return ProfileMapper
+            .fromMutationResponse(
+                response
+            )
     }
 }

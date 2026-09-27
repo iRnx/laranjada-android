@@ -17,14 +17,19 @@ object ProfileMapper {
 
         val profiles =
             buildList {
-                if (profilesJson != null) {
+                if (
+                    profilesJson != null
+                ) {
                     for (
-                    index in 0 until profilesJson.length()
+                    index in
+                    0 until profilesJson.length()
                     ) {
                         val item =
-                            profilesJson.optJSONObject(
-                                index
-                            ) ?: continue
+                            profilesJson
+                                .optJSONObject(
+                                    index
+                                )
+                                ?: continue
 
                         add(
                             fromProfileJson(
@@ -56,18 +61,40 @@ object ProfileMapper {
         return ViewerProfileList(
             selectedProfileUuid =
                 selectedProfileUuid,
-            profiles = profiles
+            profiles =
+                profiles
         )
     }
 
     fun fromSelectResponse(
         response: JSONObject
     ): ViewerProfile {
+        return fromProfileResponse(
+            response = response,
+            missingProfileMessage =
+                "A API não retornou o perfil selecionado."
+        )
+    }
+
+    fun fromMutationResponse(
+        response: JSONObject
+    ): ViewerProfile {
+        return fromProfileResponse(
+            response = response,
+            missingProfileMessage =
+                "A API não retornou o perfil atualizado."
+        )
+    }
+
+    private fun fromProfileResponse(
+        response: JSONObject,
+        missingProfileMessage: String
+    ): ViewerProfile {
         val profile =
             response.optJSONObject(
                 "profile"
             ) ?: error(
-                "A API não retornou o perfil selecionado."
+                missingProfileMessage
             )
 
         return fromProfileJson(
@@ -94,43 +121,53 @@ object ProfileMapper {
         val avatar =
             avatarJson?.let {
                 ViewerAvatar(
-                    uuid = it.optString(
-                        "uuid"
-                    ),
-                    name = it.optString(
-                        "name"
-                    ),
-                    imageUrl = it
-                        .optString(
+                    uuid =
+                        it.optString(
+                            "uuid"
+                        ),
+                    name =
+                        it.optString(
+                            "name"
+                        ),
+                    imageUrl =
+                        it.optString(
                             "image_url"
                         )
-                        .trim()
-                        .takeIf { url ->
-                            url.isNotBlank()
-                        }
+                            .trim()
+                            .takeIf {
+                                    url ->
+
+                                url.isNotBlank()
+                            }
                 )
             }
 
         return ViewerProfile(
-            uuid = json.optString(
-                "uuid"
-            ),
-            name = json.optString(
-                "name"
-            ),
-            hasPin = json.optBoolean(
-                "has_pin",
-                false
-            ),
-            isDefault = json.optBoolean(
-                "is_default",
-                false
-            ),
-            isSelected = json.optBoolean(
-                "is_selected",
-                false
-            ),
-            avatar = avatar
+            uuid =
+                json.optString(
+                    "uuid"
+                ),
+            name =
+                json.optString(
+                    "name"
+                ),
+            hasPin =
+                json.optBoolean(
+                    "has_pin",
+                    false
+                ),
+            isDefault =
+                json.optBoolean(
+                    "is_default",
+                    false
+                ),
+            isSelected =
+                json.optBoolean(
+                    "is_selected",
+                    false
+                ),
+            avatar =
+                avatar
         )
     }
 }

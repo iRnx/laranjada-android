@@ -10,7 +10,9 @@ class ProfileApiException(
     val statusCode: Int,
     val code: String?,
     message: String
-) : IOException(message)
+) : IOException(
+    message
+)
 
 object ProfileApiService {
 
@@ -23,7 +25,8 @@ object ProfileApiService {
     private const val SELECT_PROFILE_PATH =
         "/api/v1/profiles/select/"
 
-    suspend fun getProfiles(): JSONObject {
+    suspend fun getProfiles():
+            JSONObject {
         val response =
             ApiHttpClient.get(
                 PROFILES_PATH
@@ -66,9 +69,12 @@ object ProfileApiService {
 
         val response =
             ApiHttpClient.postJson(
-                path = SELECT_PROFILE_PATH,
-                body = body,
-                requiresCsrf = true
+                path =
+                    SELECT_PROFILE_PATH,
+                body =
+                    body,
+                requiresCsrf =
+                    true
             )
 
         if (
@@ -81,6 +87,129 @@ object ProfileApiService {
             response = response,
             fallbackMessage =
                 "Não foi possível selecionar o perfil."
+        )
+    }
+
+    suspend fun createProfile(
+        name: String,
+        usePin: Boolean,
+        pin: String? = null
+    ): JSONObject {
+        ensureCsrf()
+
+        val body =
+            JSONObject()
+                .put(
+                    "name",
+                    name.trim()
+                )
+                .put(
+                    "use_pin",
+                    usePin
+                )
+
+        if (
+            usePin &&
+            !pin.isNullOrBlank()
+        ) {
+            body.put(
+                "pin",
+                pin.trim()
+            )
+        }
+
+        val response =
+            ApiHttpClient.postJson(
+                path =
+                    PROFILES_PATH,
+                body =
+                    body,
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 201
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível criar o perfil."
+        )
+    }
+
+    suspend fun updateProfile(
+        profileUuid: String,
+        name: String? = null,
+        usePin: Boolean? = null,
+        pin: String? = null
+    ): JSONObject {
+        ensureCsrf()
+
+        val body =
+            JSONObject()
+
+        if (
+            name != null
+        ) {
+            body.put(
+                "name",
+                name.trim()
+            )
+        }
+
+        if (
+            usePin != null
+        ) {
+            body.put(
+                "use_pin",
+                usePin
+            )
+        }
+
+        if (
+            pin != null
+        ) {
+            body.put(
+                "pin",
+                pin.trim()
+            )
+        }
+
+        if (
+            body.length() == 0
+        ) {
+            throw IllegalArgumentException(
+                "Nenhuma alteração foi informada."
+            )
+        }
+
+        val profilePath =
+            "$PROFILES_PATH${profileUuid.trim()}/"
+
+        val response =
+            ApiHttpClient.patchJson(
+                path =
+                    profilePath,
+                body =
+                    body,
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível atualizar o perfil."
         )
     }
 
@@ -123,14 +252,17 @@ object ProfileApiService {
         val message =
             extractMessage(
                 json = json,
-                fallback = fallbackMessage
+                fallback =
+                    fallbackMessage
             )
 
         return ProfileApiException(
             statusCode =
                 response.statusCode,
-            code = code,
-            message = message
+            code =
+                code,
+            message =
+                message
         )
     }
 
@@ -138,19 +270,36 @@ object ProfileApiService {
         json: JSONObject?,
         fallback: String
     ): String {
-        if (json == null) {
+        if (
+            json == null
+        ) {
             return fallback
+        }
+
+        val errors =
+            json.optJSONObject(
+                "errors"
+            )
+
+        val nestedError =
+            extractFirstError(
+                errors
+            )
+
+        if (
+            !nestedError.isNullOrBlank()
+        ) {
+            return nestedError
         }
 
         val directMessage =
             json.optString(
                 "message"
-            )
-                .ifBlank {
-                    json.optString(
-                        "detail"
-                    )
-                }
+            ).ifBlank {
+                json.optString(
+                    "detail"
+                )
+            }
 
         if (
             directMessage.isNotBlank()
@@ -172,7 +321,9 @@ object ProfileApiService {
                     key
                 )
 
-            when (value) {
+            when (
+                value
+            ) {
                 is JSONArray -> {
                     if (
                         value.length() > 0
@@ -201,5 +352,62 @@ object ProfileApiService {
         }
 
         return fallback
+    }
+
+    private fun extractFirstError(
+        errors: JSONObject?
+    ): String? {
+        if (
+            errors == null
+        ) {
+            return null
+        }
+
+        val keys =
+            errors.keys()
+
+        while (
+            keys.hasNext()
+        ) {
+            val key =
+                keys.next()
+
+            when (
+                val value =
+                    errors.opt(
+                        key
+                    )
+            ) {
+                is JSONArray -> {
+                    if (
+                        value.length() > 0
+                    ) {
+                        val message =
+                            value.optString(
+                                0
+                            ).trim()
+
+                        if (
+                            message.isNotBlank()
+                        ) {
+                            return message
+                        }
+                    }
+                }
+
+                is String -> {
+                    val message =
+                        value.trim()
+
+                    if (
+                        message.isNotBlank()
+                    ) {
+                        return message
+                    }
+                }
+            }
+        }
+
+        return null
     }
 }

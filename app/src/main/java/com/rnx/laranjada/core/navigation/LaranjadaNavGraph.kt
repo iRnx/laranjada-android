@@ -50,15 +50,6 @@ fun LaranjadaNavGraph(
             profile.toMenuProfileUi()
         }
 
-    /*
-     * Perfil atualmente selecionado.
-     *
-     * Primeiro usamos selectedProfileUuid,
-     * que é o valor oficial retornado pelo
-     * backend.
-     *
-     * O isSelected fica como fallback.
-     */
     val selectedProfile =
         profileState.profiles
             .firstOrNull {
@@ -235,6 +226,9 @@ fun LaranjadaNavGraph(
                     }
                 },
                 onCreateProfileClick = {
+                    profileViewModel
+                        .clearCreateError()
+
                     navController.navigate(
                         AppRoutes.CreateProfile.route
                     )
@@ -308,7 +302,8 @@ fun LaranjadaNavGraph(
                         .selectProfile(
                             profileUuid =
                                 profileUuid,
-                            pin = pin,
+                            pin =
+                                pin,
                             onSuccess = {
                                 returnToHome()
                             }
@@ -325,18 +320,45 @@ fun LaranjadaNavGraph(
                 AppRoutes.CreateProfile.route
         ) {
             CreateProfileScreen(
+                isSubmitting =
+                    profileState
+                        .isCreatingProfile,
+                errorMessage =
+                    profileState
+                        .createErrorMessage,
                 onBackClick = {
+                    profileViewModel
+                        .clearCreateError()
+
                     navController
                         .popBackStack()
                 },
                 onCancelClick = {
+                    profileViewModel
+                        .clearCreateError()
+
                     navController
                         .popBackStack()
                 },
                 onDoneClick = {
-                        _,
-                        _,
-                        _ ->
+                        name,
+                        usePin,
+                        pin ->
+
+                    profileViewModel
+                        .createProfile(
+                            name =
+                                name,
+                            usePin =
+                                usePin,
+                            pin =
+                                pin.takeIf {
+                                    usePin
+                                },
+                            onSuccess = {
+                                returnToHome()
+                            }
+                        )
                 }
             )
         }
@@ -353,6 +375,9 @@ fun LaranjadaNavGraph(
                     menuProfiles,
                 onProfileClick = {
                         profile ->
+
+                    profileViewModel
+                        .clearUpdateError()
 
                     navController.navigate(
                         AppRoutes.EditProfile
@@ -413,7 +438,19 @@ fun LaranjadaNavGraph(
                 initialHasPin =
                     profile?.hasPin
                         ?: false,
+                isSubmitting =
+                    profileState
+                        .isUpdatingProfile &&
+                            profileState
+                                .updatingProfileUuid ==
+                            profileUuid,
+                errorMessage =
+                    profileState
+                        .updateErrorMessage,
                 onBackClick = {
+                    profileViewModel
+                        .clearUpdateError()
+
                     navController
                         .popBackStack()
                 },
@@ -427,11 +464,111 @@ fun LaranjadaNavGraph(
                     )
                 },
                 onSaveClick = {
-                        _,
-                        _,
-                        _ ->
+                        name,
+                        usePin,
+                        pin ->
+
+                    val currentProfile =
+                        profile
+
+                    if (
+                        currentProfile != null
+                    ) {
+                        val normalizedName =
+                            name.trim()
+
+                        val normalizedPin =
+                            pin.trim()
+
+                        /*
+                         * Só envia o nome quando
+                         * ele realmente mudou.
+                         */
+                        val namePatch =
+                            normalizedName
+                                .takeIf {
+                                    it !=
+                                            currentProfile
+                                                .name
+                                }
+
+                        /*
+                         * PIN vazio significa:
+                         *
+                         * não estamos criando nem
+                         * alterando o PIN.
+                         */
+                        val pinPatch =
+                            normalizedPin
+                                .takeIf {
+                                    it.isNotBlank()
+                                }
+
+                        /*
+                         * PATCH parcial:
+                         *
+                         * PERFIL COM PIN
+                         *
+                         * manter PIN:
+                         * usePin == hasPin
+                         * pin vazio
+                         * → não envia nada de PIN
+                         *
+                         * alterar PIN:
+                         * pin preenchido
+                         * → use_pin=true + pin
+                         *
+                         * remover PIN:
+                         * usePin=false
+                         * → use_pin=false
+                         *
+                         *
+                         * PERFIL SEM PIN
+                         *
+                         * continuar sem PIN:
+                         * → não envia nada
+                         *
+                         * criar PIN:
+                         * usePin=true + pin
+                         */
+                        val usePinPatch =
+                            when {
+                                usePin !=
+                                        currentProfile
+                                            .hasPin -> {
+                                    usePin
+                                }
+
+                                pinPatch != null -> {
+                                    true
+                                }
+
+                                else -> {
+                                    null
+                                }
+                            }
+
+                        profileViewModel
+                            .updateProfile(
+                                profileUuid =
+                                    profileUuid,
+                                name =
+                                    namePatch,
+                                usePin =
+                                    usePinPatch,
+                                pin =
+                                    pinPatch,
+                                onSuccess = {
+                                    navController
+                                        .popBackStack()
+                                }
+                            )
+                    }
                 },
                 onCancelClick = {
+                    profileViewModel
+                        .clearUpdateError()
+
                     navController
                         .popBackStack()
                 },
@@ -449,6 +586,8 @@ fun LaranjadaNavGraph(
 
         /*
          * ESCOLHER AVATAR
+         *
+         * Ainda temporário.
          */
         composable(
             route =
@@ -543,6 +682,9 @@ fun LaranjadaNavGraph(
 
         /*
          * EXCLUIR PERFIL
+         *
+         * A API DELETE ainda será
+         * conectada no próximo bloco.
          */
         composable(
             route =
@@ -610,7 +752,8 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
 
-                    defaultValue = ""
+                    defaultValue =
+                        ""
                 }
             )
         ) { backStackEntry ->
@@ -845,7 +988,8 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
 
-                    defaultValue = ""
+                    defaultValue =
+                        ""
                 },
                 navArgument(
                     AppRoutes.Player
@@ -854,7 +998,8 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
 
-                    defaultValue = ""
+                    defaultValue =
+                        ""
                 }
             )
         ) { backStackEntry ->
@@ -913,8 +1058,10 @@ fun LaranjadaNavGraph(
 private fun ViewerProfile.toMenuProfileUi():
         MenuProfileUi {
     return MenuProfileUi(
-        uuid = uuid,
-        name = name,
+        uuid =
+            uuid,
+        name =
+            name,
         avatarUrl =
             avatar?.imageUrl,
         hasPin =
