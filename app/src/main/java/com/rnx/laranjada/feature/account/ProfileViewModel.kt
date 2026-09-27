@@ -7,35 +7,98 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rnx.laranjada.data.remote.api.ProfileApiException
 import com.rnx.laranjada.data.repository.ProfileRepositoryImpl
+import com.rnx.laranjada.domain.model.ViewerAvatarLibrary
 import com.rnx.laranjada.domain.model.ViewerProfile
+import com.rnx.laranjada.domain.model.ViewerProfileList
 import com.rnx.laranjada.domain.repository.ProfileRepository
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
-    val isLoading: Boolean = true,
+    val isLoading: Boolean =
+        true,
+
     val profiles: List<ViewerProfile> =
         emptyList(),
+
     val selectedProfileUuid: String? =
         null,
+
+    val maxProfiles: Int =
+        0,
+
+    val activeProfilesCount: Int =
+        0,
+
+    val remainingProfiles: Int =
+        0,
+
+    val canCreateProfile: Boolean =
+        false,
+
     val loadErrorMessage: String? =
         null,
 
-    val isSelecting: Boolean = false,
+    val isSelecting: Boolean =
+        false,
+
     val selectingProfileUuid: String? =
         null,
+
     val selectionErrorMessage: String? =
         null,
 
     val isCreatingProfile: Boolean =
         false,
+
     val createErrorMessage: String? =
         null,
 
     val isUpdatingProfile: Boolean =
         false,
+
     val updatingProfileUuid: String? =
         null,
+
     val updateErrorMessage: String? =
+        null,
+
+    val isDeletingProfile: Boolean =
+        false,
+
+    val deletingProfileUuid: String? =
+        null,
+
+    val deleteErrorMessage: String? =
+        null,
+
+    val isLoadingAvatarLibrary: Boolean =
+        false,
+
+    val avatarLibrary: ViewerAvatarLibrary? =
+        null,
+
+    val avatarLibraryErrorMessage: String? =
+        null,
+
+    /*
+     * POST/DELETE do avatar.
+     */
+    val isUpdatingAvatar: Boolean =
+        false,
+
+    val updatingAvatarProfileUuid: String? =
+        null,
+
+    /*
+     * Preenchido quando estamos escolhendo
+     * um novo avatar.
+     *
+     * null durante remoção/reset.
+     */
+    val updatingAvatarUuid: String? =
+        null,
+
+    val avatarMutationErrorMessage: String? =
         null
 )
 
@@ -68,14 +131,14 @@ class ProfileViewModel(
                 val result =
                     repository.getProfiles()
 
+                applyProfileList(
+                    result
+                )
+
                 uiState =
                     uiState.copy(
                         isLoading =
                             false,
-                        profiles =
-                            result.profiles,
-                        selectedProfileUuid =
-                            result.selectedProfileUuid,
                         loadErrorMessage =
                             null
                     )
@@ -114,6 +177,30 @@ class ProfileViewModel(
         uiState =
             uiState.copy(
                 updateErrorMessage =
+                    null
+            )
+    }
+
+    fun clearDeleteError() {
+        uiState =
+            uiState.copy(
+                deleteErrorMessage =
+                    null
+            )
+    }
+
+    fun clearAvatarLibraryError() {
+        uiState =
+            uiState.copy(
+                avatarLibraryErrorMessage =
+                    null
+            )
+    }
+
+    fun clearAvatarMutationError() {
+        uiState =
+            uiState.copy(
+                avatarMutationErrorMessage =
                     null
             )
     }
@@ -278,14 +365,60 @@ class ProfileViewModel(
                             }
                         )
 
+                val fallbackActiveProfilesCount =
+                    uiState.activeProfilesCount +
+                            1
+
+                val fallbackRemainingProfiles =
+                    maxOf(
+                        0,
+                        uiState.maxProfiles -
+                                fallbackActiveProfilesCount
+                    )
+
+                val fallbackCanCreateProfile =
+                    if (
+                        uiState.maxProfiles > 0
+                    ) {
+                        fallbackActiveProfilesCount <
+                                uiState.maxProfiles
+                    } else {
+                        uiState.canCreateProfile
+                    }
+
                 uiState =
                     uiState.copy(
-                        isCreatingProfile =
-                            false,
                         profiles =
                             updatedProfiles,
                         selectedProfileUuid =
                             createdProfile.uuid,
+                        activeProfilesCount =
+                            fallbackActiveProfilesCount,
+                        remainingProfiles =
+                            fallbackRemainingProfiles,
+                        canCreateProfile =
+                            fallbackCanCreateProfile,
+                        createErrorMessage =
+                            null
+                    )
+
+                val refreshedProfiles =
+                    runCatching {
+                        repository.getProfiles()
+                    }.getOrNull()
+
+                if (
+                    refreshedProfiles != null
+                ) {
+                    applyProfileList(
+                        refreshedProfiles
+                    )
+                }
+
+                uiState =
+                    uiState.copy(
+                        isCreatingProfile =
+                            false,
                         createErrorMessage =
                             null
                     )
@@ -367,30 +500,9 @@ class ProfileViewModel(
                                 pin
                         )
 
-                val updatedProfiles =
-                    uiState.profiles
-                        .map {
-                                profile ->
-
-                            if (
-                                profile.uuid ==
-                                updatedProfile.uuid
-                            ) {
-                                updatedProfile
-                            } else {
-                                profile
-                            }
-                        }
-                        .sortedWith(
-                            compareByDescending<
-                                    ViewerProfile
-                                    > {
-                                it.isDefault
-                            }.thenBy {
-                                it.name
-                                    .lowercase()
-                            }
-                        )
+                replaceProfile(
+                    updatedProfile
+                )
 
                 uiState =
                     uiState.copy(
@@ -398,8 +510,6 @@ class ProfileViewModel(
                             false,
                         updatingProfileUuid =
                             null,
-                        profiles =
-                            updatedProfiles,
                         updateErrorMessage =
                             null
                     )
@@ -433,5 +543,446 @@ class ProfileViewModel(
                     )
             }
         }
+    }
+
+    fun deleteProfile(
+        profileUuid: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (
+            uiState.isDeletingProfile
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isDeletingProfile =
+                        true,
+                    deletingProfileUuid =
+                        profileUuid,
+                    deleteErrorMessage =
+                        null
+                )
+
+            try {
+                val deletedProfileUuid =
+                    repository.deleteProfile(
+                        profileUuid =
+                            profileUuid
+                    )
+
+                val remainingProfiles =
+                    uiState.profiles
+                        .filterNot {
+                            it.uuid ==
+                                    deletedProfileUuid
+                        }
+
+                val fallbackActiveProfilesCount =
+                    maxOf(
+                        0,
+                        uiState.activeProfilesCount -
+                                1
+                    )
+
+                val fallbackRemainingProfiles =
+                    maxOf(
+                        0,
+                        uiState.maxProfiles -
+                                fallbackActiveProfilesCount
+                    )
+
+                val fallbackCanCreateProfile =
+                    if (
+                        uiState.maxProfiles > 0
+                    ) {
+                        fallbackActiveProfilesCount <
+                                uiState.maxProfiles
+                    } else {
+                        uiState.canCreateProfile
+                    }
+
+                uiState =
+                    uiState.copy(
+                        profiles =
+                            remainingProfiles,
+                        selectedProfileUuid =
+                            if (
+                                uiState.selectedProfileUuid ==
+                                deletedProfileUuid
+                            ) {
+                                null
+                            } else {
+                                uiState.selectedProfileUuid
+                            },
+                        activeProfilesCount =
+                            fallbackActiveProfilesCount,
+                        remainingProfiles =
+                            fallbackRemainingProfiles,
+                        canCreateProfile =
+                            fallbackCanCreateProfile
+                    )
+
+                val refreshedProfiles =
+                    runCatching {
+                        repository.getProfiles()
+                    }.getOrNull()
+
+                if (
+                    refreshedProfiles != null
+                ) {
+                    applyProfileList(
+                        refreshedProfiles
+                    )
+                }
+
+                uiState =
+                    uiState.copy(
+                        isDeletingProfile =
+                            false,
+                        deletingProfileUuid =
+                            null,
+                        deleteErrorMessage =
+                            null
+                    )
+
+                onSuccess()
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isDeletingProfile =
+                            false,
+                        deletingProfileUuid =
+                            null,
+                        deleteErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isDeletingProfile =
+                            false,
+                        deletingProfileUuid =
+                            null,
+                        deleteErrorMessage =
+                            exception.message
+                                ?: "Não foi possível excluir o perfil."
+                    )
+            }
+        }
+    }
+
+    fun loadAvatarLibrary(
+        query: String? = null
+    ) {
+        if (
+            uiState.isLoadingAvatarLibrary
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isLoadingAvatarLibrary =
+                        true,
+                    avatarLibraryErrorMessage =
+                        null
+                )
+
+            try {
+                val result =
+                    repository.getAvatarLibrary(
+                        query =
+                            query
+                    )
+
+                uiState =
+                    uiState.copy(
+                        isLoadingAvatarLibrary =
+                            false,
+                        avatarLibrary =
+                            result,
+                        avatarLibraryErrorMessage =
+                            null
+                    )
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isLoadingAvatarLibrary =
+                            false,
+                        avatarLibraryErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isLoadingAvatarLibrary =
+                            false,
+                        avatarLibraryErrorMessage =
+                            exception.message
+                                ?: "Não foi possível carregar os avatares."
+                    )
+            }
+        }
+    }
+
+    /*
+     * Escolher/trocar avatar.
+     */
+    fun setProfileAvatar(
+        profileUuid: String,
+        avatarUuid: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (
+            uiState.isUpdatingAvatar
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isUpdatingAvatar =
+                        true,
+                    updatingAvatarProfileUuid =
+                        profileUuid,
+                    updatingAvatarUuid =
+                        avatarUuid,
+                    avatarMutationErrorMessage =
+                        null
+                )
+
+            try {
+                val updatedProfile =
+                    repository
+                        .setProfileAvatar(
+                            profileUuid =
+                                profileUuid,
+                            avatarUuid =
+                                avatarUuid
+                        )
+
+                /*
+                 * A própria API devolve
+                 * o perfil completo atualizado.
+                 */
+                replaceProfile(
+                    updatedProfile
+                )
+
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            null
+                    )
+
+                onSuccess()
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            exception.message
+                                ?: "Não foi possível atualizar o avatar."
+                    )
+            }
+        }
+    }
+
+    /*
+     * Remover/resetar avatar.
+     */
+    fun removeProfileAvatar(
+        profileUuid: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (
+            uiState.isUpdatingAvatar
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            uiState =
+                uiState.copy(
+                    isUpdatingAvatar =
+                        true,
+                    updatingAvatarProfileUuid =
+                        profileUuid,
+
+                    /*
+                     * null identifica a operação
+                     * de remoção para a UI.
+                     */
+                    updatingAvatarUuid =
+                        null,
+
+                    avatarMutationErrorMessage =
+                        null
+                )
+
+            try {
+                val updatedProfile =
+                    repository
+                        .removeProfileAvatar(
+                            profileUuid =
+                                profileUuid
+                        )
+
+                replaceProfile(
+                    updatedProfile
+                )
+
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            null
+                    )
+
+                onSuccess()
+            } catch (
+                exception:
+                ProfileApiException
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            exception.message
+                    )
+            } catch (
+                exception: Exception
+            ) {
+                uiState =
+                    uiState.copy(
+                        isUpdatingAvatar =
+                            false,
+                        updatingAvatarProfileUuid =
+                            null,
+                        updatingAvatarUuid =
+                            null,
+                        avatarMutationErrorMessage =
+                            exception.message
+                                ?: "Não foi possível remover o avatar."
+                    )
+            }
+        }
+    }
+
+    private fun replaceProfile(
+        updatedProfile: ViewerProfile
+    ) {
+        val updatedProfiles =
+            uiState.profiles
+                .map {
+                        profile ->
+
+                    if (
+                        profile.uuid ==
+                        updatedProfile.uuid
+                    ) {
+                        updatedProfile
+                    } else {
+                        profile
+                    }
+                }
+                .sortedWith(
+                    compareByDescending<
+                            ViewerProfile
+                            > {
+                        it.isDefault
+                    }.thenBy {
+                        it.name
+                            .lowercase()
+                    }
+                )
+
+        uiState =
+            uiState.copy(
+                profiles =
+                    updatedProfiles,
+
+                selectedProfileUuid =
+                    if (
+                        updatedProfile.isSelected
+                    ) {
+                        updatedProfile.uuid
+                    } else {
+                        uiState.selectedProfileUuid
+                    }
+            )
+    }
+
+    private fun applyProfileList(
+        result: ViewerProfileList
+    ) {
+        uiState =
+            uiState.copy(
+                profiles =
+                    result.profiles,
+                selectedProfileUuid =
+                    result.selectedProfileUuid,
+                maxProfiles =
+                    result.maxProfiles,
+                activeProfilesCount =
+                    result.activeProfilesCount,
+                remainingProfiles =
+                    result.remainingProfiles,
+                canCreateProfile =
+                    result.canCreateProfile
+            )
     }
 }

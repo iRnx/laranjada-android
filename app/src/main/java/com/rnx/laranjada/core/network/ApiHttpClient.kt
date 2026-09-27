@@ -160,6 +160,17 @@ object ApiHttpClient {
         )
     }
 
+    suspend fun delete(
+        path: String,
+        requiresCsrf: Boolean = false
+    ): ApiHttpResponse {
+        return execute(
+            method = "DELETE",
+            path = path,
+            requiresCsrf = requiresCsrf
+        )
+    }
+
     fun clearAuthenticationCookies() {
         ensureInitialized()
 
@@ -252,26 +263,6 @@ object ApiHttpClient {
                         csrfToken
                     )
 
-                    /*
-                     * Importante para Django CSRF.
-                     *
-                     * O Origin é montado dinamicamente
-                     * usando a própria URL da API.
-                     *
-                     * Exemplos:
-                     *
-                     * local:
-                     * http://127.0.0.1:8000
-                     *
-                     * hml:
-                     * https://laranjada.eu
-                     *
-                     * prod:
-                     * https://laranjada.zip
-                     *
-                     * Nenhum domínio fica hardcoded
-                     * aqui.
-                     */
                     val origin =
                         "${url.protocol}://${url.authority}"
 
@@ -306,10 +297,6 @@ object ApiHttpClient {
                 val statusCode =
                     connection.responseCode
 
-                /*
-                 * Salva Set-Cookie retornado
-                 * pelo Django.
-                 */
                 cookieStore
                     .saveFromResponseHeaders(
                         connection.headerFields
@@ -348,20 +335,6 @@ object ApiHttpClient {
         }
     }
 
-    /*
-     * PATCH usa OkHttp porque o
-     * HttpURLConnection do Android
-     * não trabalha corretamente com
-     * PATCH de forma nativa.
-     *
-     * Mantemos exatamente o mesmo
-     * esquema de autenticação:
-     *
-     * - sessionid
-     * - csrftoken
-     * - X-CSRFToken
-     * - Origin
-     */
     private suspend fun executePatch(
         path: String,
         body: JSONObject,
@@ -389,10 +362,6 @@ object ApiHttpClient {
                         "application/json"
                     )
 
-            /*
-             * Mesmos cookies usados pelo
-             * restante da aplicação.
-             */
             val cookieHeader =
                 cookieStore
                     .buildCookieHeader()
@@ -406,9 +375,6 @@ object ApiHttpClient {
                 )
             }
 
-            /*
-             * CSRF para operação protegida.
-             */
             if (
                 requiresCsrf
             ) {
@@ -460,19 +426,6 @@ object ApiHttpClient {
                 .execute()
                 .use { response ->
 
-                    /*
-                     * OkHttp retorna:
-                     *
-                     * Map<String, List<String>>
-                     *
-                     * enquanto nosso
-                     * SecureCookieStore aceita:
-                     *
-                     * Map<String?, List<String>>
-                     *
-                     * Fazemos aqui a adaptação
-                     * explícita dos tipos.
-                     */
                     val responseHeaders:
                             Map<String?, List<String>> =
                         response
@@ -487,10 +440,6 @@ object ApiHttpClient {
                                         ) to entry.value
                             }
 
-                    /*
-                     * Salva possíveis cookies
-                     * retornados pela resposta.
-                     */
                     cookieStore
                         .saveFromResponseHeaders(
                             responseHeaders

@@ -68,37 +68,31 @@ fun AccountScreen(
     logoutErrorMessage: String?,
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    profiles: List<MenuProfileUi> = emptyList(),
-    onProfileClick: (MenuProfileUi) -> Unit = {},
-    onCreateProfileClick: () -> Unit = {},
-    onEditProfilesClick: () -> Unit = {},
-    onFavoritesClick: () -> Unit = {},
-    onDownloadsClick: () -> Unit = {},
-    onSubscriptionClick: () -> Unit = {},
-    onSupportClick: () -> Unit = {},
-    onSwitchProfileClick: () -> Unit = {},
-    onAccountDetailsClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {}
+    profiles: List<MenuProfileUi> =
+        emptyList(),
+    canCreateProfile: Boolean =
+        false,
+    onProfileClick: (MenuProfileUi) -> Unit =
+        {},
+    onCreateProfileClick: () -> Unit =
+        {},
+    onEditProfilesClick: () -> Unit =
+        {},
+    onFavoritesClick: () -> Unit =
+        {},
+    onDownloadsClick: () -> Unit =
+        {},
+    onSubscriptionClick: () -> Unit =
+        {},
+    onSupportClick: () -> Unit =
+        {},
+    onSwitchProfileClick: () -> Unit =
+        {},
+    onAccountDetailsClick: () -> Unit =
+        {},
+    onSearchClick: () -> Unit =
+        {}
 ) {
-    val displayedProfiles = remember(
-        profiles,
-        user
-    ) {
-        if (profiles.isNotEmpty()) {
-            profiles
-        } else {
-            listOf(
-                MenuProfileUi(
-                    uuid = "temporary-account-profile",
-                    name = user.displayName,
-                    avatarUrl = null,
-                    hasPin = false,
-                    isSelected = true
-                )
-            )
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -123,8 +117,10 @@ fun AccountScreen(
                 )
         ) {
             AccountMenuHeader(
-                onMenuClick = onBackClick,
-                onSearchClick = onSearchClick
+                onMenuClick =
+                    onBackClick,
+                onSearchClick =
+                    onSearchClick
             )
 
             Spacer(
@@ -134,9 +130,14 @@ fun AccountScreen(
             )
 
             ProfilesSection(
-                profiles = displayedProfiles,
-                onProfileClick = onProfileClick,
-                onCreateProfileClick = onCreateProfileClick
+                profiles =
+                    profiles,
+                canCreateProfile =
+                    canCreateProfile,
+                onProfileClick =
+                    onProfileClick,
+                onCreateProfileClick =
+                    onCreateProfileClick
             )
 
             Spacer(
@@ -146,7 +147,8 @@ fun AccountScreen(
             )
 
             EditProfilesButton(
-                onClick = onEditProfilesClick
+                onClick =
+                    onEditProfilesClick
             )
 
             Spacer(
@@ -193,17 +195,22 @@ fun AccountScreen(
             )
 
             if (
-                !logoutErrorMessage.isNullOrBlank()
+                !logoutErrorMessage
+                    .isNullOrBlank()
             ) {
                 Text(
-                    text = logoutErrorMessage,
-                    color = Color(
-                        0xFFFF9D9D
-                    ),
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(
-                        top = 14.dp
-                    )
+                    text =
+                        logoutErrorMessage,
+                    color =
+                        Color(
+                            0xFFFF9D9D
+                        ),
+                    fontSize =
+                        13.sp,
+                    modifier =
+                        Modifier.padding(
+                            top = 14.dp
+                        )
                 )
             }
 
@@ -214,11 +221,14 @@ fun AccountScreen(
             )
 
             Text(
-                text = "Versão: Android Mobile",
-                color = Color(
-                    0xFF8E8E8E
-                ),
-                fontSize = 14.sp
+                text =
+                    "Versão: Android Mobile",
+                color =
+                    Color(
+                        0xFF8E8E8E
+                    ),
+                fontSize =
+                    14.sp
             )
 
             Spacer(
@@ -313,14 +323,16 @@ private fun AccountMenuHeader(
 @Composable
 private fun ProfilesSection(
     profiles: List<MenuProfileUi>,
+    canCreateProfile: Boolean,
     onProfileClick: (MenuProfileUi) -> Unit,
     onCreateProfileClick: () -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(
-            18.dp
-        )
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                18.dp
+            )
     ) {
         items(
             items = profiles,
@@ -338,12 +350,18 @@ private fun ProfilesSection(
             )
         }
 
-        item(
-            key = "create_profile"
+        if (
+            canCreateProfile
         ) {
-            CreateProfileItem(
-                onClick = onCreateProfileClick
-            )
+            item(
+                key =
+                    "create_profile"
+            ) {
+                CreateProfileItem(
+                    onClick =
+                        onCreateProfileClick
+                )
+            }
         }
     }
 }
@@ -353,9 +371,10 @@ private fun MenuProfileItem(
     profile: MenuProfileUi,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Column(
         modifier = Modifier
@@ -363,11 +382,15 @@ private fun MenuProfileItem(
                 72.dp
             )
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
+                interactionSource =
+                    interactionSource,
+                indication =
+                    null,
+                onClick =
+                    onClick
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
         Box {
             Box(
@@ -384,51 +407,64 @@ private fun MenuProfileItem(
                         )
                     )
                     .border(
-                        width = if (
-                            profile.isSelected
-                        ) {
-                            2.dp
-                        } else {
-                            1.dp
-                        },
-                        color = if (
-                            profile.isSelected
-                        ) {
-                            Color.White
-                        } else {
-                            Color.White.copy(
-                                alpha = 0.20f
-                            )
-                        },
-                        shape = CircleShape
+                        width =
+                            if (
+                                profile.isSelected
+                            ) {
+                                2.dp
+                            } else {
+                                1.dp
+                            },
+                        color =
+                            if (
+                                profile.isSelected
+                            ) {
+                                Color.White
+                            } else {
+                                Color.White.copy(
+                                    alpha = 0.20f
+                                )
+                            },
+                        shape =
+                            CircleShape
                     ),
-                contentAlignment = Alignment.Center
+                contentAlignment =
+                    Alignment.Center
             ) {
                 if (
-                    !profile.avatarUrl.isNullOrBlank()
+                    !profile.avatarUrl
+                        .isNullOrBlank()
                 ) {
                     AsyncImage(
-                        model = profile.avatarUrl,
-                        contentDescription = profile.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(
-                                CircleShape
-                            ),
-                        contentScale = ContentScale.Crop
+                        model =
+                            profile.avatarUrl,
+                        contentDescription =
+                            profile.name,
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .clip(
+                                    CircleShape
+                                ),
+                        contentScale =
+                            ContentScale.Crop
                     )
                 } else {
                     Text(
-                        text = profile.name
-                            .trim()
-                            .take(1)
-                            .uppercase()
-                            .ifBlank {
-                                "?"
-                            },
-                        color = Color.White,
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        text =
+                            profile.name
+                                .trim()
+                                .take(1)
+                                .uppercase()
+                                .ifBlank {
+                                    "?"
+                                },
+                        color =
+                            Color.White,
+                        fontSize =
+                            25.sp,
+                        fontWeight =
+                            FontWeight.ExtraBold
                     )
                 }
             }
@@ -452,15 +488,20 @@ private fun MenuProfileItem(
                                 0xFF080808
                             )
                         ),
-                    contentAlignment = Alignment.Center
+                    contentAlignment =
+                        Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Lock,
-                        contentDescription = "Perfil bloqueado",
-                        tint = Color.White,
-                        modifier = Modifier.size(
-                            10.dp
-                        )
+                        imageVector =
+                            Icons.Rounded.Lock,
+                        contentDescription =
+                            "Perfil bloqueado",
+                        tint =
+                            Color.White,
+                        modifier =
+                            Modifier.size(
+                                10.dp
+                            )
                     )
                 }
             }
@@ -473,12 +514,18 @@ private fun MenuProfileItem(
         )
 
         Text(
-            text = profile.name,
-            color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.ExtraBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            text =
+                profile.name,
+            color =
+                Color.White,
+            fontSize =
+                13.sp,
+            fontWeight =
+                FontWeight.ExtraBold,
+            maxLines =
+                1,
+            overflow =
+                TextOverflow.Ellipsis
         )
     }
 }
@@ -487,9 +534,10 @@ private fun MenuProfileItem(
 private fun CreateProfileItem(
     onClick: () -> Unit
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Column(
         modifier = Modifier
@@ -497,11 +545,15 @@ private fun CreateProfileItem(
                 72.dp
             )
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
+                interactionSource =
+                    interactionSource,
+                indication =
+                    null,
+                onClick =
+                    onClick
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
@@ -513,20 +565,27 @@ private fun CreateProfileItem(
                 )
                 .border(
                     width = 2.dp,
-                    color = Color.White.copy(
-                        alpha = 0.27f
-                    ),
-                    shape = CircleShape
+                    color =
+                        Color.White.copy(
+                            alpha = 0.27f
+                        ),
+                    shape =
+                        CircleShape
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment =
+                Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = "Novo perfil",
-                tint = Color.White,
-                modifier = Modifier.size(
-                    30.dp
-                )
+                imageVector =
+                    Icons.Rounded.Add,
+                contentDescription =
+                    "Novo perfil",
+                tint =
+                    Color.White,
+                modifier =
+                    Modifier.size(
+                        30.dp
+                    )
             )
         }
 
@@ -549,9 +608,10 @@ private fun CreateProfileItem(
 private fun EditProfilesButton(
     onClick: () -> Unit
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Box(
         modifier = Modifier
@@ -570,18 +630,27 @@ private fun EditProfilesButton(
                 )
             )
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
+                interactionSource =
+                    interactionSource,
+                indication =
+                    null,
+                onClick =
+                    onClick
             ),
-        contentAlignment = Alignment.Center
+        contentAlignment =
+            Alignment.Center
     ) {
         Text(
-            text = "EDITAR PERFIS",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.6.sp
+            text =
+                "EDITAR PERFIS",
+            color =
+                Color.White,
+            fontSize =
+                16.sp,
+            fontWeight =
+                FontWeight.ExtraBold,
+            letterSpacing =
+                0.6.sp
         )
     }
 }
@@ -593,12 +662,14 @@ private fun AccountMenuItem(
     showLoading: Boolean = false,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier =
+            Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
@@ -607,58 +678,78 @@ private fun AccountMenuItem(
                     59.dp
                 )
                 .clickable(
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
+                    enabled =
+                        enabled,
+                    interactionSource =
+                        interactionSource,
+                    indication =
+                        null,
+                    onClick =
+                        onClick
                 ),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
             Text(
-                text = title,
-                color = if (
-                    enabled
-                ) {
-                    LaranjadaText
-                } else {
-                    LaranjadaMutedText
-                },
-                fontSize = 17.sp,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.weight(
-                    1f
-                )
+                text =
+                    title,
+                color =
+                    if (
+                        enabled
+                    ) {
+                        LaranjadaText
+                    } else {
+                        LaranjadaMutedText
+                    },
+                fontSize =
+                    17.sp,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             if (
                 showLoading
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(
-                        20.dp
-                    ),
-                    color = LaranjadaOrange,
-                    strokeWidth = 2.dp
+                    modifier =
+                        Modifier.size(
+                            20.dp
+                        ),
+                    color =
+                        LaranjadaOrange,
+                    strokeWidth =
+                        2.dp
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = Color(
-                        0xFFB7D8E8
-                    ),
-                    modifier = Modifier.size(
-                        28.dp
-                    )
+                    imageVector =
+                        Icons.Rounded
+                            .ChevronRight,
+                    contentDescription =
+                        null,
+                    tint =
+                        Color(
+                            0xFFB7D8E8
+                        ),
+                    modifier =
+                        Modifier.size(
+                            28.dp
+                        )
                 )
             }
         }
 
         HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.White.copy(
-                alpha = 0.12f
-            )
+            thickness =
+                1.dp,
+            color =
+                Color.White.copy(
+                    alpha = 0.12f
+                )
         )
     }
 }

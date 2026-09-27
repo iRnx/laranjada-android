@@ -24,31 +24,56 @@ import com.rnx.laranjada.feature.home.MediaItemUi
 fun DetailRoute(
     contentType: String,
     uuid: String,
+
+    /*
+     * ViewerProfile atualmente selecionado.
+     */
+    profileName: String,
+    profileAvatarUrl: String?,
+
     onBackClick: () -> Unit,
+
+    onAccountClick: () -> Unit = {},
+
     onPlayClick: (
         contentType: String,
         uuid: String,
         hlsUrl: String,
         seriesUuid: String
     ) -> Unit = { _, _, _, _ -> },
+
     onRestartClick: () -> Unit = {},
+
     onFavoriteClick: (Boolean) -> Unit = {},
+
     onRelatedClick: (MediaItemUi) -> Unit = {},
+
     onEpisodeClick: (
         episode: EpisodeUi,
         seriesUuid: String
     ) -> Unit = { _, _ -> },
-    viewModel: DetailViewModel = viewModel()
+
+    viewModel: DetailViewModel =
+        viewModel()
 ) {
-    LaunchedEffect(contentType, uuid) {
+    LaunchedEffect(
+        contentType,
+        uuid
+    ) {
         viewModel.loadDetail(
-            contentType = contentType,
-            uuid = uuid
+            contentType =
+                contentType,
+
+            uuid =
+                uuid
         )
     }
 
-    val uiState = viewModel.uiState
-    val errorMessage = viewModel.errorMessage
+    val uiState =
+        viewModel.uiState
+
+    val errorMessage =
+        viewModel.errorMessage
 
     when {
         viewModel.isLoading -> {
@@ -57,12 +82,19 @@ fun DetailRoute(
 
         errorMessage != null -> {
             DetailError(
-                message = errorMessage,
-                onBackClick = onBackClick,
+                message =
+                    errorMessage,
+
+                onBackClick =
+                    onBackClick,
+
                 onRetryClick = {
                     viewModel.loadDetail(
-                        contentType = contentType,
-                        uuid = uuid
+                        contentType =
+                            contentType,
+
+                        uuid =
+                            uuid
                     )
                 }
             )
@@ -70,16 +102,41 @@ fun DetailRoute(
 
         uiState != null -> {
             DetailScreen(
-                uiState = uiState,
-                relatedItems = viewModel.relatedItems,
-                isRelatedLoading = viewModel.isRelatedLoading,
-                relatedErrorMessage = viewModel.relatedErrorMessage,
-                onBackClick = onBackClick,
-                onPlayClick = {
-                    if (uiState.isSeries) {
-                        val firstEpisode = uiState.firstAvailableEpisode
+                uiState =
+                    uiState,
 
-                        if (firstEpisode != null) {
+                relatedItems =
+                    viewModel.relatedItems,
+
+                isRelatedLoading =
+                    viewModel.isRelatedLoading,
+
+                relatedErrorMessage =
+                    viewModel.relatedErrorMessage,
+
+                profileName =
+                    profileName,
+
+                profileAvatarUrl =
+                    profileAvatarUrl,
+
+                onBackClick =
+                    onBackClick,
+
+                onAccountClick =
+                    onAccountClick,
+
+                onPlayClick = {
+                    if (
+                        uiState.isSeries
+                    ) {
+                        val firstEpisode =
+                            uiState
+                                .firstAvailableEpisode
+
+                        if (
+                            firstEpisode != null
+                        ) {
                             onPlayClick(
                                 "episode",
                                 firstEpisode.uuid,
@@ -96,11 +153,22 @@ fun DetailRoute(
                         )
                     }
                 },
-                onRestartClick = onRestartClick,
-                onFavoriteClick = onFavoriteClick,
-                onRelatedClick = onRelatedClick,
-                onRetryRelatedClick = viewModel::reloadRelatedContent,
-                onEpisodeClick = { episode ->
+
+                onRestartClick =
+                    onRestartClick,
+
+                onFavoriteClick =
+                    onFavoriteClick,
+
+                onRelatedClick =
+                    onRelatedClick,
+
+                onRetryRelatedClick =
+                    viewModel::reloadRelatedContent,
+
+                onEpisodeClick = {
+                        episode ->
+
                     onEpisodeClick(
                         episode,
                         uiState.uuid
@@ -116,11 +184,15 @@ private fun DetailLoading() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(LaranjadaBlack),
-        contentAlignment = Alignment.Center
+            .background(
+                LaranjadaBlack
+            ),
+        contentAlignment =
+            Alignment.Center
     ) {
         CircularProgressIndicator(
-            color = LaranjadaOrange
+            color =
+                LaranjadaOrange
         )
     }
 }
@@ -134,34 +206,61 @@ private fun DetailError(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LaranjadaBlack)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(
+                LaranjadaBlack
+            )
+            .padding(
+                24.dp
+            ),
+        horizontalAlignment =
+            Alignment.CenterHorizontally,
+        verticalArrangement =
+            Arrangement.Center
     ) {
         Text(
-            text = "Não foi possível carregar o detalhe.",
-            color = LaranjadaText
+            text =
+                "Não foi possível carregar o detalhe.",
+            color =
+                LaranjadaText
         )
 
         Text(
-            text = message,
-            color = LaranjadaText,
-            modifier = Modifier.padding(top = 8.dp)
+            text =
+                message,
+            color =
+                LaranjadaText,
+            modifier =
+                Modifier.padding(
+                    top = 8.dp
+                )
         )
 
         Button(
-            onClick = onRetryClick,
-            modifier = Modifier.padding(top = 20.dp)
+            onClick =
+                onRetryClick,
+            modifier =
+                Modifier.padding(
+                    top = 20.dp
+                )
         ) {
-            Text(text = "Tentar novamente")
+            Text(
+                text =
+                    "Tentar novamente"
+            )
         }
 
         Button(
-            onClick = onBackClick,
-            modifier = Modifier.padding(top = 10.dp)
+            onClick =
+                onBackClick,
+            modifier =
+                Modifier.padding(
+                    top = 10.dp
+                )
         ) {
-            Text(text = "Voltar")
+            Text(
+                text =
+                    "Voltar"
+            )
         }
     }
 }

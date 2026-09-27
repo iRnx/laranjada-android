@@ -5,6 +5,7 @@ import com.rnx.laranjada.core.network.ApiHttpResponse
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.net.URLEncoder
 
 class ProfileApiException(
     val statusCode: Int,
@@ -24,6 +25,9 @@ object ProfileApiService {
 
     private const val SELECT_PROFILE_PATH =
         "/api/v1/profiles/select/"
+
+    private const val AVATAR_LIBRARY_PATH =
+        "/api/v1/profiles/avatars/"
 
     suspend fun getProfiles():
             JSONObject {
@@ -210,6 +214,157 @@ object ProfileApiService {
             response = response,
             fallbackMessage =
                 "Não foi possível atualizar o perfil."
+        )
+    }
+
+    suspend fun deleteProfile(
+        profileUuid: String
+    ): JSONObject {
+        ensureCsrf()
+
+        val profilePath =
+            "$PROFILES_PATH${profileUuid.trim()}/"
+
+        val response =
+            ApiHttpClient.delete(
+                path =
+                    profilePath,
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível excluir o perfil."
+        )
+    }
+
+    suspend fun getAvatarLibrary(
+        query: String? = null
+    ): JSONObject {
+        val normalizedQuery =
+            query
+                ?.trim()
+                .orEmpty()
+
+        val path =
+            if (
+                normalizedQuery.isBlank()
+            ) {
+                AVATAR_LIBRARY_PATH
+            } else {
+                val encodedQuery =
+                    URLEncoder.encode(
+                        normalizedQuery,
+                        Charsets.UTF_8.name()
+                    )
+
+                "$AVATAR_LIBRARY_PATH?q=$encodedQuery"
+            }
+
+        val response =
+            ApiHttpClient.get(
+                path
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível carregar os avatares."
+        )
+    }
+
+    /*
+     * POST
+     * /api/v1/profiles/<uuid>/avatar/
+     *
+     * Define ou substitui o avatar
+     * atual do perfil.
+     */
+    suspend fun setProfileAvatar(
+        profileUuid: String,
+        avatarUuid: String
+    ): JSONObject {
+        ensureCsrf()
+
+        val avatarPath =
+            "$PROFILES_PATH${profileUuid.trim()}/avatar/"
+
+        val body =
+            JSONObject()
+                .put(
+                    "avatar_uuid",
+                    avatarUuid.trim()
+                )
+
+        val response =
+            ApiHttpClient.postJson(
+                path =
+                    avatarPath,
+                body =
+                    body,
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível atualizar o avatar."
+        )
+    }
+
+    /*
+     * DELETE
+     * /api/v1/profiles/<uuid>/avatar/
+     *
+     * Remove o avatar do perfil.
+     */
+    suspend fun removeProfileAvatar(
+        profileUuid: String
+    ): JSONObject {
+        ensureCsrf()
+
+        val avatarPath =
+            "$PROFILES_PATH${profileUuid.trim()}/avatar/"
+
+        val response =
+            ApiHttpClient.delete(
+                path =
+                    avatarPath,
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível remover o avatar."
         )
     }
 

@@ -1,6 +1,8 @@
 package com.rnx.laranjada.core.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -66,6 +68,10 @@ fun LaranjadaNavGraph(
                     profile.isSelected
                 }
 
+    val profileSelectionRequired =
+        !profileState.isLoading &&
+                selectedProfile == null
+
     fun returnToHome() {
         navController.navigate(
             AppRoutes.Home.route
@@ -73,10 +79,47 @@ fun LaranjadaNavGraph(
             popUpTo(
                 AppRoutes.Home.route
             ) {
-                inclusive = false
+                inclusive =
+                    false
             }
 
-            launchSingleTop = true
+            launchSingleTop =
+                true
+        }
+    }
+
+    fun returnToAccount() {
+        val returned =
+            navController.popBackStack(
+                AppRoutes.Account.route,
+                false
+            )
+
+        if (
+            !returned
+        ) {
+            navController.navigate(
+                AppRoutes.Account.route
+            ) {
+                launchSingleTop =
+                    true
+            }
+        }
+    }
+
+    fun forceProfileSelection() {
+        navController.navigate(
+            AppRoutes.Account.route
+        ) {
+            popUpTo(
+                AppRoutes.Home.route
+            ) {
+                inclusive =
+                    false
+            }
+
+            launchSingleTop =
+                true
         }
     }
 
@@ -94,82 +137,102 @@ fun LaranjadaNavGraph(
             route =
                 AppRoutes.Home.route
         ) {
-            HomeScreen(
-                profileName =
-                    selectedProfile?.name
-                        ?: currentUser.displayName,
-                profileAvatarUrl =
-                    selectedProfile
-                        ?.avatar
-                        ?.imageUrl,
-                onMediaClick = {
-                        contentType,
-                        uuid ->
+            when {
+                profileState.isLoading -> {
+                }
 
-                    navController.navigate(
-                        AppRoutes.Detail
-                            .createRoute(
-                                contentType =
-                                    contentType,
-                                uuid =
-                                    uuid
-                            )
-                    )
-                },
-                onCollectionClick = {
-                        collection ->
+                selectedProfile == null -> {
+                    LaunchedEffect(
+                        Unit
+                    ) {
+                        forceProfileSelection()
+                    }
+                }
 
-                    navController.navigate(
-                        AppRoutes.Collection
-                            .createRoute(
-                                uuid =
-                                    collection.uuid
-                            )
-                    )
-                },
-                onSeeAllClick = {
-                        sectionSlug,
-                        title ->
+                else -> {
+                    HomeScreen(
+                        profileName =
+                            selectedProfile.name,
+                        profileAvatarUrl =
+                            selectedProfile
+                                .avatar
+                                ?.imageUrl,
+                        onMediaClick = {
+                                contentType,
+                                uuid ->
 
-                    navController.navigate(
-                        AppRoutes.MediaGrid
-                            .createRoute(
-                                sectionSlug =
-                                    sectionSlug,
-                                title =
-                                    title
+                            navController.navigate(
+                                AppRoutes.Detail
+                                    .createRoute(
+                                        contentType =
+                                            contentType,
+                                        uuid =
+                                            uuid
+                                    )
                             )
-                    )
-                },
-                onCategoryGridClick = {
-                        sectionSlug,
-                        title ->
+                        },
+                        onCollectionClick = {
+                                collection ->
 
-                    navController.navigate(
-                        AppRoutes.MediaGrid
-                            .createRoute(
-                                sectionSlug =
-                                    sectionSlug,
-                                title =
-                                    title
+                            navController.navigate(
+                                AppRoutes.Collection
+                                    .createRoute(
+                                        uuid =
+                                            collection.uuid
+                                    )
                             )
-                    )
-                },
-                onAccountClick = {
-                    navController.navigate(
-                        AppRoutes.Account.route
+                        },
+                        onSeeAllClick = {
+                                sectionSlug,
+                                title ->
+
+                            navController.navigate(
+                                AppRoutes.MediaGrid
+                                    .createRoute(
+                                        sectionSlug =
+                                            sectionSlug,
+                                        title =
+                                            title
+                                    )
+                            )
+                        },
+                        onCategoryGridClick = {
+                                sectionSlug,
+                                title ->
+
+                            navController.navigate(
+                                AppRoutes.MediaGrid
+                                    .createRoute(
+                                        sectionSlug =
+                                            sectionSlug,
+                                        title =
+                                            title
+                                    )
+                            )
+                        },
+                        onAccountClick = {
+                            navController.navigate(
+                                AppRoutes.Account.route
+                            )
+                        }
                     )
                 }
-            )
+            }
         }
 
         /*
-         * MENU
+         * CONTA / PERFIS
          */
         composable(
             route =
                 AppRoutes.Account.route
         ) {
+            BackHandler(
+                enabled =
+                    profileSelectionRequired
+            ) {
+            }
+
             AccountScreen(
                 user =
                     currentUser,
@@ -182,13 +245,20 @@ fun LaranjadaNavGraph(
                         ?: profileState
                             .selectionErrorMessage,
                 onBackClick = {
-                    navController
-                        .popBackStack()
+                    if (
+                        !profileSelectionRequired
+                    ) {
+                        navController
+                            .popBackStack()
+                    }
                 },
                 onLogoutClick =
                     onLogoutClick,
                 profiles =
                     menuProfiles,
+                canCreateProfile =
+                    profileState
+                        .canCreateProfile,
                 onProfileClick = {
                         profile ->
 
@@ -242,7 +312,7 @@ fun LaranjadaNavGraph(
         }
 
         /*
-         * PIN DO PERFIL
+         * PIN
          */
         composable(
             route =
@@ -455,6 +525,9 @@ fun LaranjadaNavGraph(
                         .popBackStack()
                 },
                 onAvatarClick = {
+                    profileViewModel
+                        .clearAvatarMutationError()
+
                     navController.navigate(
                         AppRoutes.AvatarPicker
                             .createRoute(
@@ -480,10 +553,6 @@ fun LaranjadaNavGraph(
                         val normalizedPin =
                             pin.trim()
 
-                        /*
-                         * Só envia o nome quando
-                         * ele realmente mudou.
-                         */
                         val namePatch =
                             normalizedName
                                 .takeIf {
@@ -492,45 +561,12 @@ fun LaranjadaNavGraph(
                                                 .name
                                 }
 
-                        /*
-                         * PIN vazio significa:
-                         *
-                         * não estamos criando nem
-                         * alterando o PIN.
-                         */
                         val pinPatch =
                             normalizedPin
                                 .takeIf {
                                     it.isNotBlank()
                                 }
 
-                        /*
-                         * PATCH parcial:
-                         *
-                         * PERFIL COM PIN
-                         *
-                         * manter PIN:
-                         * usePin == hasPin
-                         * pin vazio
-                         * → não envia nada de PIN
-                         *
-                         * alterar PIN:
-                         * pin preenchido
-                         * → use_pin=true + pin
-                         *
-                         * remover PIN:
-                         * usePin=false
-                         * → use_pin=false
-                         *
-                         *
-                         * PERFIL SEM PIN
-                         *
-                         * continuar sem PIN:
-                         * → não envia nada
-                         *
-                         * criar PIN:
-                         * usePin=true + pin
-                         */
                         val usePinPatch =
                             when {
                                 usePin !=
@@ -573,6 +609,9 @@ fun LaranjadaNavGraph(
                         .popBackStack()
                 },
                 onDeleteClick = {
+                    profileViewModel
+                        .clearDeleteError()
+
                     navController.navigate(
                         AppRoutes.DeleteProfile
                             .createRoute(
@@ -585,9 +624,7 @@ fun LaranjadaNavGraph(
         }
 
         /*
-         * ESCOLHER AVATAR
-         *
-         * Ainda temporário.
+         * BIBLIOTECA / TROCA DE AVATAR
          */
         composable(
             route =
@@ -617,74 +654,169 @@ fun LaranjadaNavGraph(
                                 profileUuid
                     }
 
-            val temporaryAvatars =
-                listOf(
-                    AvatarOptionUi(
-                        uuid =
-                            "avatar-hermione",
-                        name =
-                            "Hermione",
-                        collection =
-                            "Harry Potter",
-                        imageUrl =
-                            null
-                    ),
-                    AvatarOptionUi(
-                        uuid =
-                            "avatar-slytherin",
-                        name =
-                            "Slytherin",
-                        collection =
-                            "Harry Potter",
-                        imageUrl =
-                            null
-                    ),
-                    AvatarOptionUi(
-                        uuid =
-                            "avatar-voldemort",
-                        name =
-                            "Voldemort",
-                        collection =
-                            "Harry Potter",
-                        imageUrl =
-                            null
-                    ),
-                    AvatarOptionUi(
-                        uuid =
-                            "avatar-robin",
-                        name =
-                            "Robin",
-                        collection =
-                            "Os Jovens Titãs em Ação",
-                        imageUrl =
-                            null
-                    )
-                )
+            LaunchedEffect(
+                profileUuid
+            ) {
+                profileViewModel
+                    .clearAvatarLibraryError()
+
+                profileViewModel
+                    .clearAvatarMutationError()
+
+                profileViewModel
+                    .loadAvatarLibrary()
+            }
+
+            val avatarOptions =
+                buildList {
+                    profileState
+                        .avatarLibrary
+                        ?.groups
+                        ?.forEach {
+                                group ->
+
+                            group.avatars
+                                .forEach {
+                                        avatar ->
+
+                                    add(
+                                        AvatarOptionUi(
+                                            uuid =
+                                                avatar.uuid,
+                                            name =
+                                                avatar.name,
+                                            collection =
+                                                group.name,
+                                            imageUrl =
+                                                avatar.imageUrl
+                                        )
+                                    )
+                                }
+                        }
+
+                    profileState
+                        .avatarLibrary
+                        ?.ungroupedAvatars
+                        ?.forEach {
+                                avatar ->
+
+                            add(
+                                AvatarOptionUi(
+                                    uuid =
+                                        avatar.uuid,
+                                    name =
+                                        avatar.name,
+                                    collection =
+                                        "Outros",
+                                    imageUrl =
+                                        avatar.imageUrl
+                                )
+                            )
+                        }
+                }
+
+            val avatarMutationInProgress =
+                profileState
+                    .isUpdatingAvatar &&
+                        profileState
+                            .updatingAvatarProfileUuid ==
+                        profileUuid
 
             AvatarPickerScreen(
                 profileName =
                     profile?.name
                         ?: "Perfil",
+
                 avatars =
-                    temporaryAvatars,
+                    avatarOptions,
+
                 initialSelectedAvatarUuid =
                     profile
                         ?.avatar
                         ?.uuid,
+
+                isLoading =
+                    profileState
+                        .isLoadingAvatarLibrary,
+
+                isSubmitting =
+                    avatarMutationInProgress,
+
+                submittingAvatarUuid =
+                    if (
+                        avatarMutationInProgress
+                    ) {
+                        profileState
+                            .updatingAvatarUuid
+                    } else {
+                        null
+                    },
+
+                errorMessage =
+                    profileState
+                        .avatarMutationErrorMessage
+                        ?: profileState
+                            .avatarLibraryErrorMessage,
+
                 onBackClick = {
+                    profileViewModel
+                        .clearAvatarMutationError()
+
                     navController
                         .popBackStack()
                 },
+
+                /*
+                 * POST
+                 * /profiles/<uuid>/avatar/
+                 */
                 onAvatarClick = {
+                        avatar ->
+
+                    profileViewModel
+                        .setProfileAvatar(
+                            profileUuid =
+                                profileUuid,
+
+                            avatarUuid =
+                                avatar.uuid,
+
+                            onSuccess = {
+                                /*
+                                 * Volta para EditProfile.
+                                 *
+                                 * Como o ViewModel já recebeu
+                                 * o profile atualizado,
+                                 * a nova imagem aparece
+                                 * imediatamente.
+                                 */
+                                navController
+                                    .popBackStack()
+                            }
+                        )
+                },
+
+                /*
+                 * DELETE
+                 * /profiles/<uuid>/avatar/
+                 */
+                onRemoveAvatarClick = {
+                    profileViewModel
+                        .removeProfileAvatar(
+                            profileUuid =
+                                profileUuid,
+
+                            onSuccess = {
+                                navController
+                                    .popBackStack()
+                            }
+                        )
                 }
             )
         }
 
         /*
          * EXCLUIR PERFIL
-         *
-         * A API DELETE ainda será
-         * conectada no próximo bloco.
          */
         composable(
             route =
@@ -718,13 +850,39 @@ fun LaranjadaNavGraph(
                 profileName =
                     profile?.name
                         ?: "Perfil",
+
                 avatarUrl =
                     profile
                         ?.avatar
                         ?.imageUrl,
+
+                isSubmitting =
+                    profileState
+                        .isDeletingProfile &&
+                            profileState
+                                .deletingProfileUuid ==
+                            profileUuid,
+
+                errorMessage =
+                    profileState
+                        .deleteErrorMessage,
+
                 onConfirmClick = {
+                    profileViewModel
+                        .deleteProfile(
+                            profileUuid =
+                                profileUuid,
+
+                            onSuccess = {
+                                returnToAccount()
+                            }
+                        )
                 },
+
                 onCancelClick = {
+                    profileViewModel
+                        .clearDeleteError()
+
                     navController
                         .popBackStack()
                 }
@@ -890,78 +1048,112 @@ fun LaranjadaNavGraph(
                     )
                     .orEmpty()
 
-            DetailRoute(
-                contentType =
-                    contentType,
-                uuid =
-                    uuid,
-                onBackClick = {
-                    navController
-                        .popBackStack()
-                },
-                onPlayClick = {
-                        playerContentType,
-                        playerUuid,
-                        hlsUrl,
-                        seriesUuid ->
+            when {
+                profileState.isLoading -> {
+                }
 
-                    navController.navigate(
-                        AppRoutes.Player
-                            .createRoute(
-                                contentType =
-                                    playerContentType,
-                                uuid =
-                                    playerUuid,
-                                hlsUrl =
-                                    hlsUrl,
-                                seriesUuid =
-                                    seriesUuid
-                            )
-                    )
-                },
-                onRestartClick = {
-                },
-                onFavoriteClick = {
-                },
-                onRelatedClick = {
-                        item ->
+                selectedProfile == null -> {
+                    LaunchedEffect(
+                        contentType,
+                        uuid
+                    ) {
+                        forceProfileSelection()
+                    }
+                }
 
-                    navController.navigate(
-                        AppRoutes.Detail
-                            .createRoute(
-                                contentType =
-                                    item.contentType,
-                                uuid =
-                                    item.uuid
-                            )
-                    )
-                },
-                onEpisodeClick = {
-                        episode,
-                        seriesUuid ->
+                else -> {
+                    DetailRoute(
+                        contentType =
+                            contentType,
 
-                    navController.navigate(
-                        AppRoutes.Player
-                            .createRoute(
-                                contentType =
-                                    "episode",
-                                uuid =
-                                    episode.uuid,
-                                hlsUrl =
-                                    episode.hlsUrl,
-                                seriesUuid =
-                                    seriesUuid
+                        uuid =
+                            uuid,
+
+                        profileName =
+                            selectedProfile.name,
+
+                        profileAvatarUrl =
+                            selectedProfile
+                                .avatar
+                                ?.imageUrl,
+
+                        onBackClick = {
+                            navController
+                                .popBackStack()
+                        },
+
+                        onAccountClick = {
+                            navController.navigate(
+                                AppRoutes.Account.route
                             )
+                        },
+
+                        onPlayClick = {
+                                playerContentType,
+                                playerUuid,
+                                hlsUrl,
+                                seriesUuid ->
+
+                            navController.navigate(
+                                AppRoutes.Player
+                                    .createRoute(
+                                        contentType =
+                                            playerContentType,
+                                        uuid =
+                                            playerUuid,
+                                        hlsUrl =
+                                            hlsUrl,
+                                        seriesUuid =
+                                            seriesUuid
+                                    )
+                            )
+                        },
+
+                        onRestartClick = {
+                        },
+
+                        onFavoriteClick = {
+                        },
+
+                        onRelatedClick = {
+                                item ->
+
+                            navController.navigate(
+                                AppRoutes.Detail
+                                    .createRoute(
+                                        contentType =
+                                            item.contentType,
+                                        uuid =
+                                            item.uuid
+                                    )
+                            )
+                        },
+
+                        onEpisodeClick = {
+                                episode,
+                                seriesUuid ->
+
+                            navController.navigate(
+                                AppRoutes.Player
+                                    .createRoute(
+                                        contentType =
+                                            "episode",
+                                        uuid =
+                                            episode.uuid,
+                                        hlsUrl =
+                                            episode.hlsUrl,
+                                        seriesUuid =
+                                            seriesUuid
+                                    )
+                            )
+                        }
                     )
                 }
-            )
+            }
         }
 
         /*
          * PLAYER ANTIGO
-         *
-         * Será substituído pela task
-         * Playback Authorization.
          */
         composable(
             route =

@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,8 @@ import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 fun DeleteProfileScreen(
     profileName: String,
     avatarUrl: String? = null,
+    isSubmitting: Boolean = false,
+    errorMessage: String? = null,
     onConfirmClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
@@ -45,13 +48,16 @@ fun DeleteProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF160800),
-                        Color.Black,
-                        Color.Black
+                brush =
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(
+                                0xFF160800
+                            ),
+                            Color.Black,
+                            Color.Black
+                        )
                     )
-                )
             )
             .windowInsetsPadding(
                 WindowInsets.statusBars
@@ -62,7 +68,8 @@ fun DeleteProfileScreen(
             )
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
             Text(
                 text = "LARANJADA",
@@ -81,10 +88,18 @@ fun DeleteProfileScreen(
             )
 
             DeleteConfirmationCard(
-                profileName = profileName,
-                avatarUrl = avatarUrl,
-                onConfirmClick = onConfirmClick,
-                onCancelClick = onCancelClick
+                profileName =
+                    profileName,
+                avatarUrl =
+                    avatarUrl,
+                isSubmitting =
+                    isSubmitting,
+                errorMessage =
+                    errorMessage,
+                onConfirmClick =
+                    onConfirmClick,
+                onCancelClick =
+                    onCancelClick
             )
         }
 
@@ -109,6 +124,8 @@ fun DeleteProfileScreen(
 private fun DeleteConfirmationCard(
     profileName: String,
     avatarUrl: String?,
+    isSubmitting: Boolean,
+    errorMessage: String?,
     onConfirmClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
@@ -138,7 +155,8 @@ private fun DeleteConfirmationCard(
                 horizontal = 16.dp,
                 vertical = 24.dp
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
@@ -153,33 +171,41 @@ private fun DeleteConfirmationCard(
                         0xFF2B2C31
                     )
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment =
+                Alignment.Center
         ) {
             if (
                 !avatarUrl.isNullOrBlank()
             ) {
                 AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = profileName,
+                    model =
+                        avatarUrl,
+                    contentDescription =
+                        profileName,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(
                             CircleShape
                         ),
-                    contentScale = ContentScale.Crop
+                    contentScale =
+                        ContentScale.Crop
                 )
             } else {
                 Text(
-                    text = profileName
-                        .trim()
-                        .take(1)
-                        .uppercase()
-                        .ifBlank {
-                            "?"
-                        },
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    text =
+                        profileName
+                            .trim()
+                            .take(1)
+                            .uppercase()
+                            .ifBlank {
+                                "?"
+                            },
+                    color =
+                        Color.White,
+                    fontSize =
+                        32.sp,
+                    fontWeight =
+                        FontWeight.ExtraBold
                 )
             }
         }
@@ -205,10 +231,12 @@ private fun DeleteConfirmationCard(
         )
 
         Text(
-            text = "O perfil $profileName será removido permanentemente desta conta.",
-            color = Color.White.copy(
-                alpha = 0.76f
-            ),
+            text =
+                "O perfil $profileName será removido permanentemente desta conta.",
+            color =
+                Color.White.copy(
+                    alpha = 0.76f
+                ),
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
@@ -245,34 +273,68 @@ private fun DeleteConfirmationCard(
                     horizontal = 14.dp,
                     vertical = 13.dp
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment =
+                Alignment.Center
         ) {
             androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Warning,
-                    contentDescription = null,
-                    tint = Color(
-                        0xFFFFA800
-                    ),
-                    modifier = Modifier.size(
-                        18.dp
-                    )
+                    imageVector =
+                        Icons.Rounded.Warning,
+                    contentDescription =
+                        null,
+                    tint =
+                        Color(
+                            0xFFFFA800
+                        ),
+                    modifier =
+                        Modifier.size(
+                            18.dp
+                        )
                 )
 
                 Text(
-                    text = "Essa ação não pode ser desfeita.",
-                    color = Color(
-                        0xFFFFB129
-                    ),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(
-                        start = 8.dp
-                    )
+                    text =
+                        "Essa ação não pode ser desfeita.",
+                    color =
+                        Color(
+                            0xFFFFB129
+                        ),
+                    fontSize =
+                        13.sp,
+                    fontWeight =
+                        FontWeight.ExtraBold,
+                    modifier =
+                        Modifier.padding(
+                            start = 8.dp
+                        )
                 )
             }
+        }
+
+        if (
+            !errorMessage.isNullOrBlank()
+        ) {
+            Spacer(
+                modifier = Modifier.height(
+                    16.dp
+                )
+            )
+
+            Text(
+                text =
+                    errorMessage,
+                color =
+                    Color(
+                        0xFFFF8E8E
+                    ),
+                fontSize =
+                    13.sp,
+                textAlign =
+                    TextAlign.Center
+            )
         }
 
         Spacer(
@@ -293,21 +355,52 @@ private fun DeleteConfirmationCard(
                     )
                 )
                 .background(
-                    Color(
-                        0xFFF1252D
-                    )
+                    if (
+                        isSubmitting
+                    ) {
+                        Color(
+                            0xFF8B2528
+                        )
+                    } else {
+                        Color(
+                            0xFFF1252D
+                        )
+                    }
                 )
                 .clickable(
-                    onClick = onConfirmClick
+                    enabled =
+                        !isSubmitting,
+                    onClick =
+                        onConfirmClick
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment =
+                Alignment.Center
         ) {
-            Text(
-                text = "Excluir definitivamente",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+            if (
+                isSubmitting
+            ) {
+                CircularProgressIndicator(
+                    modifier =
+                        Modifier.size(
+                            22.dp
+                        ),
+                    color =
+                        Color.White,
+                    strokeWidth =
+                        2.dp
+                )
+            } else {
+                Text(
+                    text =
+                        "Excluir definitivamente",
+                    color =
+                        Color.White,
+                    fontSize =
+                        14.sp,
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+            }
         }
 
         Spacer(
@@ -318,11 +411,24 @@ private fun DeleteConfirmationCard(
 
         Text(
             text = "Cancelar",
-            color = Color.White,
+            color =
+                Color.White.copy(
+                    alpha =
+                        if (
+                            isSubmitting
+                        ) {
+                            0.45f
+                        } else {
+                            1f
+                        }
+                ),
             fontSize = 13.sp,
             fontWeight = FontWeight.ExtraBold,
             modifier = Modifier.clickable(
-                onClick = onCancelClick
+                enabled =
+                    !isSubmitting,
+                onClick =
+                    onCancelClick
             )
         )
     }
