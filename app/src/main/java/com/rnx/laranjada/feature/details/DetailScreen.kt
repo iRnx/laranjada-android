@@ -89,37 +89,24 @@ fun DetailScreen(
         false,
     relatedErrorMessage: String? =
         null,
-
-    /*
-     * ViewerProfile selecionado.
-     */
     profileName: String,
     profileAvatarUrl: String?,
-
     modifier: Modifier =
         Modifier,
-
     onBackClick: () -> Unit =
         {},
-
     onAccountClick: () -> Unit =
         {},
-
     onPlayClick: () -> Unit =
         {},
-
     onRestartClick: () -> Unit =
         {},
-
     onFavoriteClick: (Boolean) -> Unit =
         {},
-
     onRelatedClick: (MediaItemUi) -> Unit =
         {},
-
     onRetryRelatedClick: () -> Unit =
         {},
-
     onEpisodeClick: (EpisodeUi) -> Unit =
         {}
 ) {
@@ -130,19 +117,22 @@ fun DetailScreen(
             )
         }
 
-    var selectedSeasonIndex by remember {
+    var selectedSeasonIndex by
+    remember {
         mutableIntStateOf(
             0
         )
     }
 
-    var isFavorite by remember {
+    var isFavorite by
+    remember {
         mutableStateOf(
             false
         )
     }
 
-    var selectedTab by remember(
+    var selectedTab by
+    remember(
         uiState.uuid,
         uiState.isSeries
     ) {
@@ -176,11 +166,12 @@ fun DetailScreen(
             )
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                LaranjadaBlack
-            )
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                )
     ) {
         LazyColumn(
             modifier =
@@ -280,10 +271,15 @@ fun DetailScreen(
                                         episode,
 
                                     onClick = {
+                                        /*
+                                         * Não usamos mais
+                                         * episode.hlsUrl.
+                                         *
+                                         * has_video define
+                                         * disponibilidade.
+                                         */
                                         if (
-                                            episode
-                                                .hlsUrl
-                                                .isNotBlank()
+                                            episode.hasVideo
                                         ) {
                                             onEpisodeClick(
                                                 episode
@@ -337,13 +333,6 @@ fun DetailScreen(
             }
         }
 
-        /*
-         * Agora o detalhe recebe o mesmo
-         * ViewerProfile utilizado pela Home.
-         *
-         * Portanto não aparece mais "?"
-         * quando existe um avatar real.
-         */
         HomeBottomBar(
             selectedIndex =
                 selectedBottomIndex
@@ -361,9 +350,6 @@ fun DetailScreen(
                 if (
                     index == 3
                 ) {
-                    /*
-                     * Perfil / Conta.
-                     */
                     onAccountClick()
                 } else {
                     selectedBottomIndex
@@ -571,13 +557,14 @@ private fun DetailTopBar(
             overflow =
                 TextOverflow.Ellipsis,
 
-            modifier = Modifier
-                .weight(
-                    1f
-                )
-                .padding(
-                    end = 8.dp
-                )
+            modifier =
+                Modifier
+                    .weight(
+                        1f
+                    )
+                    .padding(
+                        end = 8.dp
+                    )
         )
     }
 }
@@ -611,11 +598,12 @@ private fun MetadataLine(
         verticalAlignment =
             Alignment.CenterVertically,
 
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 10.dp
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 10.dp
+                )
     ) {
         if (
             years.isNotBlank()
@@ -716,14 +704,15 @@ private fun DetailMainInfo(
     onFavoriteClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 18.dp
-            )
-            .padding(
-                top = 4.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp
+                )
+                .padding(
+                    top = 4.dp
+                ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally
@@ -756,15 +745,24 @@ private fun DetailMainInfo(
                 )
         )
 
+        /*
+         * Agora enabled depende de:
+         *
+         * uiState.canPlay
+         *
+         * que depende de has_video,
+         * não de hls_url.
+         */
         Button(
             onClick =
                 onPlayClick,
 
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(
-                    56.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(
+                        56.dp
+                    ),
 
             enabled =
                 uiState.canPlay,
@@ -775,24 +773,23 @@ private fun DetailMainInfo(
                 ),
 
             colors =
-                ButtonDefaults
-                    .buttonColors(
-                        containerColor =
-                            Color.White,
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        Color.White,
 
-                        contentColor =
-                            Color.Black,
+                    contentColor =
+                        Color.Black,
 
-                        disabledContainerColor =
-                            Color.White.copy(
-                                alpha = 0.28f
-                            ),
+                    disabledContainerColor =
+                        Color.White.copy(
+                            alpha = 0.28f
+                        ),
 
-                        disabledContentColor =
-                            Color.Black.copy(
-                                alpha = 0.55f
-                            )
-                    )
+                    disabledContentColor =
+                        Color.Black.copy(
+                            alpha = 0.55f
+                        )
+                )
         ) {
             Icon(
                 imageVector =
@@ -859,7 +856,8 @@ private fun DetailMainInfo(
         if (
             uiState.isSeries &&
             uiState.watchProgress
-                ?.hasEpisodeInfo == true
+                ?.hasEpisodeInfo ==
+            true
         ) {
             Spacer(
                 modifier =
@@ -993,26 +991,10 @@ private fun WatchProgressBar(
             Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .weight(
-                    1f
-                )
-                .height(
-                    4.dp
-                )
-                .clip(
-                    RoundedCornerShape(
-                        10.dp
-                    )
-                )
-                .background(
-                    LaranjadaSurfaceLight
-                )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(
-                        progress
+            modifier =
+                Modifier
+                    .weight(
+                        1f
                     )
                     .height(
                         4.dp
@@ -1023,8 +1005,26 @@ private fun WatchProgressBar(
                         )
                     )
                     .background(
-                        LaranjadaOrange
+                        LaranjadaSurfaceLight
                     )
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth(
+                            progress
+                        )
+                        .height(
+                            4.dp
+                        )
+                        .clip(
+                            RoundedCornerShape(
+                                10.dp
+                            )
+                        )
+                        .background(
+                            LaranjadaOrange
+                        )
             )
         }
 
@@ -1246,18 +1246,20 @@ private fun DetailTabs(
         rememberScrollState()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 18.dp
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp
+                )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(
-                    scrollState
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(
+                        scrollState
+                    ),
 
             horizontalArrangement =
                 Arrangement.spacedBy(
@@ -1319,20 +1321,21 @@ private fun DetailTabItem(
         }
 
     Column(
-        modifier = Modifier
-            .clickable(
-                interactionSource =
-                    interactionSource,
+        modifier =
+            Modifier
+                .clickable(
+                    interactionSource =
+                        interactionSource,
 
-                indication =
-                    null,
+                    indication =
+                        null,
 
-                onClick =
-                    onClick
-            )
-            .padding(
-                vertical = 4.dp
-            ),
+                    onClick =
+                        onClick
+                )
+                .padding(
+                    vertical = 4.dp
+                ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally
@@ -1377,41 +1380,42 @@ private fun DetailTabItem(
         )
 
         Box(
-            modifier = Modifier
-                .height(
-                    4.dp
-                )
-                .width(
-                    when (
-                        label
-                    ) {
-                        "EPISÓDIOS" ->
-                            104.dp
-
-                        "SUGESTÕES" ->
-                            108.dp
-
-                        "DETALHES" ->
-                            96.dp
-
-                        else ->
-                            90.dp
-                    }
-                )
-                .clip(
-                    RoundedCornerShape(
-                        12.dp
+            modifier =
+                Modifier
+                    .height(
+                        4.dp
                     )
-                )
-                .background(
-                    if (
-                        selected
-                    ) {
-                        Color.White
-                    } else {
-                        Color.Transparent
-                    }
-                )
+                    .width(
+                        when (
+                            label
+                        ) {
+                            "EPISÓDIOS" ->
+                                104.dp
+
+                            "SUGESTÕES" ->
+                                108.dp
+
+                            "DETALHES" ->
+                                96.dp
+
+                            else ->
+                                90.dp
+                        }
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            12.dp
+                        )
+                    )
+                    .background(
+                        if (
+                            selected
+                        ) {
+                            Color.White
+                        } else {
+                            Color.Transparent
+                        }
+                    )
         )
     }
 }
@@ -1423,15 +1427,16 @@ private fun SeasonHeader(
     onSeasonSelected: (Int) -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 18.dp
-            )
-            .padding(
-                top = 22.dp,
-                bottom = 18.dp
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp
+                )
+                .padding(
+                    top = 22.dp,
+                    bottom = 18.dp
+                )
     ) {
         SeasonSelector(
             seasons =
@@ -1452,7 +1457,8 @@ private fun SeasonSelector(
     selectedSeasonIndex: Int,
     onSeasonSelected: (Int) -> Unit
 ) {
-    var expanded by remember {
+    var expanded by
+    remember {
         mutableStateOf(
             false
         )
@@ -1584,53 +1590,65 @@ private fun EpisodeCard(
             MutableInteractionSource()
         }
 
+    /*
+     * IMPORTANTE:
+     *
+     * Não usamos mais:
+     *
+     * episode.hlsUrl.isNotBlank()
+     *
+     * A API de catálogo informa
+     * has_video e o Reserve entrega
+     * a URL real depois do clique.
+     */
     val hasVideo =
-        episode.hlsUrl
-            .isNotBlank()
+        episode.hasVideo
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource =
-                    interactionSource,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource =
+                        interactionSource,
 
-                indication =
-                    null,
+                    indication =
+                        null,
 
-                enabled =
-                    hasVideo,
+                    enabled =
+                        hasVideo,
 
-                onClick =
-                    onClick
-            )
-            .padding(
-                horizontal = 18.dp
-            )
-            .padding(
-                bottom = 26.dp
-            )
+                    onClick =
+                        onClick
+                )
+                .padding(
+                    horizontal = 18.dp
+                )
+                .padding(
+                    bottom = 26.dp
+                )
     ) {
         Row(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .width(
-                        136.dp
-                    )
-                    .aspectRatio(
-                        16f / 9f
-                    )
-                    .clip(
-                        RoundedCornerShape(
-                            8.dp
+                modifier =
+                    Modifier
+                        .width(
+                            136.dp
                         )
-                    )
-                    .background(
-                        LaranjadaSurfaceLight
-                    )
+                        .aspectRatio(
+                            16f / 9f
+                        )
+                        .clip(
+                            RoundedCornerShape(
+                                8.dp
+                            )
+                        )
+                        .background(
+                            LaranjadaSurfaceLight
+                        )
             ) {
                 AsyncImage(
                     model =
@@ -1647,13 +1665,14 @@ private fun EpisodeCard(
                 )
 
                 Surface(
-                    modifier = Modifier
-                        .size(
-                            38.dp
-                        )
-                        .align(
-                            Alignment.Center
-                        ),
+                    modifier =
+                        Modifier
+                            .size(
+                                38.dp
+                            )
+                            .align(
+                                Alignment.Center
+                            ),
 
                     shape =
                         CircleShape,
@@ -1887,12 +1906,13 @@ private fun RelatedSuggestionsSection(
     onRetryClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                top = 22.dp,
-                bottom = 10.dp
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = 22.dp,
+                    bottom = 10.dp
+                )
     ) {
         Text(
             text =
@@ -1923,11 +1943,12 @@ private fun RelatedSuggestionsSection(
         when {
             isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(
-                            120.dp
-                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(
+                                120.dp
+                            ),
 
                     contentAlignment =
                         Alignment.Center
@@ -1949,11 +1970,12 @@ private fun RelatedSuggestionsSection(
 
             errorMessage != null -> {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 18.dp
-                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 18.dp
+                            ),
 
                     shape =
                         RoundedCornerShape(
@@ -2028,13 +2050,14 @@ private fun RelatedSuggestionsSection(
                             fontWeight =
                                 FontWeight.Bold,
 
-                            modifier = Modifier
-                                .padding(
-                                    top = 12.dp
-                                )
-                                .clickable {
-                                    onRetryClick()
-                                }
+                            modifier =
+                                Modifier
+                                    .padding(
+                                        top = 12.dp
+                                    )
+                                    .clickable {
+                                        onRetryClick()
+                                    }
                         )
                     }
                 }
@@ -2042,11 +2065,12 @@ private fun RelatedSuggestionsSection(
 
             relatedItems.isEmpty() -> {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 18.dp
-                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 18.dp
+                            ),
 
                     shape =
                         RoundedCornerShape(
@@ -2142,37 +2166,39 @@ private fun RelatedContentCard(
         }
 
     Column(
-        modifier = Modifier
-            .width(
-                154.dp
-            )
-            .clickable(
-                interactionSource =
-                    interactionSource,
+        modifier =
+            Modifier
+                .width(
+                    154.dp
+                )
+                .clickable(
+                    interactionSource =
+                        interactionSource,
 
-                indication =
-                    null,
+                    indication =
+                        null,
 
-                onClick =
-                    onClick
-            )
+                    onClick =
+                        onClick
+                )
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(
-                    16f / 9f
-                )
-                .clip(
-                    RoundedCornerShape(
-                        10.dp
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(
+                        16f / 9f
                     )
-                )
-                .background(
-                    Brush.linearGradient(
-                        item.gradientColors
+                    .clip(
+                        RoundedCornerShape(
+                            10.dp
+                        )
                     )
-                )
+                    .background(
+                        Brush.linearGradient(
+                            item.gradientColors
+                        )
+                    )
         ) {
             AsyncImage(
                 model =
@@ -2189,19 +2215,21 @@ private fun RelatedContentCard(
             )
 
             Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        Color.Transparent,
 
-                                Color.Black.copy(
-                                    alpha = 0.20f
-                                )
+                                        Color.Black.copy(
+                                            alpha = 0.20f
+                                        )
+                                    )
                             )
                         )
-                    )
             )
         }
 
@@ -2270,15 +2298,16 @@ private fun DetailInfoSection(
     uiState: DetailUiState
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 18.dp
-            )
-            .padding(
-                top = 24.dp,
-                bottom = 10.dp
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp
+                )
+                .padding(
+                    top = 24.dp,
+                    bottom = 10.dp
+                )
     ) {
         Text(
             text =
@@ -2415,11 +2444,12 @@ private fun DetailInfoRow(
     }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                vertical = 7.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 7.dp
+                ),
 
         verticalAlignment =
             Alignment.Top

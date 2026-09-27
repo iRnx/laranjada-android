@@ -24,22 +24,55 @@ data class DetailUiState(
     val seasons: List<SeasonUi> = emptyList()
 ) {
     val isSeries: Boolean
-        get() = contentType == DetailContentType.Series
+        get() =
+            contentType ==
+                    DetailContentType.Series
 
     val contentTypeForApi: String
-        get() = if (isSeries) "series" else "movie"
+        get() =
+            if (
+                isSeries
+            ) {
+                "series"
+            } else {
+                "movie"
+            }
 
     val hasWatchProgress: Boolean
-        get() = watchProgress != null && watchProgress.progress > 0f
+        get() =
+            watchProgress != null &&
+                    watchProgress.progress > 0f
 
-    val firstAvailableEpisode: EpisodeUi?
+    /*
+     * IMPORTANTE:
+     *
+     * A disponibilidade do episódio
+     * agora é definida por has_video.
+     *
+     * Não usamos mais hls_url como
+     * critério de reprodução.
+     *
+     * A URL oficial será recebida pelo:
+     *
+     * POST /api/v1/playback/reserve/
+     */
+    val firstAvailableEpisode:
+            EpisodeUi?
         get() {
-            seasons.forEach { season ->
-                val episode = season.episodes.firstOrNull { item ->
-                    item.hlsUrl.isNotBlank()
-                }
+            seasons.forEach {
+                    season ->
 
-                if (episode != null) {
+                val episode =
+                    season.episodes
+                        .firstOrNull {
+                                item ->
+
+                            item.hasVideo
+                        }
+
+                if (
+                    episode != null
+                ) {
                     return episode
                 }
             }
@@ -47,12 +80,23 @@ data class DetailUiState(
             return null
         }
 
+    /*
+     * FILME:
+     * has_video define se pode reproduzir.
+     *
+     * SÉRIE:
+     * basta existir algum episódio
+     * com has_video=true.
+     */
     val canPlay: Boolean
         get() {
-            return if (isSeries) {
-                firstAvailableEpisode != null
+            return if (
+                isSeries
+            ) {
+                firstAvailableEpisode !=
+                        null
             } else {
-                hlsUrl.isNotBlank()
+                hasVideo
             }
         }
 }
@@ -65,9 +109,11 @@ data class WatchProgressUi(
     val episodeTitle: String? = null
 ) {
     val hasEpisodeInfo: Boolean
-        get() = seasonNumber != null &&
-                episodeNumber != null &&
-                !episodeTitle.isNullOrBlank()
+        get() =
+            seasonNumber != null &&
+                    episodeNumber != null &&
+                    !episodeTitle
+                        .isNullOrBlank()
 }
 
 data class SeasonUi(

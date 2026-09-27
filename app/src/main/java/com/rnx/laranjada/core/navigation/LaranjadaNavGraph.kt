@@ -70,7 +70,8 @@ fun LaranjadaNavGraph(
 
     val profileSelectionRequired =
         !profileState.isLoading &&
-                selectedProfile == null
+                selectedProfile ==
+                null
 
     fun returnToHome() {
         navController.navigate(
@@ -126,6 +127,7 @@ fun LaranjadaNavGraph(
     NavHost(
         navController =
             navController,
+
         startDestination =
             startDestination
     ) {
@@ -141,7 +143,8 @@ fun LaranjadaNavGraph(
                 profileState.isLoading -> {
                 }
 
-                selectedProfile == null -> {
+                selectedProfile ==
+                        null -> {
                     LaunchedEffect(
                         Unit
                     ) {
@@ -153,10 +156,12 @@ fun LaranjadaNavGraph(
                     HomeScreen(
                         profileName =
                             selectedProfile.name,
+
                         profileAvatarUrl =
                             selectedProfile
                                 .avatar
                                 ?.imageUrl,
+
                         onMediaClick = {
                                 contentType,
                                 uuid ->
@@ -166,11 +171,13 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         contentType =
                                             contentType,
+
                                         uuid =
                                             uuid
                                     )
                             )
                         },
+
                         onCollectionClick = {
                                 collection ->
 
@@ -182,6 +189,7 @@ fun LaranjadaNavGraph(
                                     )
                             )
                         },
+
                         onSeeAllClick = {
                                 sectionSlug,
                                 title ->
@@ -191,11 +199,13 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         sectionSlug =
                                             sectionSlug,
+
                                         title =
                                             title
                                     )
                             )
                         },
+
                         onCategoryGridClick = {
                                 sectionSlug,
                                 title ->
@@ -205,11 +215,13 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         sectionSlug =
                                             sectionSlug,
+
                                         title =
                                             title
                                     )
                             )
                         },
+
                         onAccountClick = {
                             navController.navigate(
                                 AppRoutes.Account.route
@@ -236,14 +248,17 @@ fun LaranjadaNavGraph(
             AccountScreen(
                 user =
                     currentUser,
+
                 isLoggingOut =
                     isLoggingOut,
+
                 logoutErrorMessage =
                     logoutErrorMessage
                         ?: profileState
                             .loadErrorMessage
                         ?: profileState
                             .selectionErrorMessage,
+
                 onBackClick = {
                     if (
                         !profileSelectionRequired
@@ -252,13 +267,17 @@ fun LaranjadaNavGraph(
                             .popBackStack()
                     }
                 },
+
                 onLogoutClick =
                     onLogoutClick,
+
                 profiles =
                     menuProfiles,
+
                 canCreateProfile =
                     profileState
                         .canCreateProfile,
+
                 onProfileClick = {
                         profile ->
 
@@ -280,9 +299,11 @@ fun LaranjadaNavGraph(
                             .selectProfile(
                                 profileUuid =
                                     profile.uuid,
+
                                 onSuccess = {
                                     returnToHome()
                                 },
+
                                 onPinRequired = {
                                     navController.navigate(
                                         AppRoutes.ProfilePin
@@ -295,6 +316,7 @@ fun LaranjadaNavGraph(
                             )
                     }
                 },
+
                 onCreateProfileClick = {
                     profileViewModel
                         .clearCreateError()
@@ -303,6 +325,7 @@ fun LaranjadaNavGraph(
                         AppRoutes.CreateProfile.route
                     )
                 },
+
                 onEditProfilesClick = {
                     navController.navigate(
                         AppRoutes.EditProfiles.route
@@ -317,6 +340,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.ProfilePin.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.ProfilePin
@@ -326,7 +350,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val profileUuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -346,18 +372,22 @@ fun LaranjadaNavGraph(
                 profileName =
                     profile?.name
                         ?: "Perfil",
+
                 avatarUrl =
                     profile
                         ?.avatar
                         ?.imageUrl,
+
                 isSubmitting =
                     profileState.isSelecting &&
                             profileState
                                 .selectingProfileUuid ==
                             profileUuid,
+
                 errorMessage =
                     profileState
                         .selectionErrorMessage,
+
                 onBackClick = {
                     profileViewModel
                         .clearSelectionError()
@@ -365,6 +395,7 @@ fun LaranjadaNavGraph(
                     navController
                         .popBackStack()
                 },
+
                 onSubmitClick = {
                         pin ->
 
@@ -372,8 +403,10 @@ fun LaranjadaNavGraph(
                         .selectProfile(
                             profileUuid =
                                 profileUuid,
+
                             pin =
                                 pin,
+
                             onSuccess = {
                                 returnToHome()
                             }
@@ -393,9 +426,11 @@ fun LaranjadaNavGraph(
                 isSubmitting =
                     profileState
                         .isCreatingProfile,
+
                 errorMessage =
                     profileState
                         .createErrorMessage,
+
                 onBackClick = {
                     profileViewModel
                         .clearCreateError()
@@ -403,6 +438,7 @@ fun LaranjadaNavGraph(
                     navController
                         .popBackStack()
                 },
+
                 onCancelClick = {
                     profileViewModel
                         .clearCreateError()
@@ -410,6 +446,7 @@ fun LaranjadaNavGraph(
                     navController
                         .popBackStack()
                 },
+
                 onDoneClick = {
                         name,
                         usePin,
@@ -419,12 +456,15 @@ fun LaranjadaNavGraph(
                         .createProfile(
                             name =
                                 name,
+
                             usePin =
                                 usePin,
+
                             pin =
                                 pin.takeIf {
                                     usePin
                                 },
+
                             onSuccess = {
                                 returnToHome()
                             }
@@ -434,7 +474,7 @@ fun LaranjadaNavGraph(
         }
 
         /*
-         * ESCOLHER PERFIL PARA EDITAR
+         * EDITAR PERFIS
          */
         composable(
             route =
@@ -443,6 +483,7 @@ fun LaranjadaNavGraph(
             EditProfilesScreen(
                 profiles =
                     menuProfiles,
+
                 onProfileClick = {
                         profile ->
 
@@ -457,6 +498,7 @@ fun LaranjadaNavGraph(
                             )
                     )
                 },
+
                 onDoneClick = {
                     navController
                         .popBackStack()
@@ -470,6 +512,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.EditProfile.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.EditProfile
@@ -479,7 +522,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val profileUuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -498,25 +543,31 @@ fun LaranjadaNavGraph(
             EditProfileScreen(
                 profileUuid =
                     profileUuid,
+
                 initialName =
                     profile?.name
                         ?: "",
+
                 avatarUrl =
                     profile
                         ?.avatar
                         ?.imageUrl,
+
                 initialHasPin =
                     profile?.hasPin
                         ?: false,
+
                 isSubmitting =
                     profileState
                         .isUpdatingProfile &&
                             profileState
                                 .updatingProfileUuid ==
                             profileUuid,
+
                 errorMessage =
                     profileState
                         .updateErrorMessage,
+
                 onBackClick = {
                     profileViewModel
                         .clearUpdateError()
@@ -524,6 +575,7 @@ fun LaranjadaNavGraph(
                     navController
                         .popBackStack()
                 },
+
                 onAvatarClick = {
                     profileViewModel
                         .clearAvatarMutationError()
@@ -536,6 +588,7 @@ fun LaranjadaNavGraph(
                             )
                     )
                 },
+
                 onSaveClick = {
                         name,
                         usePin,
@@ -545,7 +598,8 @@ fun LaranjadaNavGraph(
                         profile
 
                     if (
-                        currentProfile != null
+                        currentProfile !=
+                        null
                     ) {
                         val normalizedName =
                             name.trim()
@@ -575,7 +629,8 @@ fun LaranjadaNavGraph(
                                     usePin
                                 }
 
-                                pinPatch != null -> {
+                                pinPatch !=
+                                        null -> {
                                     true
                                 }
 
@@ -588,12 +643,16 @@ fun LaranjadaNavGraph(
                             .updateProfile(
                                 profileUuid =
                                     profileUuid,
+
                                 name =
                                     namePatch,
+
                                 usePin =
                                     usePinPatch,
+
                                 pin =
                                     pinPatch,
+
                                 onSuccess = {
                                     navController
                                         .popBackStack()
@@ -601,6 +660,7 @@ fun LaranjadaNavGraph(
                             )
                     }
                 },
+
                 onCancelClick = {
                     profileViewModel
                         .clearUpdateError()
@@ -608,6 +668,7 @@ fun LaranjadaNavGraph(
                     navController
                         .popBackStack()
                 },
+
                 onDeleteClick = {
                     profileViewModel
                         .clearDeleteError()
@@ -624,11 +685,12 @@ fun LaranjadaNavGraph(
         }
 
         /*
-         * BIBLIOTECA / TROCA DE AVATAR
+         * AVATAR
          */
         composable(
             route =
                 AppRoutes.AvatarPicker.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.AvatarPicker
@@ -638,7 +700,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val profileUuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -683,10 +747,13 @@ fun LaranjadaNavGraph(
                                         AvatarOptionUi(
                                             uuid =
                                                 avatar.uuid,
+
                                             name =
                                                 avatar.name,
+
                                             collection =
                                                 group.name,
+
                                             imageUrl =
                                                 avatar.imageUrl
                                         )
@@ -704,10 +771,13 @@ fun LaranjadaNavGraph(
                                 AvatarOptionUi(
                                     uuid =
                                         avatar.uuid,
+
                                     name =
                                         avatar.name,
+
                                     collection =
                                         "Outros",
+
                                     imageUrl =
                                         avatar.imageUrl
                                 )
@@ -766,10 +836,6 @@ fun LaranjadaNavGraph(
                         .popBackStack()
                 },
 
-                /*
-                 * POST
-                 * /profiles/<uuid>/avatar/
-                 */
                 onAvatarClick = {
                         avatar ->
 
@@ -782,24 +848,12 @@ fun LaranjadaNavGraph(
                                 avatar.uuid,
 
                             onSuccess = {
-                                /*
-                                 * Volta para EditProfile.
-                                 *
-                                 * Como o ViewModel já recebeu
-                                 * o profile atualizado,
-                                 * a nova imagem aparece
-                                 * imediatamente.
-                                 */
                                 navController
                                     .popBackStack()
                             }
                         )
                 },
 
-                /*
-                 * DELETE
-                 * /profiles/<uuid>/avatar/
-                 */
                 onRemoveAvatarClick = {
                     profileViewModel
                         .removeProfileAvatar(
@@ -821,6 +875,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.DeleteProfile.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.DeleteProfile
@@ -830,7 +885,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val profileUuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -895,6 +952,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.MediaGrid.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.MediaGrid
@@ -903,6 +961,7 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
                 },
+
                 navArgument(
                     AppRoutes.MediaGrid
                         .titleArg
@@ -914,7 +973,9 @@ fun LaranjadaNavGraph(
                         ""
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val sectionSlug =
                 backStackEntry.arguments
                     ?.getString(
@@ -938,12 +999,15 @@ fun LaranjadaNavGraph(
             MediaGridScreen(
                 sectionSlug =
                     sectionSlug,
+
                 title =
                     title,
+
                 onBackClick = {
                     navController
                         .popBackStack()
                 },
+
                 onMediaClick = {
                         contentType,
                         uuid ->
@@ -953,6 +1017,7 @@ fun LaranjadaNavGraph(
                             .createRoute(
                                 contentType =
                                     contentType,
+
                                 uuid =
                                     uuid
                             )
@@ -967,6 +1032,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.Collection.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.Collection
@@ -976,7 +1042,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val uuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -988,10 +1056,12 @@ fun LaranjadaNavGraph(
             CollectionDetailRoute(
                 uuid =
                     uuid,
+
                 onBackClick = {
                     navController
                         .popBackStack()
                 },
+
                 onMediaClick = {
                         contentType,
                         mediaUuid ->
@@ -1001,6 +1071,7 @@ fun LaranjadaNavGraph(
                             .createRoute(
                                 contentType =
                                     contentType,
+
                                 uuid =
                                     mediaUuid
                             )
@@ -1015,6 +1086,7 @@ fun LaranjadaNavGraph(
         composable(
             route =
                 AppRoutes.Detail.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.Detail
@@ -1023,6 +1095,7 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
                 },
+
                 navArgument(
                     AppRoutes.Detail
                         .uuidArg
@@ -1031,7 +1104,9 @@ fun LaranjadaNavGraph(
                         NavType.StringType
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val contentType =
                 backStackEntry.arguments
                     ?.getString(
@@ -1052,7 +1127,8 @@ fun LaranjadaNavGraph(
                 profileState.isLoading -> {
                 }
 
-                selectedProfile == null -> {
+                selectedProfile ==
+                        null -> {
                     LaunchedEffect(
                         contentType,
                         uuid
@@ -1088,10 +1164,12 @@ fun LaranjadaNavGraph(
                             )
                         },
 
+                        /*
+                         * Não existe mais hlsUrl aqui.
+                         */
                         onPlayClick = {
                                 playerContentType,
                                 playerUuid,
-                                hlsUrl,
                                 seriesUuid ->
 
                             navController.navigate(
@@ -1099,10 +1177,10 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         contentType =
                                             playerContentType,
+
                                         uuid =
                                             playerUuid,
-                                        hlsUrl =
-                                            hlsUrl,
+
                                         seriesUuid =
                                             seriesUuid
                                     )
@@ -1123,6 +1201,7 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         contentType =
                                             item.contentType,
+
                                         uuid =
                                             item.uuid
                                     )
@@ -1138,10 +1217,10 @@ fun LaranjadaNavGraph(
                                     .createRoute(
                                         contentType =
                                             "episode",
+
                                         uuid =
                                             episode.uuid,
-                                        hlsUrl =
-                                            episode.hlsUrl,
+
                                         seriesUuid =
                                             seriesUuid
                                     )
@@ -1153,11 +1232,21 @@ fun LaranjadaNavGraph(
         }
 
         /*
-         * PLAYER ANTIGO
+         * PLAYER SEGURO
+         *
+         * A rota recebe apenas:
+         *
+         * contentType
+         * contentUuid
+         * seriesUuid
+         *
+         * A URL HLS não vem mais da
+         * navegação/catalog API.
          */
         composable(
             route =
                 AppRoutes.Player.route,
+
             arguments = listOf(
                 navArgument(
                     AppRoutes.Player
@@ -1166,6 +1255,7 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
                 },
+
                 navArgument(
                     AppRoutes.Player
                         .uuidArg
@@ -1173,16 +1263,7 @@ fun LaranjadaNavGraph(
                     type =
                         NavType.StringType
                 },
-                navArgument(
-                    AppRoutes.Player
-                        .hlsUrlArg
-                ) {
-                    type =
-                        NavType.StringType
 
-                    defaultValue =
-                        ""
-                },
                 navArgument(
                     AppRoutes.Player
                         .seriesUuidArg
@@ -1194,7 +1275,9 @@ fun LaranjadaNavGraph(
                         ""
                 }
             )
-        ) { backStackEntry ->
+        ) {
+                backStackEntry ->
+
             val contentType =
                 backStackEntry.arguments
                     ?.getString(
@@ -1211,15 +1294,6 @@ fun LaranjadaNavGraph(
                     )
                     .orEmpty()
 
-            val hlsUrl =
-                backStackEntry.arguments
-                    ?.getString(
-                        AppRoutes.Player
-                            .hlsUrlArg
-                    )
-                    .orEmpty()
-                    .decodeRouteValue()
-
             val seriesUuid =
                 backStackEntry.arguments
                     ?.getString(
@@ -1229,20 +1303,38 @@ fun LaranjadaNavGraph(
                     .orEmpty()
                     .decodeRouteValue()
 
-            PlayerScreen(
-                contentType =
-                    contentType,
-                uuid =
-                    uuid,
-                hlsUrl =
-                    hlsUrl,
-                seriesUuid =
-                    seriesUuid,
-                onBackClick = {
-                    navController
-                        .popBackStack()
+            when {
+                profileState.isLoading -> {
                 }
-            )
+
+                selectedProfile ==
+                        null -> {
+                    LaunchedEffect(
+                        contentType,
+                        uuid
+                    ) {
+                        forceProfileSelection()
+                    }
+                }
+
+                else -> {
+                    PlayerScreen(
+                        contentType =
+                            contentType,
+
+                        uuid =
+                            uuid,
+
+                        seriesUuid =
+                            seriesUuid,
+
+                        onBackClick = {
+                            navController
+                                .popBackStack()
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -1252,12 +1344,16 @@ private fun ViewerProfile.toMenuProfileUi():
     return MenuProfileUi(
         uuid =
             uuid,
+
         name =
             name,
+
         avatarUrl =
             avatar?.imageUrl,
+
         hasPin =
             hasPin,
+
         isSelected =
             isSelected
     )

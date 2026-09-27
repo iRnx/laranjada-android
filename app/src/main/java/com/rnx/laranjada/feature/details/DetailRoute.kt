@@ -24,35 +24,22 @@ import com.rnx.laranjada.feature.home.MediaItemUi
 fun DetailRoute(
     contentType: String,
     uuid: String,
-
-    /*
-     * ViewerProfile atualmente selecionado.
-     */
     profileName: String,
     profileAvatarUrl: String?,
-
     onBackClick: () -> Unit,
-
     onAccountClick: () -> Unit = {},
-
     onPlayClick: (
         contentType: String,
         uuid: String,
-        hlsUrl: String,
         seriesUuid: String
-    ) -> Unit = { _, _, _, _ -> },
-
+    ) -> Unit = { _, _, _ -> },
     onRestartClick: () -> Unit = {},
-
     onFavoriteClick: (Boolean) -> Unit = {},
-
     onRelatedClick: (MediaItemUi) -> Unit = {},
-
     onEpisodeClick: (
         episode: EpisodeUi,
         seriesUuid: String
     ) -> Unit = { _, _ -> },
-
     viewModel: DetailViewModel =
         viewModel()
 ) {
@@ -137,10 +124,17 @@ fun DetailRoute(
                         if (
                             firstEpisode != null
                         ) {
+                            /*
+                             * Não transportamos mais
+                             * hls_url.
+                             *
+                             * O Player conhece apenas:
+                             *
+                             * episode + UUID.
+                             */
                             onPlayClick(
                                 "episode",
                                 firstEpisode.uuid,
-                                firstEpisode.hlsUrl,
                                 uiState.uuid
                             )
                         }
@@ -148,7 +142,6 @@ fun DetailRoute(
                         onPlayClick(
                             "movie",
                             uiState.uuid,
-                            uiState.hlsUrl,
                             ""
                         )
                     }
@@ -187,6 +180,7 @@ private fun DetailLoading() {
             .background(
                 LaranjadaBlack
             ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -212,14 +206,17 @@ private fun DetailError(
             .padding(
                 24.dp
             ),
+
         horizontalAlignment =
             Alignment.CenterHorizontally,
+
         verticalArrangement =
             Arrangement.Center
     ) {
         Text(
             text =
                 "Não foi possível carregar o detalhe.",
+
             color =
                 LaranjadaText
         )
@@ -227,8 +224,10 @@ private fun DetailError(
         Text(
             text =
                 message,
+
             color =
                 LaranjadaText,
+
             modifier =
                 Modifier.padding(
                     top = 8.dp
@@ -238,6 +237,7 @@ private fun DetailError(
         Button(
             onClick =
                 onRetryClick,
+
             modifier =
                 Modifier.padding(
                     top = 20.dp
@@ -252,6 +252,7 @@ private fun DetailError(
         Button(
             onClick =
                 onBackClick,
+
             modifier =
                 Modifier.padding(
                     top = 10.dp

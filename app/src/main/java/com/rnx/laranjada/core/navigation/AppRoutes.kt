@@ -5,23 +5,28 @@ import android.net.Uri
 object AppRoutes {
 
     object Home {
-        const val route = "home"
+        const val route =
+            "home"
     }
 
     object Account {
-        const val route = "account"
+        const val route =
+            "account"
     }
 
     object CreateProfile {
-        const val route = "profile/create"
+        const val route =
+            "profile/create"
     }
 
     object EditProfiles {
-        const val route = "profiles/edit"
+        const val route =
+            "profiles/edit"
     }
 
     object EditProfile {
-        const val profileUuidArg = "profileUuid"
+        const val profileUuidArg =
+            "profileUuid"
 
         const val route =
             "profiles/edit/{$profileUuidArg}"
@@ -34,7 +39,8 @@ object AppRoutes {
     }
 
     object ProfilePin {
-        const val profileUuidArg = "profileUuid"
+        const val profileUuidArg =
+            "profileUuid"
 
         const val route =
             "profiles/pin/{$profileUuidArg}"
@@ -47,7 +53,8 @@ object AppRoutes {
     }
 
     object AvatarPicker {
-        const val profileUuidArg = "profileUuid"
+        const val profileUuidArg =
+            "profileUuid"
 
         const val route =
             "profiles/avatar/{$profileUuidArg}"
@@ -60,7 +67,8 @@ object AppRoutes {
     }
 
     object DeleteProfile {
-        const val profileUuidArg = "profileUuid"
+        const val profileUuidArg =
+            "profileUuid"
 
         const val route =
             "profiles/delete/{$profileUuidArg}"
@@ -73,8 +81,11 @@ object AppRoutes {
     }
 
     object Detail {
-        const val contentTypeArg = "contentType"
-        const val uuidArg = "uuid"
+        const val contentTypeArg =
+            "contentType"
+
+        const val uuidArg =
+            "uuid"
 
         const val route =
             "detail/{$contentTypeArg}/{$uuidArg}"
@@ -88,7 +99,8 @@ object AppRoutes {
     }
 
     object Collection {
-        const val uuidArg = "uuid"
+        const val uuidArg =
+            "uuid"
 
         const val route =
             "collection/{$uuidArg}"
@@ -101,8 +113,11 @@ object AppRoutes {
     }
 
     object MediaGrid {
-        const val sectionSlugArg = "sectionSlug"
-        const val titleArg = "title"
+        const val sectionSlugArg =
+            "sectionSlug"
+
+        const val titleArg =
+            "title"
 
         const val route =
             "media-grid/{$sectionSlugArg}?$titleArg={$titleArg}"
@@ -117,25 +132,36 @@ object AppRoutes {
     }
 
     object Player {
-        const val contentTypeArg = "contentType"
-        const val uuidArg = "uuid"
-        const val hlsUrlArg = "hlsUrl"
-        const val seriesUuidArg = "seriesUuid"
+        const val contentTypeArg =
+            "contentType"
 
+        const val uuidArg =
+            "uuid"
+
+        const val seriesUuidArg =
+            "seriesUuid"
+
+        /*
+         * IMPORTANTE:
+         *
+         * hlsUrl não existe mais na rota.
+         *
+         * O Player recebe somente a identidade
+         * do conteúdo.
+         *
+         * A playback.url virá do Reserve.
+         */
         const val route =
             "player/{$contentTypeArg}/{$uuidArg}" +
-                    "?$hlsUrlArg={$hlsUrlArg}" +
-                    "&$seriesUuidArg={$seriesUuidArg}"
+                    "?$seriesUuidArg={$seriesUuidArg}"
 
         fun createRoute(
             contentType: String,
             uuid: String,
-            hlsUrl: String,
             seriesUuid: String = ""
         ): String {
             return "player/${Uri.encode(contentType)}/${Uri.encode(uuid)}" +
-                    "?$hlsUrlArg=${Uri.encode(hlsUrl)}" +
-                    "&$seriesUuidArg=${Uri.encode(seriesUuid)}"
+                    "?$seriesUuidArg=${Uri.encode(seriesUuid)}"
         }
     }
 }
