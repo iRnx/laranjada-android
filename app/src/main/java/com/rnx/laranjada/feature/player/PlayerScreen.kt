@@ -1,5 +1,6 @@
 package com.rnx.laranjada.feature.player
 
+import android.os.PowerManager
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
@@ -36,6 +37,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -87,23 +91,12 @@ fun PlayerScreen(
         )
     }
 
-    /*
-     * Impede Stop/navegação duplicados.
-     */
     var closeRequested by remember {
         mutableStateOf(
             false
         )
     }
 
-    /*
-     * O BackHandler fica no PlayerScreen,
-     * mas quem conhece position/duration
-     * reais é o HlsPlayer.
-     *
-     * Incrementamos este contador e o
-     * HlsPlayer executa o mesmo fluxo do X.
-     */
     var externalCloseRequestId by remember {
         mutableIntStateOf(
             0
@@ -160,17 +153,6 @@ fun PlayerScreen(
         }
     }
 
-    /*
-     * Esta função agora é chamada SOMENTE
-     * depois que o HlsPlayer terminou a
-     * tentativa de salvar o progresso final.
-     *
-     * Ordem:
-     *
-     * Progress
-     * -> Stop
-     * -> popBackStack
-     */
     fun stopAndClosePlayer() {
         if (
             closeRequested
@@ -201,11 +183,6 @@ fun PlayerScreen(
             return@BackHandler
         }
 
-        /*
-         * Se já existe reprodução autorizada,
-         * o HlsPlayer precisa capturar a
-         * posição atual antes do Stop.
-         */
         if (
             playbackState.reservation !=
             null
@@ -213,10 +190,6 @@ fun PlayerScreen(
             externalCloseRequestId +=
                 1
         } else {
-            /*
-             * Sem mídia ativa não há posição
-             * para persistir.
-             */
             stopAndClosePlayer()
         }
     }
@@ -491,6 +464,12 @@ private fun HlsPlayer(
     val context =
         LocalContext.current
 
+    val activity =
+        context.findActivity()
+
+    val lifecycleOwner =
+        activity as? LifecycleOwner
+
     val initialPositionMs =
         remember(
             initialPositionSeconds
@@ -514,10 +493,6 @@ private fun HlsPlayer(
         )
     }
 
-    /*
-     * Conteúdo que sabemos possuir
-     * progresso persistido.
-     */
     var knownProgressContentUuid by remember(
         initialContentUuid,
         initialPositionSeconds
@@ -534,10 +509,6 @@ private fun HlsPlayer(
         )
     }
 
-    /*
-     * Última posição conhecida como
-     * persistida.
-     */
     var lastPersistedPositionSeconds by remember(
         initialContentUuid,
         initialPositionSeconds
@@ -550,10 +521,6 @@ private fun HlsPlayer(
         )
     }
 
-    /*
-     * Evita X + Back ou vários taps
-     * iniciarem múltiplos fluxos de saída.
-     */
     var exitInProgress by remember {
         mutableStateOf(
             false
@@ -774,12 +741,6 @@ private fun HlsPlayer(
                 }
         }
 
-    /*
-     * Único fluxo de saída para:
-     *
-     * - X do Player;
-     * - Back do Android.
-     */
     fun requestExitWithProgress() {
         if (
             exitInProgress
@@ -817,15 +778,6 @@ private fun HlsPlayer(
                 null
             }
 
-        /*
-         * A saída visualmente pausa
-         * imediatamente.
-         *
-         * Isso NÃO dispara save de Pause,
-         * porque nosso save de Pause está
-         * ligado apenas ao clique explícito
-         * do botão Play/Pause.
-         */
         exoPlayer.pause()
 
         Log.d(
@@ -858,19 +810,11 @@ private fun HlsPlayer(
                     lastKnownPosition,
 
                 onComplete = {
-                    /*
-                     * Somente depois da tentativa
-                     * de progresso fazemos Stop.
-                     */
                     onExitReady()
                 }
             )
     }
 
-    /*
-     * Back físico/gesto chega do
-     * PlayerScreen através deste contador.
-     */
     LaunchedEffect(
         externalCloseRequestId
     ) {
@@ -879,6 +823,223 @@ private fun HlsPlayer(
             0
         ) {
             requestExitWithProgress()
+        }
+    }
+
+    /*
+     * CICLO DE VIDA DO PLAYER
+     *
+     * ON_STOP cobre:
+     *
+     * - botão Home;
+     * - troca de aplicativo;
+     * - tela de Recentes;
+     * - bloqueio da tela.
+     *
+     * PiP com a tela ligada é ignorado.
+     *
+     * Se a tela estiver bloqueada,
+     * salvamos mesmo que Android ainda
+     * reporte Picture-in-Picture.
+     */
+    DisposableEffect(
+        lifecycleOwner,
+        exoPlayer,
+        playbackSessionUuid,
+        activeContentUuid,
+        activeContentType
+    ) {
+        if (
+            lifecycleOwner ==
+            null
+        ) {
+            onDispose {
+            }
+        } else {
+            val observer =
+                LifecycleEventObserver {
+                        _,
+                        event ->
+
+                    if (
+                        event !=
+                        Lifecycle.Event.ON_STOP
+                    ) {
+                        return@LifecycleEventObserver
+                    }
+
+                    /*
+                     * Se estamos no meio de uma
+                     * saída real do Player,
+                     * Exit já está cuidando
+                     * do progresso.
+                     */
+                    if (
+                        exitInProgress ||
+                        playerViewModel
+                            .playbackUiState
+                            .isStopping
+                    ) {
+                        Log.d(
+                            "LaranjadaProgress",
+                            "Background ignorado: " +
+                                    "Player já está encerrando."
+                        )
+
+                        return@LifecycleEventObserver
+                    }
+
+                    val powerManager =
+                        context.getSystemService(
+                            PowerManager::class.java
+                        )
+
+                    val deviceInteractive =
+                        powerManager
+                            ?.isInteractive
+                            ?: true
+
+                    val isInPictureInPicture =
+                        activity
+                            ?.isInPictureInPictureMode
+                            ?: false
+
+                    /*
+                     * PiP é reprodução legítima
+                     * em background visual.
+                     *
+                     * Não pausamos se:
+                     *
+                     * - continua em PiP;
+                     * - tela continua ligada.
+                     */
+                    if (
+                        isInPictureInPicture &&
+                        deviceInteractive
+                    ) {
+                        Log.d(
+                            "LaranjadaProgress",
+                            "Background ignorado: " +
+                                    "Picture-in-Picture ativo."
+                        )
+
+                        return@LifecycleEventObserver
+                    }
+
+                    val backgroundReason =
+                        if (
+                            !deviceInteractive
+                        ) {
+                            "screen_locked"
+                        } else {
+                            "app_background"
+                        }
+
+                    val backgroundPositionMs =
+                        exoPlayer
+                            .currentPosition
+                            .coerceAtLeast(
+                                0L
+                            )
+
+                    val backgroundDurationMs =
+                        exoPlayer
+                            .safeDuration()
+
+                    val wasPlaying =
+                        exoPlayer.isPlaying
+
+                    /*
+                     * Pausa imediatamente.
+                     *
+                     * O próprio listener do
+                     * ExoPlayer também atualizará
+                     * Presence para paused.
+                     */
+                    exoPlayer.pause()
+
+                    playerViewModel
+                        .updatePresenceStatus(
+                            "paused"
+                        )
+
+                    val hasKnownProgress =
+                        knownProgressContentUuid ==
+                                activeContentUuid
+
+                    val lastKnownPosition =
+                        if (
+                            hasKnownProgress
+                        ) {
+                            lastPersistedPositionSeconds
+                        } else {
+                            null
+                        }
+
+                    Log.d(
+                        "LaranjadaProgress",
+                        "Background detectado. " +
+                                "reason=$backgroundReason " +
+                                "was_playing=$wasPlaying " +
+                                "content=$activeContentType:" +
+                                "$activeContentUuid " +
+                                "position=" +
+                                "${backgroundPositionMs / 1_000L}s"
+                    )
+
+                    watchingProgressViewModel
+                        .saveBackgroundProgress(
+                            contentType =
+                                activeContentType,
+
+                            contentUuid =
+                                activeContentUuid,
+
+                            positionMs =
+                                backgroundPositionMs,
+
+                            durationMs =
+                                backgroundDurationMs,
+
+                            hasKnownProgress =
+                                hasKnownProgress,
+
+                            lastPersistedPositionSeconds =
+                                lastKnownPosition,
+
+                            reason =
+                                backgroundReason,
+
+                            onResult = {
+                                    result ->
+
+                                if (
+                                    result.progressUuid
+                                        .isNotBlank()
+                                ) {
+                                    knownProgressContentUuid =
+                                        result.contentUuid
+
+                                    lastPersistedPositionSeconds =
+                                        result.positionSeconds
+                                }
+                            }
+                        )
+                }
+
+            lifecycleOwner
+                .lifecycle
+                .addObserver(
+                    observer
+                )
+
+            onDispose {
+                lifecycleOwner
+                    .lifecycle
+                    .removeObserver(
+                        observer
+                    )
+            }
         }
     }
 
@@ -1023,12 +1184,6 @@ private fun HlsPlayer(
         }
     }
 
-    /*
-     * Nova sessão = nova source.
-     *
-     * Renew da MESMA sessão não entra aqui.
-     * Por isso o ExoPlayer não reinicia.
-     */
     LaunchedEffect(
         playbackSessionUuid,
         activeContentUuid
@@ -1361,10 +1516,6 @@ private fun HlsPlayer(
                 orientationLocked =
                     orientationLocked,
 
-                /*
-                 * X agora passa pelo mesmo
-                 * fluxo de progresso do Back.
-                 */
                 onCloseClick = {
                     requestExitWithProgress()
                 },

@@ -33,32 +33,30 @@ class WatchingProgressViewModel(
 
     /*
      * Todos os saves de progresso passam
-     * por este Mutex.
+     * pelo mesmo Mutex.
      *
-     * Isso é importante principalmente no
-     * cenário:
+     * Isso evita concorrência entre:
      *
      * Pause
-     * -> POST ainda executando
-     * -> usuário aperta X/Voltar
+     * Background
+     * Exit
      *
-     * O save de saída espera o Pause
-     * terminar em vez de ser descartado.
+     * Exemplo:
+     *
+     * Pause iniciou POST
+     * -> usuário aperta Home
+     * -> Background espera
+     * -> Pause termina
+     * -> Background verifica posição
+     * -> evita duplicidade se necessário
      */
     private val progressSaveMutex =
         Mutex()
 
     /*
-     * Guarda, durante a vida deste Player,
-     * a posição mais recente que sabemos
-     * ter sido persistida no servidor.
-     *
-     * Serve principalmente para evitar:
-     *
-     * Pause em 100s
-     * -> saved=true
-     * -> X imediatamente em 100s
-     * -> POST duplicado desnecessário
+     * Última posição que sabemos ter sido
+     * persistida no servidor durante a vida
+     * deste Player.
      */
     private val lastPersistedPositionByContent =
         mutableMapOf<String, Long>()
@@ -100,13 +98,13 @@ class WatchingProgressViewModel(
                 ?: return
 
         /*
-         * Para Pause continuamos evitando
-         * empilhar diversos saves enquanto
-         * outro já está processando.
+         * Para o clique normal de Pause
+         * continuamos evitando empilhar
+         * vários requests.
          *
-         * O save de EXIT é diferente:
-         * ele nunca será simplesmente
-         * descartado por isso.
+         * Background e Exit são tratados
+         * de forma diferente e podem esperar
+         * o Mutex.
          */
         if (
             uiState.isSaving
@@ -134,8 +132,15 @@ class WatchingProgressViewModel(
                                     .lastPersistedPositionSeconds
                         )
 
+                    val hasPersistedProgressNow =
+                        request.hasKnownProgress ||
+                                lastPersistedPositionByContent
+                                    .containsKey(
+                                        request.contentUuid
+                                    )
+
                     if (
-                        request.hasKnownProgress &&
+                        hasPersistedProgressNow &&
                         latestPersistedPosition !=
                         null &&
                         request.positionSeconds ==
@@ -240,23 +245,220 @@ class WatchingProgressViewModel(
     }
 
     /*
+     * SAVE DE BACKGROUND
+     *
+     * Chamado quando o Player deixa de estar
+     * visível por:
+     *
+     * - botão Home;
+     * - troca para outro aplicativo;
+     * - tela de Recentes;
+     * - bloqueio da tela.
+     *
+     * Picture-in-Picture é filtrado antes
+     * de chegar aqui.
+     *
+     * Esse save usa status=paused porque
+     * o usuário não saiu do Player.
+     */
+    fun saveBackgroundProgress(
+        contentType: String,
+        contentUuid: String,
+        positionMs: Long,
+        durationMs: Long,
+        hasKnownProgress: Boolean,
+        lastPersistedPositionSeconds: Long? = null,
+        reason: String,
+        onResult: (
+            WatchingProgressSaveResult
+        ) -> Unit = {}
+    ) {
+        val request =
+            buildProgressRequest(
+                contentType =
+                    contentType,
+
+                contentUuid =
+                    contentUuid,
+
+                positionMs =
+                    positionMs,
+
+                durationMs =
+                    durationMs,
+
+                hasKnownProgress =
+                    hasKnownProgress,
+
+                lastPersistedPositionSeconds =
+                    lastPersistedPositionSeconds,
+
+                source =
+                    ProgressSaveSource.BACKGROUND
+            )
+                ?: return
+
+        /*
+         * Diferente do Pause normal,
+         * Background NÃO é descartado apenas
+         * porque outro save está rodando.
+         *
+         * Ele entra na fila do Mutex.
+         */
+        viewModelScope.launch {
+            progressSaveMutex
+                .withLock {
+
+                    val latestPersistedPosition =
+                        resolveLastPersistedPosition(
+                            contentUuid =
+                                request.contentUuid,
+
+                            fallbackPosition =
+                                request
+                                    .lastPersistedPositionSeconds
+                        )
+
+                    val hasPersistedProgressNow =
+                        request.hasKnownProgress ||
+                                lastPersistedPositionByContent
+                                    .containsKey(
+                                        request.contentUuid
+                                    )
+
+                    /*
+                     * Pode acontecer:
+                     *
+                     * Pause em 100s
+                     * -> imediatamente Home
+                     * -> Background também captura 100s
+                     *
+                     * Depois que o Mutex libera,
+                     * verificamos novamente e
+                     * evitamos POST duplicado.
+                     */
+                    if (
+                        hasPersistedProgressNow &&
+                        latestPersistedPosition !=
+                        null &&
+                        request.positionSeconds ==
+                        latestPersistedPosition
+                    ) {
+                        Log.d(
+                            TAG,
+                            "Progress Background ignorado: " +
+                                    "posição " +
+                                    "${request.positionSeconds}s " +
+                                    "já estava persistida. " +
+                                    "reason=$reason"
+                        )
+
+                        return@withLock
+                    }
+
+                    uiState =
+                        uiState.copy(
+                            isSaving =
+                                true,
+                            errorMessage =
+                                null
+                        )
+
+                    try {
+                        val result =
+                            repository
+                                .saveProgress(
+                                    contentType =
+                                        request.contentType,
+
+                                    contentUuid =
+                                        request.contentUuid,
+
+                                    positionSeconds =
+                                        request.positionSeconds,
+
+                                    durationSeconds =
+                                        request.durationSeconds,
+
+                                    status =
+                                        STATUS_PAUSED,
+
+                                    forceProgressSave =
+                                        true
+                                )
+
+                        registerPersistedResult(
+                            result
+                        )
+
+                        uiState =
+                            uiState.copy(
+                                isSaving =
+                                    false,
+                                lastResult =
+                                    result,
+                                errorMessage =
+                                    null
+                            )
+
+                        Log.d(
+                            TAG,
+                            "Progress Background processado. " +
+                                    "reason=$reason " +
+                                    "content=" +
+                                    "${result.contentType}:" +
+                                    "${result.contentUuid} " +
+                                    "requested=" +
+                                    "${result.requestedPositionSeconds}s " +
+                                    "persisted=" +
+                                    "${result.positionSeconds}s " +
+                                    "saved=${result.saved} " +
+                                    "reason_api=${result.reason} " +
+                                    "status=${result.status} " +
+                                    "completed=" +
+                                    "${result.isCompleted}"
+                        )
+
+                        onResult(
+                            result
+                        )
+
+                    } catch (
+                        exception: Exception
+                    ) {
+                        uiState =
+                            uiState.copy(
+                                isSaving =
+                                    false,
+                                errorMessage =
+                                    exception.message
+                                        ?: "Não foi possível salvar o progresso."
+                            )
+
+                        Log.w(
+                            TAG,
+                            "Falha ao salvar progresso no Background. " +
+                                    "reason=$reason " +
+                                    "error=${exception.message}"
+                        )
+                    }
+                }
+        }
+    }
+
+    /*
      * SAVE DE SAÍDA
      *
-     * Usado exclusivamente nesta etapa
-     * quando o usuário:
+     * Usado quando:
      *
-     * - toca no X do Player;
+     * - toca no X;
      * - usa Voltar do Android.
      *
-     * Esse método SEMPRE chama onComplete,
-     * mesmo quando:
+     * A ordem continua:
      *
-     * - o conteúdo ainda não atingiu 90s;
-     * - a mesma posição já foi persistida;
-     * - houve falha de rede/API.
-     *
-     * Assim uma falha de progresso nunca
-     * prende o usuário dentro do Player.
+     * Progress
+     * -> Stop
+     * -> sair do Player
      */
     fun saveExitProgress(
         contentType: String,
@@ -292,9 +494,9 @@ class WatchingProgressViewModel(
             )
 
         /*
-         * Se não há nada a persistir,
-         * continuamos normalmente com
-         * Stop + fechamento do Player.
+         * Nada para persistir.
+         *
+         * Continua normalmente com Stop.
          */
         if (
             request ==
@@ -310,16 +512,6 @@ class WatchingProgressViewModel(
                 progressSaveMutex
                     .withLock {
 
-                        /*
-                         * Essa consulta acontece
-                         * DENTRO do Mutex.
-                         *
-                         * Portanto, se um Pause
-                         * estava salvando antes
-                         * do X/Voltar, neste ponto
-                         * já conhecemos o resultado
-                         * daquele Pause.
-                         */
                         val latestPersistedPosition =
                             resolveLastPersistedPosition(
                                 contentUuid =
@@ -330,8 +522,15 @@ class WatchingProgressViewModel(
                                         .lastPersistedPositionSeconds
                             )
 
+                        val hasPersistedProgressNow =
+                            request.hasKnownProgress ||
+                                    lastPersistedPositionByContent
+                                        .containsKey(
+                                            request.contentUuid
+                                        )
+
                         if (
-                            request.hasKnownProgress &&
+                            hasPersistedProgressNow &&
                             latestPersistedPosition !=
                             null &&
                             request.positionSeconds ==
@@ -432,9 +631,9 @@ class WatchingProgressViewModel(
 
             } finally {
                 /*
-                 * Mesmo que o save falhe,
-                 * o Player precisa conseguir
-                 * encerrar normalmente.
+                 * Mesmo se o save falhar,
+                 * o usuário precisa conseguir
+                 * fechar o Player.
                  */
                 onComplete()
             }
@@ -489,11 +688,6 @@ class WatchingProgressViewModel(
                 ) /
                     1_000L
 
-        /*
-         * Se Media3 ainda não informou uma
-         * duração válida, não gravamos uma
-         * duração zero por acidente.
-         */
         if (
             durationSeconds <=
             0L
@@ -508,13 +702,14 @@ class WatchingProgressViewModel(
         }
 
         /*
-         * Regra de produto igual à Web:
+         * Regra de produto:
          *
-         * conteúdo NOVO só começa a entrar
-         * no Continue Assistindo após 90s.
+         * Conteúdo novo:
+         * primeiro save somente >= 90s.
          *
-         * Conteúdo que JÁ POSSUI progresso
-         * pode ser atualizado antes disso.
+         * Conteúdo já conhecido:
+         * force save pode atualizar mesmo
+         * abaixo de 90s.
          */
         if (
             !hasKnownProgress &&
@@ -572,12 +767,11 @@ class WatchingProgressViewModel(
         result: WatchingProgressSaveResult
     ) {
         /*
-         * progressUuid preenchido significa
-         * que o servidor possui um objeto
-         * de progresso persistido.
-         *
-         * Mesmo saved=false pode devolver
+         * Mesmo saved=false pode representar
          * um progresso já existente.
+         *
+         * progressUuid é nossa evidência
+         * de que o backend possui registro.
          */
         if (
             result.progressUuid
@@ -604,6 +798,10 @@ class WatchingProgressViewModel(
     ) {
         PAUSE(
             "Pause"
+        ),
+
+        BACKGROUND(
+            "Background"
         ),
 
         EXIT(
