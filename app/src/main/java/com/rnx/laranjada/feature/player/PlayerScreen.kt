@@ -1,5 +1,6 @@
 package com.rnx.laranjada.feature.player
 
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -23,6 +24,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,9 +87,26 @@ fun PlayerScreen(
         )
     }
 
+    /*
+     * Impede Stop/navegação duplicados.
+     */
     var closeRequested by remember {
         mutableStateOf(
             false
+        )
+    }
+
+    /*
+     * O BackHandler fica no PlayerScreen,
+     * mas quem conhece position/duration
+     * reais é o HlsPlayer.
+     *
+     * Incrementamos este contador e o
+     * HlsPlayer executa o mesmo fluxo do X.
+     */
+    var externalCloseRequestId by remember {
+        mutableIntStateOf(
+            0
         )
     }
 
@@ -141,7 +160,18 @@ fun PlayerScreen(
         }
     }
 
-    fun closePlayer() {
+    /*
+     * Esta função agora é chamada SOMENTE
+     * depois que o HlsPlayer terminou a
+     * tentativa de salvar o progresso final.
+     *
+     * Ordem:
+     *
+     * Progress
+     * -> Stop
+     * -> popBackStack
+     */
+    fun stopAndClosePlayer() {
         if (
             closeRequested
         ) {
@@ -154,8 +184,10 @@ fun PlayerScreen(
         playerViewModel.stopPlayback(
             status =
                 "stopped",
+
             clearLocalAfter =
                 true,
+
             onComplete = {
                 onBackClick()
             }
@@ -163,7 +195,30 @@ fun PlayerScreen(
     }
 
     BackHandler {
-        closePlayer()
+        if (
+            closeRequested
+        ) {
+            return@BackHandler
+        }
+
+        /*
+         * Se já existe reprodução autorizada,
+         * o HlsPlayer precisa capturar a
+         * posição atual antes do Stop.
+         */
+        if (
+            playbackState.reservation !=
+            null
+        ) {
+            externalCloseRequestId +=
+                1
+        } else {
+            /*
+             * Sem mídia ativa não há posição
+             * para persistir.
+             */
+            stopAndClosePlayer()
+        }
     }
 
     Box(
@@ -201,7 +256,7 @@ fun PlayerScreen(
                     },
 
                     onBackClick = {
-                        closePlayer()
+                        stopAndClosePlayer()
                     }
                 )
             }
@@ -245,6 +300,9 @@ fun PlayerScreen(
                     watchingProgressViewModel =
                         watchingProgressViewModel,
 
+                    externalCloseRequestId =
+                        externalCloseRequestId,
+
                     isSwitchingPlayback =
                         playbackState
                             .isReserving,
@@ -285,8 +343,8 @@ fun PlayerScreen(
                             !orientationLocked
                     },
 
-                    onBackClick = {
-                        closePlayer()
+                    onExitReady = {
+                        stopAndClosePlayer()
                     },
 
                     modifier =
@@ -419,6 +477,7 @@ private fun HlsPlayer(
     playerViewModel: PlayerViewModel,
     watchingProgressViewModel:
     WatchingProgressViewModel,
+    externalCloseRequestId: Int,
     isSwitchingPlayback: Boolean,
     isStoppingPlayback: Boolean,
     fatalAuthorizationError: String?,
@@ -426,7 +485,7 @@ private fun HlsPlayer(
     orientationLocked: Boolean,
     onToggleOrientation: () -> Unit,
     onToggleOrientationLock: () -> Unit,
-    onBackClick: () -> Unit,
+    onExitReady: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context =
@@ -456,11 +515,8 @@ private fun HlsPlayer(
     }
 
     /*
-     * Indica de qual conteúdo nós sabemos
-     * que já existe progresso persistido.
-     *
-     * Um item aberto pelo Continue Assistindo
-     * já chega com initialPositionSeconds > 0.
+     * Conteúdo que sabemos possuir
+     * progresso persistido.
      */
     var knownProgressContentUuid by remember(
         initialContentUuid,
@@ -479,11 +535,8 @@ private fun HlsPlayer(
     }
 
     /*
-     * Última posição que conhecemos como
-     * efetivamente persistida no servidor.
-     *
-     * Usada para evitar mandar exatamente
-     * o mesmo Pause repetidamente.
+     * Última posição conhecida como
+     * persistida.
      */
     var lastPersistedPositionSeconds by remember(
         initialContentUuid,
@@ -494,6 +547,16 @@ private fun HlsPlayer(
                 .coerceAtLeast(
                     0L
                 )
+        )
+    }
+
+    /*
+     * Evita X + Back ou vários taps
+     * iniciarem múltiplos fluxos de saída.
+     */
+    var exitInProgress by remember {
+        mutableStateOf(
+            false
         )
     }
 
@@ -711,6 +774,114 @@ private fun HlsPlayer(
                 }
         }
 
+    /*
+     * Único fluxo de saída para:
+     *
+     * - X do Player;
+     * - Back do Android.
+     */
+    fun requestExitWithProgress() {
+        if (
+            exitInProgress
+        ) {
+            return
+        }
+
+        exitInProgress =
+            true
+
+        controlsVisible =
+            true
+
+        val exitPositionMs =
+            exoPlayer
+                .currentPosition
+                .coerceAtLeast(
+                    0L
+                )
+
+        val exitDurationMs =
+            exoPlayer
+                .safeDuration()
+
+        val hasKnownProgress =
+            knownProgressContentUuid ==
+                    activeContentUuid
+
+        val lastKnownPosition =
+            if (
+                hasKnownProgress
+            ) {
+                lastPersistedPositionSeconds
+            } else {
+                null
+            }
+
+        /*
+         * A saída visualmente pausa
+         * imediatamente.
+         *
+         * Isso NÃO dispara save de Pause,
+         * porque nosso save de Pause está
+         * ligado apenas ao clique explícito
+         * do botão Play/Pause.
+         */
+        exoPlayer.pause()
+
+        Log.d(
+            "LaranjadaProgress",
+            "Saída solicitada. " +
+                    "content=$activeContentType:" +
+                    "$activeContentUuid " +
+                    "position=" +
+                    "${exitPositionMs / 1_000L}s"
+        )
+
+        watchingProgressViewModel
+            .saveExitProgress(
+                contentType =
+                    activeContentType,
+
+                contentUuid =
+                    activeContentUuid,
+
+                positionMs =
+                    exitPositionMs,
+
+                durationMs =
+                    exitDurationMs,
+
+                hasKnownProgress =
+                    hasKnownProgress,
+
+                lastPersistedPositionSeconds =
+                    lastKnownPosition,
+
+                onComplete = {
+                    /*
+                     * Somente depois da tentativa
+                     * de progresso fazemos Stop.
+                     */
+                    onExitReady()
+                }
+            )
+    }
+
+    /*
+     * Back físico/gesto chega do
+     * PlayerScreen através deste contador.
+     */
+    LaunchedEffect(
+        externalCloseRequestId
+    ) {
+        if (
+            externalCloseRequestId >
+            0
+        ) {
+            requestExitWithProgress()
+        }
+    }
+
     DisposableEffect(
         exoPlayer
     ) {
@@ -880,6 +1051,9 @@ private fun HlsPlayer(
         durationMs =
             0L
 
+        exitInProgress =
+            false
+
         val mediaItem =
             MediaItem.fromUri(
                 playbackUrl
@@ -898,17 +1072,6 @@ private fun HlsPlayer(
             mediaSource
         )
 
-        /*
-         * CONTINUE ASSISTINDO
-         *
-         * A posição salva só é aplicada
-         * ao conteúdo que abriu originalmente
-         * esta tela.
-         *
-         * Se o usuário trocar de episódio
-         * posteriormente, essa posição
-         * não será reaproveitada.
-         */
         val shouldResume =
             initialResumePending &&
                     activeContentUuid ==
@@ -1143,7 +1306,8 @@ private fun HlsPlayer(
         if (
             isBuffering ||
             isSwitchingPlayback ||
-            isStoppingPlayback
+            isStoppingPlayback ||
+            exitInProgress
         ) {
             CircularProgressIndicator(
                 modifier =
@@ -1197,8 +1361,13 @@ private fun HlsPlayer(
                 orientationLocked =
                     orientationLocked,
 
-                onCloseClick =
-                    onBackClick,
+                /*
+                 * X agora passa pelo mesmo
+                 * fluxo de progresso do Back.
+                 */
+                onCloseClick = {
+                    requestExitWithProgress()
+                },
 
                 onToggleOrientationClick =
                     onToggleOrientation,
@@ -1283,11 +1452,6 @@ private fun HlsPlayer(
                         )
                 },
 
-                /*
-                 * Nesta rodada, SOMENTE
-                 * o Pause explícito do usuário
-                 * salva progresso.
-                 */
                 onPlayPauseClick = {
                     if (
                         exoPlayer.isPlaying
@@ -1316,13 +1480,6 @@ private fun HlsPlayer(
                                 null
                             }
 
-                        /*
-                         * Pause precisa ser
-                         * imediato para o usuário.
-                         *
-                         * O POST ocorre de forma
-                         * assíncrona depois.
-                         */
                         exoPlayer.pause()
 
                         watchingProgressViewModel
@@ -1348,12 +1505,6 @@ private fun HlsPlayer(
                                 onResult = {
                                         result ->
 
-                                    /*
-                                     * Se o backend devolveu um
-                                     * progress_uuid, agora sabemos
-                                     * que existe progresso persistido
-                                     * para esse conteúdo.
-                                     */
                                     if (
                                         result.progressUuid
                                             .isNotBlank()
@@ -1698,8 +1849,9 @@ private fun HlsPlayer(
                 message =
                     fatalAuthorizationError,
 
-                onBackClick =
-                    onBackClick
+                onBackClick = {
+                    requestExitWithProgress()
+                }
             )
         } else if (
             !playerErrorMessage
@@ -1718,8 +1870,9 @@ private fun HlsPlayer(
                         .retryLastPlayback()
                 },
 
-                onBackClick =
-                    onBackClick
+                onBackClick = {
+                    requestExitWithProgress()
+                }
             )
         }
     }
