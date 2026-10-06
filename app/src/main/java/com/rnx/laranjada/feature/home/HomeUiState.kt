@@ -23,7 +23,8 @@ data class HeroBannerUi(
     val imageUrl: String,
     val gradientColors: List<Color>,
     val uuid: String,
-    val contentType: String
+    val contentType: String,
+    val titleImageUrl: String = ""
 )
 
 data class CategoryUi(

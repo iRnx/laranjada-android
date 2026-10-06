@@ -25,6 +25,12 @@ object PlaybackApiService {
     private const val RENEW_PATH =
         "/api/v1/playback/renew/"
 
+    private const val PRESENCE_PATH =
+        "/api/v1/playback/presence/"
+
+    private const val STOP_PATH =
+        "/api/v1/playback/stop/"
+
     suspend fun reserve(
         contentType: String,
         contentUuid: String,
@@ -49,14 +55,9 @@ object PlaybackApiService {
 
         val response =
             ApiHttpClient.postJson(
-                path =
-                    RESERVE_PATH,
-
-                body =
-                    body,
-
-                requiresCsrf =
-                    true
+                path = RESERVE_PATH,
+                body = body,
+                requiresCsrf = true
             )
 
         if (
@@ -80,9 +81,7 @@ object PlaybackApiService {
         }
 
         throw buildException(
-            response =
-                response,
-
+            response = response,
             fallbackMessage =
                 "Não foi possível autorizar a reprodução."
         )
@@ -102,14 +101,9 @@ object PlaybackApiService {
 
         val response =
             ApiHttpClient.postJson(
-                path =
-                    RENEW_PATH,
-
-                body =
-                    body,
-
-                requiresCsrf =
-                    true
+                path = RENEW_PATH,
+                body = body,
+                requiresCsrf = true
             )
 
         if (
@@ -133,11 +127,135 @@ object PlaybackApiService {
         }
 
         throw buildException(
-            response =
-                response,
-
+            response = response,
             fallbackMessage =
                 "Não foi possível renovar a autorização da reprodução."
+        )
+    }
+
+    suspend fun presence(
+        contentType: String,
+        contentUuid: String,
+        clientSessionKey: String,
+        status: String
+    ): JSONObject {
+        /*
+         * O Reserve já preparou CSRF/cookies.
+         *
+         * Não fazemos GET /csrf/ a cada pulse,
+         * pois o Presence pode ocorrer a cada
+         * poucos segundos, conforme configuração
+         * devolvida pelo backend.
+         */
+        val body =
+            JSONObject()
+                .put(
+                    "content_type",
+                    contentType
+                )
+                .put(
+                    "content_uuid",
+                    contentUuid
+                )
+                .put(
+                    "client_session_key",
+                    clientSessionKey
+                )
+                .put(
+                    "status",
+                    status
+                )
+
+        val response =
+            ApiHttpClient.postJson(
+                path = PRESENCE_PATH,
+                body = body,
+                requiresCsrf = true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            val json =
+                response.jsonObject()
+
+            if (
+                json.optBoolean(
+                    "ok",
+                    false
+                )
+            ) {
+                return json
+            }
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível atualizar a presença da reprodução."
+        )
+    }
+
+    suspend fun stop(
+        contentType: String,
+        contentUuid: String,
+        clientSessionKey: String,
+        status: String
+    ): JSONObject {
+        /*
+         * Stop não é frequente.
+         *
+         * Aqui garantimos novamente o CSRF,
+         * inclusive depois de reproduções longas.
+         */
+        ensureCsrf()
+
+        val body =
+            JSONObject()
+                .put(
+                    "content_type",
+                    contentType
+                )
+                .put(
+                    "content_uuid",
+                    contentUuid
+                )
+                .put(
+                    "client_session_key",
+                    clientSessionKey
+                )
+                .put(
+                    "status",
+                    status
+                )
+
+        val response =
+            ApiHttpClient.postJson(
+                path = STOP_PATH,
+                body = body,
+                requiresCsrf = true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            val json =
+                response.jsonObject()
+
+            if (
+                json.optBoolean(
+                    "ok",
+                    false
+                )
+            ) {
+                return json
+            }
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível encerrar a reprodução."
         )
     }
 
@@ -151,9 +269,7 @@ object PlaybackApiService {
             !response.isSuccessful
         ) {
             throw buildException(
-                response =
-                    response,
-
+                response = response,
                 fallbackMessage =
                     "Não foi possível preparar a segurança da reprodução."
             )
@@ -181,20 +297,15 @@ object PlaybackApiService {
 
         val message =
             extractMessage(
-                json =
-                    json,
-
-                fallback =
-                    fallbackMessage
+                json = json,
+                fallback = fallbackMessage
             )
 
         return PlaybackApiException(
             statusCode =
                 response.statusCode,
-
             code =
                 code,
-
             message =
                 message
         )

@@ -14,103 +14,287 @@ import org.json.JSONObject
 
 object HomeMapper {
 
-    fun fromJson(json: JSONObject): HomeUiState {
+    fun fromJson(
+        json: JSONObject
+    ): HomeUiState {
         return HomeUiState(
-            heroBanners = mapBanners(json.optJSONArray("banners")),
-            selectedHeroIndex = 0,
-            categories = mapCategories(json.optJSONArray("categories")),
-            selectedCategoryIndex = 0,
-            continueWatching = mapContinueWatching(json.optJSONArray("continue_watching")),
-            contentSections = mapSections(json.optJSONArray("sections")),
-            collections = mapCollections(json.optJSONArray("collections"))
+            heroBanners =
+                mapBanners(
+                    json.optJSONArray(
+                        "banners"
+                    )
+                ),
+
+            selectedHeroIndex =
+                0,
+
+            categories =
+                mapCategories(
+                    json.optJSONArray(
+                        "categories"
+                    )
+                ),
+
+            selectedCategoryIndex =
+                0,
+
+            continueWatching =
+                mapContinueWatching(
+                    json.optJSONArray(
+                        "continue_watching"
+                    )
+                ),
+
+            contentSections =
+                mapSections(
+                    json.optJSONArray(
+                        "sections"
+                    )
+                ),
+
+            collections =
+                mapCollections(
+                    json.optJSONArray(
+                        "collections"
+                    )
+                )
         )
     }
 
-    private fun mapBanners(array: JSONArray?): List<HeroBannerUi> {
-        if (array == null) return emptyList()
+    private fun mapBanners(
+        array: JSONArray?
+    ): List<HeroBannerUi> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return buildList {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
+            for (
+            index in 0 until array.length()
+            ) {
+                val item =
+                    array.optJSONObject(
+                        index
+                    ) ?: continue
 
-                val contentUuid = item.optNullableString("content_uuid")
-                val contentType = item.optNullableString("content_type")
+                val contentUuid =
+                    item.optNullableString(
+                        "content_uuid"
+                    )
 
-                if (contentUuid.isNullOrBlank() || contentType.isNullOrBlank()) {
+                val contentType =
+                    item.optNullableString(
+                        "content_type"
+                    )
+
+                if (
+                    contentUuid.isNullOrBlank() ||
+                    contentType.isNullOrBlank()
+                ) {
                     continue
                 }
 
+                val mobileImageUrl =
+                    item.optNullableString(
+                        "image_mobile_url"
+                    )
+
+                val defaultImageUrl =
+                    item.optNullableString(
+                        "image_url"
+                    )
+
                 add(
                     HeroBannerUi(
-                        title = item.optString("title"),
-                        year = "",
-                        rating = "",
-                        genres = emptyList(),
-                        duration = "",
-                        quality = "",
-                        synopsis = "",
-                        imageUrl = MediaUrlResolver.resolve(
-                            item.optNullableString("image_mobile_url")
-                                ?: item.optNullableString("image_url")
-                        ),
-                        gradientColors = defaultGradient(index),
-                        uuid = contentUuid,
-                        contentType = contentType
+                        title =
+                            item.optString(
+                                "title"
+                            ),
+
+                        year =
+                            item.optNullableString(
+                                "year"
+                            )
+                                ?: "",
+
+                        rating =
+                            item.optNullableString(
+                                "rating"
+                            )
+                                ?: "",
+
+                        genres =
+                            mapStringArray(
+                                item.optJSONArray(
+                                    "genres"
+                                )
+                            ),
+
+                        duration =
+                            item.optNullableString(
+                                "runtime"
+                            )
+                                ?: "",
+
+                        quality =
+                            "",
+
+                        synopsis =
+                            item.optNullableString(
+                                "description"
+                            )
+                                ?: "",
+
+                        imageUrl =
+                            MediaUrlResolver.resolve(
+                                mobileImageUrl
+                                    ?: defaultImageUrl
+                            ),
+
+                        gradientColors =
+                            defaultGradient(
+                                index
+                            ),
+
+                        uuid =
+                            contentUuid,
+
+                        contentType =
+                            contentType,
+
+                        titleImageUrl =
+                            MediaUrlResolver.resolve(
+                                item.optNullableString(
+                                    "title_image_url"
+                                )
+                            )
                     )
                 )
             }
         }
     }
 
-    private fun mapCategories(array: JSONArray?): List<CategoryUi> {
-        if (array == null) return emptyList()
+    private fun mapCategories(
+        array: JSONArray?
+    ): List<CategoryUi> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return buildList {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
+            for (
+            index in 0 until array.length()
+            ) {
+                val item =
+                    array.optJSONObject(
+                        index
+                    ) ?: continue
 
                 add(
                     CategoryUi(
-                        name = item.optString("title"),
-                        slug = item.optNullableString("slug") ?: "",
-                        contentType = item.optNullableString("content_type")
+                        name =
+                            item.optString(
+                                "title"
+                            ),
+
+                        slug =
+                            item.optNullableString(
+                                "slug"
+                            )
+                                ?: "",
+
+                        contentType =
+                            item.optNullableString(
+                                "content_type"
+                            )
                     )
                 )
             }
         }
     }
 
-    private fun mapContinueWatching(array: JSONArray?): List<ContinueWatchingUi> {
-        if (array == null) return emptyList()
+    private fun mapContinueWatching(
+        array: JSONArray?
+    ): List<ContinueWatchingUi> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return emptyList()
     }
 
-    private fun mapSections(array: JSONArray?): List<HomeContentSectionUi> {
-        if (array == null) return emptyList()
+    private fun mapSections(
+        array: JSONArray?
+    ): List<HomeContentSectionUi> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return buildList {
-            for (sectionIndex in 0 until array.length()) {
-                val section = array.optJSONObject(sectionIndex) ?: continue
-                val contentType = section.optNullableString("content_type") ?: ""
-                val itemsArray = section.optJSONArray("items")
+            for (
+            sectionIndex in
+            0 until array.length()
+            ) {
+                val section =
+                    array.optJSONObject(
+                        sectionIndex
+                    ) ?: continue
 
-                val items = mapMediaItems(
-                    array = itemsArray,
-                    fallbackContentType = contentType,
-                    sectionIndex = sectionIndex
-                )
+                val contentType =
+                    section.optNullableString(
+                        "content_type"
+                    )
+                        ?: ""
 
-                if (items.isEmpty()) {
+                val itemsArray =
+                    section.optJSONArray(
+                        "items"
+                    )
+
+                val items =
+                    mapMediaItems(
+                        array =
+                            itemsArray,
+
+                        fallbackContentType =
+                            contentType,
+
+                        sectionIndex =
+                            sectionIndex
+                    )
+
+                if (
+                    items.isEmpty()
+                ) {
                     continue
                 }
 
                 add(
                     HomeContentSectionUi(
-                        title = section.optString("title"),
-                        slug = section.optNullableString("slug") ?: "",
-                        contentType = contentType,
-                        items = items
+                        title =
+                            section.optString(
+                                "title"
+                            ),
+
+                        slug =
+                            section.optNullableString(
+                                "slug"
+                            )
+                                ?: "",
+
+                        contentType =
+                            contentType,
+
+                        items =
+                            items
                     )
                 )
             }
@@ -122,82 +306,316 @@ object HomeMapper {
         fallbackContentType: String,
         sectionIndex: Int
     ): List<MediaItemUi> {
-        if (array == null) return emptyList()
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return buildList {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
-                val uuid = item.optNullableString("uuid") ?: continue
+            for (
+            index in 0 until array.length()
+            ) {
+                val item =
+                    array.optJSONObject(
+                        index
+                    ) ?: continue
 
-                val year = item.optNullableString("year")
-                val rating = item.optNullableString("rating")
+                val uuid =
+                    item.optNullableString(
+                        "uuid"
+                    ) ?: continue
 
-                val subtitle = buildString {
-                    if (!year.isNullOrBlank()) append(year)
+                val year =
+                    item.optNullableString(
+                        "year"
+                    )
 
-                    if (!rating.isNullOrBlank() && rating != "0" && rating != "0.0") {
-                        if (isNotBlank()) append(" • ")
-                        append(rating)
+                val rating =
+                    item.optNullableString(
+                        "rating"
+                    )
+
+                val subtitle =
+                    buildString {
+                        if (
+                            !year.isNullOrBlank()
+                        ) {
+                            append(
+                                year
+                            )
+                        }
+
+                        if (
+                            !rating.isNullOrBlank() &&
+                            rating != "0" &&
+                            rating != "0.0"
+                        ) {
+                            if (
+                                isNotBlank()
+                            ) {
+                                append(
+                                    " • "
+                                )
+                            }
+
+                            append(
+                                rating
+                            )
+                        }
                     }
-                }
 
                 add(
                     MediaItemUi(
-                        title = item.optString("title"),
-                        subtitle = subtitle,
-                        imageUrl = MediaUrlResolver.resolve(
-                            item.optNullableString("image_url")
-                        ),
-                        progress = null,
-                        gradientColors = defaultGradient(sectionIndex + index),
-                        uuid = uuid,
-                        contentType = item.optNullableString("content_type") ?: fallbackContentType
+                        title =
+                            item.optString(
+                                "title"
+                            ),
+
+                        subtitle =
+                            subtitle,
+
+                        imageUrl =
+                            MediaUrlResolver.resolve(
+                                item.optNullableString(
+                                    "image_url"
+                                )
+                            ),
+
+                        progress =
+                            null,
+
+                        gradientColors =
+                            defaultGradient(
+                                sectionIndex +
+                                        index
+                            ),
+
+                        uuid =
+                            uuid,
+
+                        contentType =
+                            item.optNullableString(
+                                "content_type"
+                            )
+                                ?: fallbackContentType
                     )
                 )
             }
         }
     }
 
-    private fun mapCollections(array: JSONArray?): List<CollectionUi> {
-        if (array == null) return emptyList()
+    private fun mapCollections(
+        array: JSONArray?
+    ): List<CollectionUi> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
         return buildList {
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
-                val uuid = item.optNullableString("uuid") ?: continue
+            for (
+            index in 0 until array.length()
+            ) {
+                val item =
+                    array.optJSONObject(
+                        index
+                    ) ?: continue
+
+                val uuid =
+                    item.optNullableString(
+                        "uuid"
+                    ) ?: continue
 
                 add(
                     CollectionUi(
-                        uuid = uuid,
-                        title = item.optString("title"),
-                        imageUrl = MediaUrlResolver.resolve(
-                            item.optNullableString("image_url")
-                        ),
-                        gradientColors = defaultGradient(index)
+                        uuid =
+                            uuid,
+
+                        title =
+                            item.optString(
+                                "title"
+                            ),
+
+                        imageUrl =
+                            MediaUrlResolver.resolve(
+                                item.optNullableString(
+                                    "image_url"
+                                )
+                            ),
+
+                        gradientColors =
+                            defaultGradient(
+                                index
+                            )
                     )
                 )
             }
         }
     }
 
-    private fun JSONObject.optNullableString(name: String): String? {
-        if (isNull(name)) return null
+    private fun mapStringArray(
+        array: JSONArray?
+    ): List<String> {
+        if (
+            array == null
+        ) {
+            return emptyList()
+        }
 
-        val value = optString(name).trim()
+        return buildList {
+            for (
+            index in 0 until array.length()
+            ) {
+                val value =
+                    array.opt(
+                        index
+                    )
 
-        return value.ifBlank { null }
+                when (
+                    value
+                ) {
+                    is JSONObject -> {
+                        val label =
+                            value.optNullableString(
+                                "name"
+                            )
+                                ?: value.optNullableString(
+                                    "title"
+                                )
+                                ?: value.optNullableString(
+                                    "label"
+                                )
+
+                        if (
+                            !label.isNullOrBlank()
+                        ) {
+                            add(
+                                label
+                            )
+                        }
+                    }
+
+                    is String -> {
+                        val normalized =
+                            value.trim()
+
+                        if (
+                            normalized.isNotBlank()
+                        ) {
+                            add(
+                                normalized
+                            )
+                        }
+                    }
+
+                    else -> {
+                        val normalized =
+                            value
+                                ?.toString()
+                                ?.trim()
+                                .orEmpty()
+
+                        if (
+                            normalized.isNotBlank() &&
+                            normalized != "null"
+                        ) {
+                            add(
+                                normalized
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    private fun defaultGradient(index: Int): List<Color> {
-        val gradients = listOf(
-            listOf(Color(0xFF08121A), Color(0xFF0A0A0B)),
-            listOf(Color(0xFF1E3A8A), Color(0xFF020617)),
-            listOf(Color(0xFF7F1D1D), Color(0xFF111827)),
-            listOf(Color(0xFF14532D), Color(0xFF020617)),
-            listOf(Color(0xFF4C1D95), Color(0xFF111827)),
-            listOf(Color(0xFF713F12), Color(0xFF111827))
-        )
+    private fun JSONObject
+            .optNullableString(
+        name: String
+    ): String? {
+        if (
+            isNull(
+                name
+            )
+        ) {
+            return null
+        }
 
-        return gradients[index % gradients.size]
+        val value =
+            optString(
+                name
+            ).trim()
+
+        return value.ifBlank {
+            null
+        }
+    }
+
+    private fun defaultGradient(
+        index: Int
+    ): List<Color> {
+        val gradients =
+            listOf(
+                listOf(
+                    Color(
+                        0xFF08121A
+                    ),
+                    Color(
+                        0xFF0A0A0B
+                    )
+                ),
+
+                listOf(
+                    Color(
+                        0xFF1E3A8A
+                    ),
+                    Color(
+                        0xFF020617
+                    )
+                ),
+
+                listOf(
+                    Color(
+                        0xFF7F1D1D
+                    ),
+                    Color(
+                        0xFF111827
+                    )
+                ),
+
+                listOf(
+                    Color(
+                        0xFF14532D
+                    ),
+                    Color(
+                        0xFF020617
+                    )
+                ),
+
+                listOf(
+                    Color(
+                        0xFF4C1D95
+                    ),
+                    Color(
+                        0xFF111827
+                    )
+                ),
+
+                listOf(
+                    Color(
+                        0xFF713F12
+                    ),
+                    Color(
+                        0xFF111827
+                    )
+                )
+            )
+
+        return gradients[
+            index %
+                    gradients.size
+        ]
     }
 }

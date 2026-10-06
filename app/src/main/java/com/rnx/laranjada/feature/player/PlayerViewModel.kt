@@ -25,30 +25,23 @@ import java.util.TimeZone
 import java.util.UUID
 
 data class PlaybackUiState(
-    val isReserving: Boolean =
-        false,
+    val isReserving: Boolean = false,
+    val reservation: PlaybackReservation? = null,
 
-    val reservation:
-    PlaybackReservation? =
-        null,
+    val reserveErrorCode: String? = null,
+    val reserveErrorMessage: String? = null,
 
-    val reserveErrorCode: String? =
-        null,
+    val isRenewing: Boolean = false,
+    val renewErrorCode: String? = null,
+    val renewErrorMessage: String? = null,
 
-    val reserveErrorMessage: String? =
-        null,
+    val presenceErrorMessage: String? = null,
 
-    val isRenewing: Boolean =
-        false,
+    val isStopping: Boolean = false,
+    val stopErrorMessage: String? = null,
 
-    val renewErrorCode: String? =
-        null,
-
-    val renewErrorMessage: String? =
-        null,
-
-    val fatalAuthorizationError: Boolean =
-        false
+    val fatalAuthorizationError: Boolean = false,
+    val fatalPlaybackMessage: String? = null
 )
 
 class PlayerViewModel(
@@ -65,26 +58,26 @@ class PlayerViewModel(
         PlaybackAuthorizationStore()
 ) : ViewModel() {
 
-    var episodesUiState by mutableStateOf<
-            PlayerEpisodesUiState?
-            >(
+    var episodesUiState by
+    mutableStateOf<PlayerEpisodesUiState?>(
         null
     )
         private set
 
-    var isLoadingEpisodes by mutableStateOf(
+    var isLoadingEpisodes by
+    mutableStateOf(
         false
     )
         private set
 
-    var episodesErrorMessage by mutableStateOf<
-            String?
-            >(
+    var episodesErrorMessage by
+    mutableStateOf<String?>(
         null
     )
         private set
 
-    var playbackUiState by mutableStateOf(
+    var playbackUiState by
+    mutableStateOf(
         PlaybackUiState()
     )
         private set
@@ -106,6 +99,10 @@ class PlayerViewModel(
             Job? =
         null
 
+    private var presenceJob:
+            Job? =
+        null
+
     private var renewRetryAttempt =
         0
 
@@ -115,6 +112,19 @@ class PlayerViewModel(
 
     private var expiresDeadlineElapsedMs:
             Long? =
+        null
+
+    private var currentPresenceStatus =
+        PRESENCE_BUFFERING
+
+    /*
+     * Quando uma sessão já recebeu Stop,
+     * Ended, Error ou foi encerrada pelo
+     * servidor, guardamos o UUID para não
+     * tentar reativá-la.
+     */
+    private var terminalSessionUuid:
+            String? =
         null
 
     fun ensureInitialPlayback(
@@ -133,10 +143,8 @@ class PlayerViewModel(
         startPlayback(
             contentType =
                 contentType,
-
             contentUuid =
                 contentUuid,
-
             force =
                 true
         )
@@ -167,7 +175,6 @@ class PlayerViewModel(
                 playbackUiState.copy(
                     reserveErrorCode =
                         "invalid_request",
-
                     reserveErrorMessage =
                         "Conteúdo de reprodução inválido."
                 )
@@ -190,7 +197,9 @@ class PlayerViewModel(
             currentReservation.contentType ==
             normalizedContentType &&
             currentReservation.contentUuid ==
-            normalizedContentUuid
+            normalizedContentUuid &&
+            terminalSessionUuid !=
+            currentReservation.sessionUuid
         ) {
             return
         }
@@ -201,20 +210,22 @@ class PlayerViewModel(
         lastRequestedContentUuid =
             normalizedContentUuid
 
+        val previousReservation =
+            currentReservation
+
         viewModelScope.launch {
             playbackUiState =
                 playbackUiState.copy(
                     isReserving =
                         true,
-
                     reserveErrorCode =
                         null,
-
                     reserveErrorMessage =
                         null,
-
                     fatalAuthorizationError =
-                        false
+                        false,
+                    fatalPlaybackMessage =
+                        null
                 )
 
             try {
@@ -225,30 +236,38 @@ class PlayerViewModel(
                     playbackRepository.reserve(
                         contentType =
                             normalizedContentType,
-
                         contentUuid =
                             normalizedContentUuid,
-
                         clientSessionKey =
                             clientSessionKey
                     )
 
                 /*
-                 * Primeiro atualizamos o estado
-                 * thread-safe que o Media3 consulta.
+                 * Daqui em diante a nova
+                 * reprodução passa a ser a
+                 * reprodução oficial do player.
                  */
+                renewJob?.cancel()
+                presenceJob?.cancel()
+
+                renewJob =
+                    null
+
+                presenceJob =
+                    null
+
                 authorizationStore.update(
                     reservation.playback
                 )
 
-                /*
-                 * Qualquer timer da reprodução
-                 * anterior deixa de ser relevante.
-                 */
-                renewJob?.cancel()
-
                 renewRetryAttempt =
                     0
+
+                terminalSessionUuid =
+                    null
+
+                currentPresenceStatus =
+                    PRESENCE_BUFFERING
 
                 configureDeadlines(
                     reservation.playback
@@ -258,38 +277,69 @@ class PlayerViewModel(
                     playbackUiState.copy(
                         isReserving =
                             false,
-
                         reservation =
                             reservation,
-
                         reserveErrorCode =
                             null,
-
                         reserveErrorMessage =
                             null,
-
                         isRenewing =
                             false,
-
                         renewErrorCode =
                             null,
-
                         renewErrorMessage =
                             null,
-
+                        presenceErrorMessage =
+                            null,
+                        isStopping =
+                            false,
+                        stopErrorMessage =
+                            null,
                         fatalAuthorizationError =
-                            false
+                            false,
+                        fatalPlaybackMessage =
+                            null
                     )
 
                 Log.d(
                     TAG,
-                    "Playback reservado. session=${reservation.sessionUuid} " +
+                    "Playback reservado. " +
+                            "session=${reservation.sessionUuid} " +
                             "content=${reservation.contentType}:${reservation.contentUuid}"
                 )
 
                 scheduleRenew(
                     reservation.sessionUuid
                 )
+
+                schedulePresence(
+                    reservation
+                )
+
+                /*
+                 * Se isso foi uma troca de
+                 * episódio/conteúdo, encerramos
+                 * a sessão anterior.
+                 *
+                 * A chamada é independente da
+                 * nova autorização.
+                 */
+                if (
+                    previousReservation !=
+                    null &&
+                    previousReservation
+                        .sessionUuid !=
+                    reservation.sessionUuid
+                ) {
+                    viewModelScope.launch {
+                        stopReservationQuietly(
+                            reservation =
+                                previousReservation,
+                            status =
+                                STOP_STOPPED
+                        )
+                    }
+                }
             } catch (
                 exception:
                 PlaybackApiException
@@ -298,10 +348,8 @@ class PlayerViewModel(
                     playbackUiState.copy(
                         isReserving =
                             false,
-
                         reserveErrorCode =
                             exception.code,
-
                         reserveErrorMessage =
                             exception.message
                                 ?: "Não foi possível autorizar a reprodução."
@@ -313,10 +361,8 @@ class PlayerViewModel(
                     playbackUiState.copy(
                         isReserving =
                             false,
-
                         reserveErrorCode =
                             null,
-
                         reserveErrorMessage =
                             exception.message
                                 ?: "Não foi possível autorizar a reprodução."
@@ -338,13 +384,205 @@ class PlayerViewModel(
         startPlayback(
             contentType =
                 lastRequestedContentType,
-
             contentUuid =
                 lastRequestedContentUuid,
-
             force =
                 true
         )
+    }
+
+    fun updatePresenceStatus(
+        status: String
+    ) {
+        val normalized =
+            status
+                .trim()
+                .lowercase(
+                    Locale.US
+                )
+
+        if (
+            normalized !in
+            ACTIVE_PRESENCE_STATUSES
+        ) {
+            return
+        }
+
+        val reservation =
+            playbackUiState
+                .reservation
+                ?: return
+
+        if (
+            terminalSessionUuid ==
+            reservation.sessionUuid
+        ) {
+            return
+        }
+
+        currentPresenceStatus =
+            normalized
+    }
+
+    fun stopPlayback(
+        status: String = STOP_STOPPED,
+        clearLocalAfter: Boolean = true,
+        onComplete: () -> Unit = {}
+    ) {
+        val normalizedStatus =
+            status
+                .trim()
+                .lowercase(
+                    Locale.US
+                )
+                .takeIf {
+                    it in
+                            TERMINAL_STOP_STATUSES
+                }
+                ?: STOP_STOPPED
+
+        val reservation =
+            playbackUiState
+                .reservation
+
+        if (
+            reservation == null
+        ) {
+            if (
+                clearLocalAfter
+            ) {
+                clearLocalPlaybackInternal()
+            }
+
+            onComplete()
+
+            return
+        }
+
+        val sessionUuid =
+            reservation.sessionUuid
+
+        /*
+         * Para imediatamente Presence,
+         * Renew e novos requests HLS.
+         */
+        presenceJob?.cancel()
+        renewJob?.cancel()
+
+        presenceJob =
+            null
+
+        renewJob =
+            null
+
+        authorizationStore.clear()
+
+        val wasAlreadyTerminal =
+            terminalSessionUuid ==
+                    sessionUuid
+
+        terminalSessionUuid =
+            sessionUuid
+
+        if (
+            wasAlreadyTerminal
+        ) {
+            if (
+                clearLocalAfter
+            ) {
+                clearLocalPlaybackInternal()
+            }
+
+            onComplete()
+
+            return
+        }
+
+        playbackUiState =
+            playbackUiState.copy(
+                isStopping =
+                    true,
+                stopErrorMessage =
+                    null
+            )
+
+        viewModelScope.launch {
+            try {
+                val result =
+                    playbackRepository.stop(
+                        contentType =
+                            reservation.contentType,
+                        contentUuid =
+                            reservation.contentUuid,
+                        clientSessionKey =
+                            reservation.clientSessionKey,
+                        status =
+                            normalizedStatus
+                    )
+
+                Log.d(
+                    TAG,
+                    "Playback encerrado. " +
+                            "session=${reservation.sessionUuid} " +
+                            "status=${result.status} " +
+                            "already_stopped=${result.alreadyStopped}"
+                )
+            } catch (
+                exception: Exception
+            ) {
+                Log.w(
+                    TAG,
+                    "Falha ao enviar Stop para " +
+                            "session=${reservation.sessionUuid}: " +
+                            "${exception.message}"
+                )
+
+                /*
+                 * Mesmo que o Stop REST falhe,
+                 * o cliente interrompe localmente.
+                 *
+                 * O backend possui expiração
+                 * natural por ausência de Presence.
+                 */
+                if (
+                    playbackUiState
+                        .reservation
+                        ?.sessionUuid ==
+                    sessionUuid
+                ) {
+                    playbackUiState =
+                        playbackUiState.copy(
+                            stopErrorMessage =
+                                exception.message
+                                    ?: "Não foi possível confirmar o encerramento da reprodução."
+                        )
+                }
+            } finally {
+                val currentSessionUuid =
+                    playbackUiState
+                        .reservation
+                        ?.sessionUuid
+
+                if (
+                    currentSessionUuid ==
+                    sessionUuid
+                ) {
+                    if (
+                        clearLocalAfter
+                    ) {
+                        clearLocalPlaybackInternal()
+                    } else {
+                        playbackUiState =
+                            playbackUiState.copy(
+                                isStopping =
+                                    false
+                            )
+                    }
+                }
+
+                onComplete()
+            }
+        }
     }
 
     fun loadSeriesEpisodes(
@@ -391,7 +629,6 @@ class PlayerViewModel(
                     repository.getDetail(
                         contentType =
                             "series",
-
                         uuid =
                             seriesUuid
                     )
@@ -412,33 +649,276 @@ class PlayerViewModel(
     }
 
     fun clearLocalPlayback() {
+        clearLocalPlaybackInternal()
+    }
+
+    private fun schedulePresence(
+        reservation:
+        PlaybackReservation
+    ) {
+        presenceJob?.cancel()
+
+        val intervalMs =
+            reservation
+                .presencePulseIntervalMs
+
+        if (
+            intervalMs <=
+            0L
+        ) {
+            handleFatalPresenceFailure(
+                expectedSessionUuid =
+                    reservation.sessionUuid,
+                message =
+                    "O servidor não informou um intervalo válido para manter a reprodução ativa."
+            )
+
+            return
+        }
+
+        Log.d(
+            TAG,
+            "Presence iniciado. " +
+                    "session=${reservation.sessionUuid} " +
+                    "interval=${intervalMs}ms"
+        )
+
+        presenceJob =
+            viewModelScope.launch {
+                while (
+                    true
+                ) {
+                    delay(
+                        intervalMs
+                    )
+
+                    val currentReservation =
+                        playbackUiState
+                            .reservation
+
+                    if (
+                        currentReservation ==
+                        null ||
+                        currentReservation
+                            .sessionUuid !=
+                        reservation.sessionUuid ||
+                        terminalSessionUuid ==
+                        reservation.sessionUuid
+                    ) {
+                        return@launch
+                    }
+
+                    sendPresencePulse(
+                        expectedSessionUuid =
+                            reservation.sessionUuid
+                    )
+                }
+            }
+    }
+
+    private suspend fun sendPresencePulse(
+        expectedSessionUuid: String
+    ) {
+        val reservation =
+            playbackUiState
+                .reservation
+                ?: return
+
+        if (
+            reservation.sessionUuid !=
+            expectedSessionUuid ||
+            terminalSessionUuid ==
+            expectedSessionUuid
+        ) {
+            return
+        }
+
+        try {
+            val presence =
+                playbackRepository.presence(
+                    contentType =
+                        reservation.contentType,
+                    contentUuid =
+                        reservation.contentUuid,
+                    clientSessionKey =
+                        reservation.clientSessionKey,
+                    status =
+                        currentPresenceStatus
+                )
+
+            val latestReservation =
+                playbackUiState
+                    .reservation
+
+            if (
+                latestReservation ==
+                null ||
+                latestReservation
+                    .sessionUuid !=
+                expectedSessionUuid ||
+                terminalSessionUuid ==
+                expectedSessionUuid
+            ) {
+                return
+            }
+
+            if (
+                !presence.active ||
+                !presence.allowed
+            ) {
+                handleFatalPresenceFailure(
+                    expectedSessionUuid =
+                        expectedSessionUuid,
+                    message =
+                        presence.message
+                            .ifBlank {
+                                "A sessão de reprodução não está mais ativa."
+                            }
+                )
+
+                return
+            }
+
+            val stopCommand =
+                presence.commands
+                    .firstOrNull {
+                        it.type ==
+                                "stop"
+                    }
+
+            if (
+                stopCommand != null
+            ) {
+                handleFatalPresenceFailure(
+                    expectedSessionUuid =
+                        expectedSessionUuid,
+                    message =
+                        stopCommand.message
+                            .ifBlank {
+                                "Esta reprodução foi interrompida."
+                            }
+                )
+
+                return
+            }
+
+            playbackUiState =
+                playbackUiState.copy(
+                    presenceErrorMessage =
+                        null
+                )
+
+            Log.d(
+                TAG,
+                "Presence OK. " +
+                        "session=$expectedSessionUuid " +
+                        "status=${presence.status} " +
+                        "code=${presence.code}"
+            )
+        } catch (
+            exception:
+            PlaybackApiException
+        ) {
+            if (
+                shouldRetryPresence(
+                    exception.statusCode
+                )
+            ) {
+                playbackUiState =
+                    playbackUiState.copy(
+                        presenceErrorMessage =
+                            exception.message
+                    )
+
+                Log.w(
+                    TAG,
+                    "Presence temporariamente falhou. " +
+                            "session=$expectedSessionUuid " +
+                            "code=${exception.code}"
+                )
+            } else {
+                handleFatalPresenceFailure(
+                    expectedSessionUuid =
+                        expectedSessionUuid,
+                    message =
+                        exception.message
+                            ?: "A sessão de reprodução não está mais válida."
+                )
+            }
+        } catch (
+            exception: IOException
+        ) {
+            playbackUiState =
+                playbackUiState.copy(
+                    presenceErrorMessage =
+                        exception.message
+                )
+
+            Log.w(
+                TAG,
+                "Presence falhou por rede. " +
+                        "session=$expectedSessionUuid"
+            )
+        } catch (
+            exception: Exception
+        ) {
+            handleFatalPresenceFailure(
+                expectedSessionUuid =
+                    expectedSessionUuid,
+                message =
+                    exception.message
+                        ?: "Não foi possível manter a sessão de reprodução ativa."
+            )
+        }
+    }
+
+    private fun handleFatalPresenceFailure(
+        expectedSessionUuid: String,
+        message: String
+    ) {
+        val currentSessionUuid =
+            playbackUiState
+                .reservation
+                ?.sessionUuid
+
+        if (
+            currentSessionUuid !=
+            expectedSessionUuid
+        ) {
+            return
+        }
+
+        terminalSessionUuid =
+            expectedSessionUuid
+
+        presenceJob?.cancel()
         renewJob?.cancel()
 
+        presenceJob =
+            null
+
         renewJob =
-            null
-
-        renewRetryAttempt =
-            0
-
-        renewDeadlineElapsedMs =
-            null
-
-        expiresDeadlineElapsedMs =
             null
 
         authorizationStore.clear()
 
         playbackUiState =
-            PlaybackUiState()
+            playbackUiState.copy(
+                isRenewing =
+                    false,
+                presenceErrorMessage =
+                    message,
+                fatalAuthorizationError =
+                    true,
+                fatalPlaybackMessage =
+                    message
+            )
 
-        initialPlaybackStarted =
-            false
-
-        lastRequestedContentType =
-            ""
-
-        lastRequestedContentUuid =
-            ""
+        Log.e(
+            TAG,
+            "Presence encerrada definitivamente. " +
+                    "session=$expectedSessionUuid"
+        )
     }
 
     private fun scheduleRenew(
@@ -491,6 +971,8 @@ class PlayerViewModel(
             currentReservation ==
             null ||
             currentReservation.sessionUuid !=
+            expectedSessionUuid ||
+            terminalSessionUuid ==
             expectedSessionUuid
         ) {
             return
@@ -506,10 +988,8 @@ class PlayerViewModel(
             playbackUiState.copy(
                 isRenewing =
                     true,
-
                 renewErrorCode =
                     null,
-
                 renewErrorMessage =
                     null
             )
@@ -521,10 +1001,6 @@ class PlayerViewModel(
                         expectedSessionUuid
                 )
 
-            /*
-             * O contrato exige a mesma
-             * WatchingSession.
-             */
             if (
                 renewal.sessionUuid !=
                 expectedSessionUuid
@@ -534,14 +1010,6 @@ class PlayerViewModel(
                 )
             }
 
-            /*
-             * Pode ter ocorrido uma troca de
-             * episódio enquanto a requisição
-             * estava em andamento.
-             *
-             * Nesse caso descartamos o Renew
-             * antigo.
-             */
             val latestReservation =
                 playbackUiState
                     .reservation
@@ -550,6 +1018,8 @@ class PlayerViewModel(
                 latestReservation ==
                 null ||
                 latestReservation.sessionUuid !=
+                expectedSessionUuid ||
+                terminalSessionUuid ==
                 expectedSessionUuid
             ) {
                 return
@@ -558,7 +1028,8 @@ class PlayerViewModel(
             /*
              * Troca atômica do Bearer.
              *
-             * O ExoPlayer não é recriado.
+             * A instância do ExoPlayer
+             * permanece a mesma.
              */
             authorizationStore.update(
                 renewal.playback
@@ -575,10 +1046,8 @@ class PlayerViewModel(
                 latestReservation.copy(
                     limit =
                         renewal.limit,
-
                     activeDeviceCount =
                         renewal.activeDeviceCount,
-
                     playback =
                         renewal.playback
                 )
@@ -587,23 +1056,22 @@ class PlayerViewModel(
                 playbackUiState.copy(
                     isRenewing =
                         false,
-
                     reservation =
                         updatedReservation,
-
                     renewErrorCode =
                         null,
-
                     renewErrorMessage =
                         null,
-
                     fatalAuthorizationError =
-                        false
+                        false,
+                    fatalPlaybackMessage =
+                        null
                 )
 
             Log.d(
                 TAG,
-                "Playback Authorization renovada. session=$expectedSessionUuid " +
+                "Playback Authorization renovada. " +
+                        "session=$expectedSessionUuid " +
                         "renew_at=${renewal.playback.renewAt}"
             )
 
@@ -622,10 +1090,8 @@ class PlayerViewModel(
                 handleTransientRenewFailure(
                     expectedSessionUuid =
                         expectedSessionUuid,
-
                     code =
                         exception.code,
-
                     message =
                         exception.message
                             ?: "Falha temporária ao renovar a reprodução."
@@ -634,10 +1100,8 @@ class PlayerViewModel(
                 handleFatalRenewFailure(
                     expectedSessionUuid =
                         expectedSessionUuid,
-
                     code =
                         exception.code,
-
                     message =
                         exception.message
                             ?: "A reprodução não está mais autorizada."
@@ -649,10 +1113,8 @@ class PlayerViewModel(
             handleTransientRenewFailure(
                 expectedSessionUuid =
                     expectedSessionUuid,
-
                 code =
                     null,
-
                 message =
                     exception.message
                         ?: "Falha de rede ao renovar a reprodução."
@@ -663,10 +1125,8 @@ class PlayerViewModel(
             handleFatalRenewFailure(
                 expectedSessionUuid =
                     expectedSessionUuid,
-
                 code =
                     null,
-
                 message =
                     exception.message
                         ?: "Não foi possível renovar a reprodução."
@@ -686,6 +1146,8 @@ class PlayerViewModel(
 
         if (
             currentSessionUuid !=
+            expectedSessionUuid ||
+            terminalSessionUuid ==
             expectedSessionUuid
         ) {
             return
@@ -695,13 +1157,10 @@ class PlayerViewModel(
             playbackUiState.copy(
                 isRenewing =
                     false,
-
                 renewErrorCode =
                     code,
-
                 renewErrorMessage =
                     message,
-
                 fatalAuthorizationError =
                     false
             )
@@ -716,10 +1175,8 @@ class PlayerViewModel(
             handleFatalRenewFailure(
                 expectedSessionUuid =
                     expectedSessionUuid,
-
                 code =
                     code,
-
                 message =
                     message
             )
@@ -739,10 +1196,8 @@ class PlayerViewModel(
             handleFatalRenewFailure(
                 expectedSessionUuid =
                     expectedSessionUuid,
-
                 code =
                     code,
-
                 message =
                     "A autorização da reprodução expirou."
             )
@@ -783,7 +1238,8 @@ class PlayerViewModel(
 
         Log.w(
             TAG,
-            "Renew temporariamente falhou. Nova tentativa em ${safeRetryDelay}ms."
+            "Renew temporariamente falhou. " +
+                    "Nova tentativa em ${safeRetryDelay}ms."
         )
 
         renewJob?.cancel()
@@ -821,40 +1277,79 @@ class PlayerViewModel(
             return
         }
 
+        terminalSessionUuid =
+            expectedSessionUuid
+
         renewJob?.cancel()
+        presenceJob?.cancel()
 
         renewJob =
             null
 
-        /*
-         * Negação definitiva:
-         * o Media3 deixa de receber o Bearer.
-         */
+        presenceJob =
+            null
+
         authorizationStore.clear()
 
         playbackUiState =
             playbackUiState.copy(
                 isRenewing =
                     false,
-
                 renewErrorCode =
                     code,
-
                 renewErrorMessage =
                     message,
-
                 fatalAuthorizationError =
-                    true
+                    true,
+                fatalPlaybackMessage =
+                    message
             )
 
         Log.e(
             TAG,
-            "Renew negado definitivamente. session=$expectedSessionUuid code=$code"
+            "Renew negado definitivamente. " +
+                    "session=$expectedSessionUuid " +
+                    "code=$code"
         )
     }
 
+    private suspend fun stopReservationQuietly(
+        reservation: PlaybackReservation,
+        status: String
+    ) {
+        try {
+            val result =
+                playbackRepository.stop(
+                    contentType =
+                        reservation.contentType,
+                    contentUuid =
+                        reservation.contentUuid,
+                    clientSessionKey =
+                        reservation.clientSessionKey,
+                    status =
+                        status
+                )
+
+            Log.d(
+                TAG,
+                "Sessão anterior encerrada. " +
+                        "session=${reservation.sessionUuid} " +
+                        "status=${result.status}"
+            )
+        } catch (
+            exception: Exception
+        ) {
+            Log.w(
+                TAG,
+                "Não foi possível encerrar a sessão anterior " +
+                        "${reservation.sessionUuid}: ${exception.message}"
+            )
+        }
+    }
+
     private fun configureDeadlines(
-        playback: PlaybackAuthorization
+        playback:
+        PlaybackAuthorization
     ) {
         val nowElapsed =
             SystemClock
@@ -864,7 +1359,6 @@ class PlayerViewModel(
             serverIntervalMillis(
                 start =
                     playback.issuedAt,
-
                 end =
                     playback.renewAt
             )
@@ -885,7 +1379,6 @@ class PlayerViewModel(
             serverIntervalMillis(
                 start =
                     playback.issuedAt,
-
                 end =
                     playback.expiresAt
             )
@@ -948,11 +1441,6 @@ class PlayerViewModel(
             return null
         }
 
-        /*
-         * Django pode devolver microssegundos.
-         * SimpleDateFormat não precisa deles
-         * para calcular nosso intervalo.
-         */
         val normalized =
             value
                 .trim()
@@ -995,18 +1483,65 @@ class PlayerViewModel(
                 500..599
     }
 
+    private fun shouldRetryPresence(
+        statusCode: Int
+    ): Boolean {
+        return statusCode ==
+                408 ||
+                statusCode ==
+                429 ||
+                statusCode in
+                500..599
+    }
+
     private fun createClientSessionKey():
             String {
-        /*
-         * Backend aceita:
-         * [A-Za-z0-9._:-]
-         * entre 16 e 128 caracteres.
-         */
         return "android-player:${UUID.randomUUID()}"
+    }
+
+    private fun clearLocalPlaybackInternal() {
+        renewJob?.cancel()
+        presenceJob?.cancel()
+
+        renewJob =
+            null
+
+        presenceJob =
+            null
+
+        renewRetryAttempt =
+            0
+
+        renewDeadlineElapsedMs =
+            null
+
+        expiresDeadlineElapsedMs =
+            null
+
+        terminalSessionUuid =
+            null
+
+        currentPresenceStatus =
+            PRESENCE_BUFFERING
+
+        authorizationStore.clear()
+
+        playbackUiState =
+            PlaybackUiState()
+
+        initialPlaybackStarted =
+            false
+
+        lastRequestedContentType =
+            ""
+
+        lastRequestedContentUuid =
+            ""
     }
 
     override fun onCleared() {
         renewJob?.cancel()
+        presenceJob?.cancel()
 
         authorizationStore.clear()
 
@@ -1017,6 +1552,42 @@ class PlayerViewModel(
 
         const val TAG =
             "LaranjadaPlayback"
+
+        const val PRESENCE_PLAYING =
+            "playing"
+
+        const val PRESENCE_PAUSED =
+            "paused"
+
+        const val PRESENCE_BUFFERING =
+            "buffering"
+
+        const val PRESENCE_SEEKING =
+            "seeking"
+
+        const val STOP_STOPPED =
+            "stopped"
+
+        const val STOP_ENDED =
+            "ended"
+
+        const val STOP_ERROR =
+            "error"
+
+        val ACTIVE_PRESENCE_STATUSES =
+            setOf(
+                PRESENCE_PLAYING,
+                PRESENCE_PAUSED,
+                PRESENCE_BUFFERING,
+                PRESENCE_SEEKING
+            )
+
+        val TERMINAL_STOP_STATUSES =
+            setOf(
+                STOP_STOPPED,
+                STOP_ENDED,
+                STOP_ERROR
+            )
 
         val FRACTIONAL_SECONDS_REGEX =
             Regex(

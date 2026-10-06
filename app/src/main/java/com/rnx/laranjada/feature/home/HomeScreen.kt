@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rnx.laranjada.feature.home.components.CategoryChipsRow
 import com.rnx.laranjada.feature.home.components.CollectionsSection
@@ -36,24 +39,37 @@ private val LaranjadaDarkBackground =
 
 @Composable
 fun HomeScreen(
-    onBannerClick: (HeroBannerUi) -> Unit = {},
+    onBannerClick: (
+        HeroBannerUi
+    ) -> Unit = {},
+
     onMediaClick: (
         contentType: String,
         uuid: String
     ) -> Unit = { _, _ -> },
-    onCollectionClick: (CollectionUi) -> Unit = {},
+
+    onCollectionClick: (
+        CollectionUi
+    ) -> Unit = {},
+
     onSeeAllClick: (
         sectionSlug: String,
         title: String
     ) -> Unit = { _, _ -> },
+
     onCategoryGridClick: (
         sectionSlug: String,
         title: String
     ) -> Unit = { _, _ -> },
+
     onAccountClick: () -> Unit = {},
+
     profileName: String = "",
+
     profileAvatarUrl: String? = null,
-    viewModel: HomeViewModel = viewModel()
+
+    viewModel: HomeViewModel =
+        viewModel()
 ) {
     val uiState =
         viewModel.uiState
@@ -66,28 +82,38 @@ fun HomeScreen(
         }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                LaranjadaDarkBackground
-            )
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaDarkBackground
+                )
     ) {
         LazyColumn(
             modifier =
                 Modifier.fillMaxSize(),
+
             contentPadding =
                 PaddingValues(
-                    bottom = 118.dp
+                    bottom =
+                        118.dp
                 ),
+
             verticalArrangement =
                 Arrangement.spacedBy(
                     18.dp
                 )
         ) {
+
+            /*
+             * HERO
+             */
             item {
                 HeroSection(
                     banners =
-                        uiState.heroBanners,
+                        uiState
+                            .heroBanners,
+
                     onBannerClick = {
                             banner ->
 
@@ -105,59 +131,88 @@ fun HomeScreen(
                 )
             }
 
+            /*
+             * CATEGORIAS
+             *
+             * Os cards possuem 90dp.
+             *
+             * O container precisa ter altura
+             * suficiente para não comprimir
+             * o LazyRow.
+             *
+             * Visualmente ele sobe sobre o
+             * final do degradê.
+             */
             item {
-                CategoryChipsRow(
-                    categories =
-                        uiState.categories,
-                    selectedIndex =
-                        uiState
-                            .selectedCategoryIndex,
+                Box(
                     modifier =
-                        Modifier.padding(
-                            horizontal =
-                                18.dp
-                        ),
-                    onCategoryClick = {
-                            index ->
+                        Modifier
+                            .fillMaxWidth()
+                            .height(
+                                96.dp
+                            )
+                ) {
+                    CategoryChipsRow(
+                        categories =
+                            uiState
+                                .categories,
 
-                        val category =
-                            uiState.categories
-                                .getOrNull(
-                                    index
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .offset(
+                                    y =
+                                        (-42).dp
                                 )
-                                ?: return@CategoryChipsRow
+                                .zIndex(
+                                    2f
+                                )
+                                .padding(
+                                    start =
+                                        18.dp
+                                ),
 
-                        val sectionSlug =
-                            categoryToSectionSlug(
-                                category.slug
-                            )
+                        onCategoryClick = {
+                                category ->
 
-                        if (
-                            sectionSlug
-                                .isNotBlank()
-                        ) {
-                            onCategoryGridClick(
-                                sectionSlug,
-                                category.name
-                            )
+                            val sectionSlug =
+                                categoryToSectionSlug(
+                                    category.slug
+                                )
+
+                            if (
+                                sectionSlug
+                                    .isNotBlank()
+                            ) {
+                                onCategoryGridClick(
+                                    sectionSlug,
+                                    category.name
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
 
+            /*
+             * CONTINUE ASSISTINDO
+             */
             if (
-                uiState.continueWatching
+                uiState
+                    .continueWatching
                     .isNotEmpty()
             ) {
                 item {
                     SectionHeader(
                         title =
                             "Continue assistindo",
+
                         modifier =
                             Modifier.padding(
                                 horizontal =
                                     18.dp
                             ),
+
                         showSeeAll =
                             false
                     )
@@ -175,6 +230,7 @@ fun HomeScreen(
                                 horizontal =
                                     18.dp
                             ),
+
                         horizontalArrangement =
                             Arrangement.spacedBy(
                                 14.dp
@@ -184,6 +240,7 @@ fun HomeScreen(
                             uiState
                                 .continueWatching
                         ) { item ->
+
                             ContinueWatchingCard(
                                 item =
                                     item
@@ -193,19 +250,27 @@ fun HomeScreen(
                 }
             }
 
+            /*
+             * SEÇÕES
+             */
             items(
-                uiState.contentSections
+                uiState
+                    .contentSections
             ) { section ->
+
                 SectionHeader(
                     title =
                         section.title,
+
                     modifier =
                         Modifier.padding(
                             horizontal =
                                 18.dp
                         ),
+
                     showSeeAll =
                         true,
+
                     onSeeAllClick = {
                         val sectionSlug =
                             section.slug
@@ -237,33 +302,50 @@ fun HomeScreen(
                 TwoRowsMediaCarousel(
                     items =
                         section.items,
+
                     onMediaClick =
                         onMediaClick
                 )
             }
 
+            /*
+             * COLEÇÕES
+             */
             if (
-                uiState.collections
+                uiState
+                    .collections
                     .isNotEmpty()
             ) {
                 item {
                     CollectionsSection(
                         collections =
-                            uiState.collections,
+                            uiState
+                                .collections,
+
                         onCollectionClick =
                             onCollectionClick
                     )
                 }
             }
 
+            /*
+             * FOOTER
+             */
             item {
                 HomeFooter(
                     modifier =
                         Modifier.padding(
-                            start = 24.dp,
-                            end = 24.dp,
-                            top = 28.dp,
-                            bottom = 20.dp
+                            start =
+                                24.dp,
+
+                            end =
+                                24.dp,
+
+                            top =
+                                28.dp,
+
+                            bottom =
+                                20.dp
                         )
                 )
             }
@@ -273,15 +355,19 @@ fun HomeScreen(
             selectedIndex =
                 selectedBottomIndex
                     .intValue,
+
             profileName =
                 profileName,
+
             profileAvatarUrl =
                 profileAvatarUrl,
+
             onItemClick = {
                     index ->
 
                 if (
-                    index == 3
+                    index ==
+                    3
                 ) {
                     onAccountClick()
                 } else {
@@ -290,9 +376,11 @@ fun HomeScreen(
                         index
                 }
             },
-            modifier = Modifier.align(
-                Alignment.BottomCenter
-            )
+
+            modifier =
+                Modifier.align(
+                    Alignment.BottomCenter
+                )
         )
     }
 }
@@ -300,6 +388,7 @@ fun HomeScreen(
 @Composable
 private fun TwoRowsMediaCarousel(
     items: List<MediaItemUi>,
+
     onMediaClick: (
         contentType: String,
         uuid: String
@@ -317,8 +406,10 @@ private fun TwoRowsMediaCarousel(
     LazyRow(
         contentPadding =
             PaddingValues(
-                horizontal = 18.dp
+                horizontal =
+                    18.dp
             ),
+
         horizontalArrangement =
             Arrangement.spacedBy(
                 10.dp
@@ -327,33 +418,36 @@ private fun TwoRowsMediaCarousel(
         items(
             columns
         ) { columnItems ->
+
             Column(
                 verticalArrangement =
                     Arrangement.spacedBy(
                         10.dp
                     )
             ) {
-                columnItems.forEach {
-                        item ->
+                columnItems
+                    .forEach {
+                            item ->
 
-                    LandscapeMediaCard(
-                        item =
-                            item,
-                        onClick = {
-                            if (
-                                item.uuid
-                                    .isNotBlank() &&
-                                item.contentType
-                                    .isNotBlank()
-                            ) {
-                                onMediaClick(
-                                    item.contentType,
+                        LandscapeMediaCard(
+                            item =
+                                item,
+
+                            onClick = {
+                                if (
                                     item.uuid
-                                )
+                                        .isNotBlank() &&
+                                    item.contentType
+                                        .isNotBlank()
+                                ) {
+                                    onMediaClick(
+                                        item.contentType,
+                                        item.uuid
+                                    )
+                                }
                             }
-                        }
-                    )
-                }
+                        )
+                    }
             }
         }
     }
@@ -364,6 +458,8 @@ private fun categoryToSectionSlug(
 ): String {
     return when (
         categorySlug
+            .trim()
+            .lowercase()
     ) {
         "movies" ->
             "movies"
@@ -379,6 +475,15 @@ private fun categoryToSectionSlug(
 
         "doramas" ->
             "doramas"
+
+        "documentaries" ->
+            "documentaries"
+
+        "reality-shows" ->
+            "reality-shows"
+
+        "soap-operas" ->
+            "soap-operas"
 
         else ->
             ""
@@ -422,6 +527,16 @@ private fun sectionTitleToSlug(
 
         "doramas" ->
             "doramas"
+
+        "documentários",
+        "documentarios" ->
+            "documentaries"
+
+        "reality shows" ->
+            "reality-shows"
+
+        "novelas" ->
+            "soap-operas"
 
         "filmes" ->
             "movies"
