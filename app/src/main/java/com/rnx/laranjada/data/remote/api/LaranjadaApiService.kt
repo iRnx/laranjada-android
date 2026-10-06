@@ -12,6 +12,12 @@ object LaranjadaApiService {
         )
     }
 
+    suspend fun getContinueWatching(): JSONObject {
+        return getJson(
+            "/api/v1/watching/continue/"
+        )
+    }
+
     suspend fun getHomeSection(
         sectionSlug: String,
         page: Int,
@@ -57,20 +63,22 @@ object LaranjadaApiService {
         uuid: String,
         limit: Int = 20
     ): JSONObject {
-        val normalizedContentType = contentType.lowercase()
+        val normalizedContentType =
+            contentType.lowercase()
 
-        val path = when (
-            normalizedContentType
-        ) {
-            "series",
-            "serie" -> {
-                "/api/v1/series/$uuid/related/"
-            }
+        val path =
+            when (
+                normalizedContentType
+            ) {
+                "series",
+                "serie" -> {
+                    "/api/v1/series/$uuid/related/"
+                }
 
-            else -> {
-                "/api/v1/movies/$uuid/related/"
+                else -> {
+                    "/api/v1/movies/$uuid/related/"
+                }
             }
-        }
 
         return getJson(
             path = path,
@@ -102,34 +110,47 @@ object LaranjadaApiService {
 
     private suspend fun getJson(
         path: String,
-        queryParams: Map<String, String> = emptyMap()
+        queryParams: Map<String, String> =
+            emptyMap()
     ): JSONObject {
-        val finalPath = buildPathWithQueryParams(
-            path = path,
-            queryParams = queryParams
-        )
+        val finalPath =
+            buildPathWithQueryParams(
+                path = path,
+                queryParams = queryParams
+            )
 
-        val response = ApiHttpClient.get(
-            finalPath
-        )
+        val response =
+            ApiHttpClient.get(
+                finalPath
+            )
 
-        return response.requireSuccessJson()
+        return response
+            .requireSuccessJson()
     }
 
     private fun buildPathWithQueryParams(
         path: String,
         queryParams: Map<String, String>
     ): String {
-        val queryString = queryParams
-            .filter { (_, value) ->
-                value.isNotBlank()
-            }
-            .map { (key, value) ->
-                "${encode(key)}=${encode(value)}"
-            }
-            .joinToString("&")
+        val queryString =
+            queryParams
+                .filter {
+                        (_, value) ->
 
-        if (queryString.isBlank()) {
+                    value.isNotBlank()
+                }
+                .map {
+                        (key, value) ->
+
+                    "${encode(key)}=${encode(value)}"
+                }
+                .joinToString(
+                    "&"
+                )
+
+        if (
+            queryString.isBlank()
+        ) {
             return path
         }
 

@@ -65,6 +65,7 @@ fun PlayerScreen(
     uuid: String,
     modifier: Modifier = Modifier,
     seriesUuid: String = "",
+    initialPositionSeconds: Long = 0L,
     onBackClick: () -> Unit = {},
     playerViewModel: PlayerViewModel =
         viewModel()
@@ -147,10 +148,6 @@ fun PlayerScreen(
         closeRequested =
             true
 
-        /*
-         * Primeiro encerra a WatchingSession.
-         * Só depois saímos da tela.
-         */
         playerViewModel.stopPlayback(
             status =
                 "stopped",
@@ -194,10 +191,12 @@ fun PlayerScreen(
                         playbackState
                             .reserveErrorMessage
                             ?: "Não foi possível autorizar a reprodução.",
+
                     onRetryClick = {
                         playerViewModel
                             .retryLastPlayback()
                     },
+
                     onBackClick = {
                         closePlayer()
                     }
@@ -223,6 +222,12 @@ fun PlayerScreen(
                     activeContentUuid =
                         reservation
                             .contentUuid,
+
+                    initialContentUuid =
+                        uuid,
+
+                    initialPositionSeconds =
+                        initialPositionSeconds,
 
                     seriesUuid =
                         seriesUuid,
@@ -290,6 +295,7 @@ private fun SecurePlaybackLoading() {
             .background(
                 LaranjadaBlack
             ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -315,14 +321,17 @@ private fun SecurePlaybackError(
             .padding(
                 24.dp
             ),
+
         verticalArrangement =
             Arrangement.Center,
+
         horizontalAlignment =
             Alignment.CenterHorizontally
     ) {
         Text(
             text =
                 "Não foi possível iniciar a reprodução.",
+
             color =
                 LaranjadaText
         )
@@ -330,28 +339,36 @@ private fun SecurePlaybackError(
         Text(
             text =
                 message,
+
             color =
                 LaranjadaText,
+
             modifier =
                 Modifier.padding(
-                    top = 10.dp
+                    top =
+                        10.dp
                 )
         )
 
         Button(
             onClick =
                 onRetryClick,
+
             modifier =
                 Modifier.padding(
-                    top = 22.dp
+                    top =
+                        22.dp
                 ),
+
             colors =
-                ButtonDefaults.buttonColors(
-                    containerColor =
-                        LaranjadaOrange,
-                    contentColor =
-                        Color.White
-                )
+                ButtonDefaults
+                    .buttonColors(
+                        containerColor =
+                            LaranjadaOrange,
+
+                        contentColor =
+                            Color.White
+                    )
         ) {
             Text(
                 text =
@@ -362,9 +379,11 @@ private fun SecurePlaybackError(
         Button(
             onClick =
                 onBackClick,
+
             modifier =
                 Modifier.padding(
-                    top = 10.dp
+                    top =
+                        10.dp
                 )
         ) {
             Text(
@@ -383,6 +402,8 @@ private fun HlsPlayer(
     playbackUrl: String,
     playbackSessionUuid: String,
     activeContentUuid: String,
+    initialContentUuid: String,
+    initialPositionSeconds: Long,
     seriesUuid: String,
     playerViewModel: PlayerViewModel,
     isSwitchingPlayback: Boolean,
@@ -397,6 +418,29 @@ private fun HlsPlayer(
 ) {
     val context =
         LocalContext.current
+
+    val initialPositionMs =
+        remember(
+            initialPositionSeconds
+        ) {
+            initialPositionSeconds
+                .coerceAtLeast(
+                    0L
+                )
+                .times(
+                    1_000L
+                )
+        }
+
+    var initialResumePending by remember(
+        initialContentUuid,
+        initialPositionSeconds
+    ) {
+        mutableStateOf(
+            initialPositionMs >
+                    0L
+        )
+    }
 
     var currentEpisodeUuid by remember {
         mutableStateOf(
@@ -484,8 +528,10 @@ private fun HlsPlayer(
                 PlayerTrackOption(
                     id =
                         AUTO_AUDIO_ID,
+
                     label =
                         "Automático",
+
                     isAuto =
                         true
                 )
@@ -499,8 +545,10 @@ private fun HlsPlayer(
                 PlayerTrackOption(
                     id =
                         SUBTITLE_OFF_ID,
+
                     label =
                         "Desligada",
+
                     isOff =
                         true
                 )
@@ -680,6 +728,7 @@ private fun HlsPlayer(
                                 .stopPlayback(
                                     status =
                                         "ended",
+
                                     clearLocalAfter =
                                         false
                                 )
@@ -720,6 +769,7 @@ private fun HlsPlayer(
                         .stopPlayback(
                             status =
                                 "error",
+
                             clearLocalAfter =
                                 false
                         )
@@ -792,6 +842,42 @@ private fun HlsPlayer(
         exoPlayer.setMediaSource(
             mediaSource
         )
+
+        /*
+         * CONTINUE ASSISTINDO
+         *
+         * A posição salva só é aplicada
+         * ao conteúdo que abriu originalmente
+         * esta tela.
+         *
+         * Se o usuário trocar de episódio
+         * posteriormente, essa posição
+         * não será reaproveitada.
+         */
+        val shouldResume =
+            initialResumePending &&
+                    activeContentUuid ==
+                    initialContentUuid &&
+                    initialPositionMs >
+                    0L
+
+        if (
+            shouldResume
+        ) {
+            exoPlayer.seekTo(
+                initialPositionMs
+            )
+
+            currentPositionMs =
+                initialPositionMs
+
+            draggedProgress =
+                initialPositionMs
+                    .toFloat()
+
+            initialResumePending =
+                false
+        }
 
         exoPlayer.prepare()
 
@@ -935,11 +1021,6 @@ private fun HlsPlayer(
                     keepScreenOn =
                         true
 
-                    /*
-                     * Mantemos FIT.
-                     *
-                     * Não corta e não deforma.
-                     */
                     resizeMode =
                         AspectRatioFrameLayout
                             .RESIZE_MODE_FIT
@@ -952,6 +1033,7 @@ private fun HlsPlayer(
                         ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams
                                 .MATCH_PARENT,
+
                             ViewGroup.LayoutParams
                                 .MATCH_PARENT
                         )
@@ -980,8 +1062,10 @@ private fun HlsPlayer(
         CustomSubtitleOverlay(
             cues =
                 currentCues,
+
             settings =
                 subtitleSettings,
+
             modifier =
                 Modifier.fillMaxSize()
         )
@@ -1011,11 +1095,14 @@ private fun HlsPlayer(
                     Modifier.align(
                         Alignment.Center
                     ),
+
                 color =
                     LaranjadaOrange,
+
                 trackColor =
                     Color.White.copy(
-                        alpha = 0.18f
+                        alpha =
+                            0.18f
                     )
             )
         }
@@ -1023,10 +1110,13 @@ private fun HlsPlayer(
         AnimatedVisibility(
             visible =
                 controlsVisible,
+
             enter =
                 fadeIn(),
+
             exit =
                 fadeOut(),
+
             modifier =
                 Modifier.fillMaxSize()
         ) {
@@ -1086,6 +1176,7 @@ private fun HlsPlayer(
                         capturePlayerFrame(
                             context =
                                 context,
+
                             playerView =
                                 playerView
                         )
@@ -1191,7 +1282,8 @@ private fun HlsPlayer(
 
                     val newPosition =
                         if (
-                            maxDuration > 0L
+                            maxDuration >
+                            0L
                         ) {
                             (
                                     exoPlayer
@@ -1293,6 +1385,7 @@ private fun HlsPlayer(
                         applyAudioSelection(
                             player =
                                 exoPlayer,
+
                             option =
                                 option
                         )
@@ -1341,6 +1434,7 @@ private fun HlsPlayer(
                         applySubtitleSelection(
                             player =
                                 exoPlayer,
+
                             option =
                                 option
                         )
@@ -1432,6 +1526,7 @@ private fun HlsPlayer(
                             .loadSeriesEpisodes(
                                 seriesUuid =
                                     seriesUuid,
+
                                 forceRefresh =
                                     true
                             )
@@ -1444,6 +1539,7 @@ private fun HlsPlayer(
                             .startPlayback(
                                 contentType =
                                     "episode",
+
                                 contentUuid =
                                     episode.uuid
                             )
@@ -1485,15 +1581,6 @@ private fun HlsPlayer(
                     playerErrorMessage =
                         null
 
-                    /*
-                     * Depois de erro fatal
-                     * a sessão anterior recebeu
-                     * status=error.
-                     *
-                     * Portanto fazemos um NOVO
-                     * Reserve em vez de reaproveitar
-                     * a sessão encerrada.
-                     */
                     playerViewModel
                         .retryLastPlayback()
                 },
@@ -1515,15 +1602,18 @@ private fun FatalPlaybackAuthorizationOverlay(
             .fillMaxSize()
             .background(
                 Color.Black.copy(
-                    alpha = 0.86f
+                    alpha =
+                        0.86f
                 )
             ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Column(
             horizontalAlignment =
                 Alignment.CenterHorizontally,
+
             modifier =
                 Modifier.padding(
                     28.dp
@@ -1532,6 +1622,7 @@ private fun FatalPlaybackAuthorizationOverlay(
             Text(
                 text =
                     "A reprodução foi interrompida.",
+
                 color =
                     Color.White
             )
@@ -1539,20 +1630,25 @@ private fun FatalPlaybackAuthorizationOverlay(
             Text(
                 text =
                     message,
+
                 color =
                     Color.White,
+
                 modifier =
                     Modifier.padding(
-                        top = 10.dp
+                        top =
+                            10.dp
                     )
             )
 
             Button(
                 onClick =
                     onBackClick,
+
                 modifier =
                     Modifier.padding(
-                        top = 22.dp
+                        top =
+                            22.dp
                     )
             ) {
                 Text(
@@ -1575,15 +1671,18 @@ private fun PlayerMediaErrorOverlay(
             .fillMaxSize()
             .background(
                 Color.Black.copy(
-                    alpha = 0.82f
+                    alpha =
+                        0.82f
                 )
             ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Column(
             horizontalAlignment =
                 Alignment.CenterHorizontally,
+
             modifier =
                 Modifier.padding(
                     28.dp
@@ -1592,6 +1691,7 @@ private fun PlayerMediaErrorOverlay(
             Text(
                 text =
                     "Não foi possível carregar o vídeo.",
+
                 color =
                     Color.White
             )
@@ -1599,20 +1699,25 @@ private fun PlayerMediaErrorOverlay(
             Text(
                 text =
                     message,
+
                 color =
                     Color.White,
+
                 modifier =
                     Modifier.padding(
-                        top = 10.dp
+                        top =
+                            10.dp
                     )
             )
 
             Button(
                 onClick =
                     onRetryClick,
+
                 modifier =
                     Modifier.padding(
-                        top = 22.dp
+                        top =
+                            22.dp
                     )
             ) {
                 Text(
@@ -1624,9 +1729,11 @@ private fun PlayerMediaErrorOverlay(
             Button(
                 onClick =
                     onBackClick,
+
                 modifier =
                     Modifier.padding(
-                        top = 10.dp
+                        top =
+                            10.dp
                     )
             ) {
                 Text(

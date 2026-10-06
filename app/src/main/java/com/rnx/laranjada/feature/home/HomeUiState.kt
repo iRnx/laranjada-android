@@ -39,7 +39,20 @@ data class ContinueWatchingUi(
     val remainingTime: String,
     val progress: Float,
     val imageUrl: String,
-    val gradientColors: List<Color>
+    val gradientColors: List<Color>,
+
+    val contentType: String,
+    val contentUuid: String,
+
+    val seriesUuid: String? = null,
+
+    val positionSeconds: Long,
+    val durationSeconds: Long,
+
+    val seasonNumber: Int? = null,
+    val episodeNumber: Int? = null,
+
+    val lastWatchedAt: String = ""
 )
 
 data class HomeContentSectionUi(

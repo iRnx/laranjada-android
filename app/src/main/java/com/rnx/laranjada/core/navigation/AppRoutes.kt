@@ -141,27 +141,39 @@ object AppRoutes {
         const val seriesUuidArg =
             "seriesUuid"
 
+        const val initialPositionSecondsArg =
+            "initialPositionSeconds"
+
         /*
-         * IMPORTANTE:
+         * O Player recebe:
          *
-         * hlsUrl não existe mais na rota.
+         * - identidade do conteúdo
+         * - seriesUuid quando for episódio
+         * - posição inicial opcional
          *
-         * O Player recebe somente a identidade
-         * do conteúdo.
-         *
-         * A playback.url virá do Reserve.
+         * A URL HLS continua vindo
+         * exclusivamente do Reserve.
          */
         const val route =
             "player/{$contentTypeArg}/{$uuidArg}" +
-                    "?$seriesUuidArg={$seriesUuidArg}"
+                    "?$seriesUuidArg={$seriesUuidArg}" +
+                    "&$initialPositionSecondsArg={$initialPositionSecondsArg}"
 
         fun createRoute(
             contentType: String,
             uuid: String,
-            seriesUuid: String = ""
+            seriesUuid: String = "",
+            initialPositionSeconds: Long = 0L
         ): String {
+            val safePosition =
+                initialPositionSeconds
+                    .coerceAtLeast(
+                        0L
+                    )
+
             return "player/${Uri.encode(contentType)}/${Uri.encode(uuid)}" +
-                    "?$seriesUuidArg=${Uri.encode(seriesUuid)}"
+                    "?$seriesUuidArg=${Uri.encode(seriesUuid)}" +
+                    "&$initialPositionSecondsArg=$safePosition"
         }
     }
 }

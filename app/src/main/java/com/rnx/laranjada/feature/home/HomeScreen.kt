@@ -43,6 +43,10 @@ fun HomeScreen(
         HeroBannerUi
     ) -> Unit = {},
 
+    onContinueWatchingClick: (
+        ContinueWatchingUi
+    ) -> Unit = {},
+
     onMediaClick: (
         contentType: String,
         uuid: String
@@ -133,15 +137,6 @@ fun HomeScreen(
 
             /*
              * CATEGORIAS
-             *
-             * Os cards possuem 90dp.
-             *
-             * O container precisa ter altura
-             * suficiente para não comprimir
-             * o LazyRow.
-             *
-             * Visualmente ele sobe sobre o
-             * final do degradê.
              */
             item {
                 Box(
@@ -243,7 +238,20 @@ fun HomeScreen(
 
                             ContinueWatchingCard(
                                 item =
-                                    item
+                                    item,
+
+                                onClick = {
+                                    if (
+                                        item.contentType
+                                            .isNotBlank() &&
+                                        item.contentUuid
+                                            .isNotBlank()
+                                    ) {
+                                        onContinueWatchingClick(
+                                            item
+                                        )
+                                    }
+                                }
                             )
                         }
                     }

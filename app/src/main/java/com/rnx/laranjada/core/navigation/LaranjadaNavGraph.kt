@@ -162,6 +162,38 @@ fun LaranjadaNavGraph(
                                 .avatar
                                 ?.imageUrl,
 
+                        /*
+                         * CONTINUE ASSISTINDO
+                         *
+                         * Vai direto ao Player usando:
+                         *
+                         * contentType
+                         * contentUuid
+                         * seriesUuid
+                         * posição salva
+                         */
+                        onContinueWatchingClick = {
+                                item ->
+
+                            navController.navigate(
+                                AppRoutes.Player
+                                    .createRoute(
+                                        contentType =
+                                            item.contentType,
+
+                                        uuid =
+                                            item.contentUuid,
+
+                                        seriesUuid =
+                                            item.seriesUuid
+                                                .orEmpty(),
+
+                                        initialPositionSeconds =
+                                            item.positionSeconds
+                                    )
+                            )
+                        },
+
                         onMediaClick = {
                                 contentType,
                                 uuid ->
@@ -1164,9 +1196,6 @@ fun LaranjadaNavGraph(
                             )
                         },
 
-                        /*
-                         * Não existe mais hlsUrl aqui.
-                         */
                         onPlayClick = {
                                 playerContentType,
                                 playerUuid,
@@ -1233,15 +1262,6 @@ fun LaranjadaNavGraph(
 
         /*
          * PLAYER SEGURO
-         *
-         * A rota recebe apenas:
-         *
-         * contentType
-         * contentUuid
-         * seriesUuid
-         *
-         * A URL HLS não vem mais da
-         * navegação/catalog API.
          */
         composable(
             route =
@@ -1273,6 +1293,17 @@ fun LaranjadaNavGraph(
 
                     defaultValue =
                         ""
+                },
+
+                navArgument(
+                    AppRoutes.Player
+                        .initialPositionSecondsArg
+                ) {
+                    type =
+                        NavType.LongType
+
+                    defaultValue =
+                        0L
                 }
             )
         ) {
@@ -1303,6 +1334,17 @@ fun LaranjadaNavGraph(
                     .orEmpty()
                     .decodeRouteValue()
 
+            val initialPositionSeconds =
+                backStackEntry.arguments
+                    ?.getLong(
+                        AppRoutes.Player
+                            .initialPositionSecondsArg
+                    )
+                    ?.coerceAtLeast(
+                        0L
+                    )
+                    ?: 0L
+
             when {
                 profileState.isLoading -> {
                 }
@@ -1327,6 +1369,9 @@ fun LaranjadaNavGraph(
 
                         seriesUuid =
                             seriesUuid,
+
+                        initialPositionSeconds =
+                            initialPositionSeconds,
 
                         onBackClick = {
                             navController
