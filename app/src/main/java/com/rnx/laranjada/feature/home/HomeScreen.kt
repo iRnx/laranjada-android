@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -84,6 +86,81 @@ fun HomeScreen(
                 0
             )
         }
+
+    /*
+     * Estado independente da faixa
+     * Continue Assistindo.
+     *
+     * Quando os dados forem atualizados,
+     * podemos voltar a faixa ao item 0
+     * sem mexer no scroll vertical da Home.
+     */
+    val continueWatchingListState =
+        rememberLazyListState()
+
+    /*
+     * Quando entramos novamente na Home
+     * depois de sair do Player, este
+     * LaunchedEffect é criado novamente.
+     *
+     * O ViewModel permanece associado
+     * à entrada da Home no Navigation,
+     * portanto fazemos apenas um refresh
+     * do Continue Assistindo.
+     *
+     * Na primeira abertura da aplicação,
+     * loadHome() já estará executando e
+     * refreshContinueWatching() simplesmente
+     * ignora a chamada duplicada.
+     */
+    LaunchedEffect(
+        Unit
+    ) {
+        viewModel
+            .refreshContinueWatching()
+    }
+
+    /*
+     * Marcador do primeiro item.
+     *
+     * Quando o backend atualiza
+     * last_watched_at, o GET devolve o
+     * conteúdo recém-assistido em primeiro.
+     *
+     * Ao detectar que o primeiro item mudou
+     * ou recebeu um novo last_watched_at,
+     * fazemos a faixa voltar ao início.
+     */
+    val firstContinueWatchingMarker =
+        uiState
+            .continueWatching
+            .firstOrNull()
+            ?.let {
+                    item ->
+
+                "${item.contentType}:" +
+                        "${item.contentUuid}:" +
+                        "${item.positionSeconds}:" +
+                        item.lastWatchedAt
+            }
+            .orEmpty()
+
+    LaunchedEffect(
+        firstContinueWatchingMarker
+    ) {
+        if (
+            firstContinueWatchingMarker
+                .isNotBlank() &&
+            uiState
+                .continueWatching
+                .isNotEmpty()
+        ) {
+            continueWatchingListState
+                .scrollToItem(
+                    0
+                )
+        }
+    }
 
     Box(
         modifier =
@@ -220,6 +297,9 @@ fun HomeScreen(
                     )
 
                     LazyRow(
+                        state =
+                            continueWatchingListState,
+
                         contentPadding =
                             PaddingValues(
                                 horizontal =
@@ -233,7 +313,23 @@ fun HomeScreen(
                     ) {
                         items(
                             uiState
-                                .continueWatching
+                                .continueWatching,
+
+                            /*
+                             * UUID do conteúdo como chave.
+                             *
+                             * Agora que a ordem pode mudar
+                             * depois de um refresh, uma chave
+                             * estável ajuda o Compose a saber
+                             * que é o mesmo card apenas em
+                             * outra posição.
+                             */
+                            key = {
+                                    item ->
+
+                                "${item.contentType}:" +
+                                        item.contentUuid
+                            }
                         ) { item ->
 
                             ContinueWatchingCard(

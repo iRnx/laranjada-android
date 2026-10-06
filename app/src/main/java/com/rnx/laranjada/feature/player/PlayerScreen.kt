@@ -68,6 +68,9 @@ fun PlayerScreen(
     initialPositionSeconds: Long = 0L,
     onBackClick: () -> Unit = {},
     playerViewModel: PlayerViewModel =
+        viewModel(),
+    watchingProgressViewModel:
+    WatchingProgressViewModel =
         viewModel()
 ) {
     var preferLandscape by remember {
@@ -219,6 +222,10 @@ fun PlayerScreen(
                         reservation
                             .sessionUuid,
 
+                    activeContentType =
+                        reservation
+                            .contentType,
+
                     activeContentUuid =
                         reservation
                             .contentUuid,
@@ -234,6 +241,9 @@ fun PlayerScreen(
 
                     playerViewModel =
                         playerViewModel,
+
+                    watchingProgressViewModel =
+                        watchingProgressViewModel,
 
                     isSwitchingPlayback =
                         playbackState
@@ -401,11 +411,14 @@ private fun SecurePlaybackError(
 private fun HlsPlayer(
     playbackUrl: String,
     playbackSessionUuid: String,
+    activeContentType: String,
     activeContentUuid: String,
     initialContentUuid: String,
     initialPositionSeconds: Long,
     seriesUuid: String,
     playerViewModel: PlayerViewModel,
+    watchingProgressViewModel:
+    WatchingProgressViewModel,
     isSwitchingPlayback: Boolean,
     isStoppingPlayback: Boolean,
     fatalAuthorizationError: String?,
@@ -439,6 +452,48 @@ private fun HlsPlayer(
         mutableStateOf(
             initialPositionMs >
                     0L
+        )
+    }
+
+    /*
+     * Indica de qual conteúdo nós sabemos
+     * que já existe progresso persistido.
+     *
+     * Um item aberto pelo Continue Assistindo
+     * já chega com initialPositionSeconds > 0.
+     */
+    var knownProgressContentUuid by remember(
+        initialContentUuid,
+        initialPositionSeconds
+    ) {
+        mutableStateOf<String?>(
+            if (
+                initialPositionSeconds >
+                0L
+            ) {
+                initialContentUuid
+            } else {
+                null
+            }
+        )
+    }
+
+    /*
+     * Última posição que conhecemos como
+     * efetivamente persistida no servidor.
+     *
+     * Usada para evitar mandar exatamente
+     * o mesmo Pause repetidamente.
+     */
+    var lastPersistedPositionSeconds by remember(
+        initialContentUuid,
+        initialPositionSeconds
+    ) {
+        mutableLongStateOf(
+            initialPositionSeconds
+                .coerceAtLeast(
+                    0L
+                )
         )
     }
 
@@ -1228,11 +1283,89 @@ private fun HlsPlayer(
                         )
                 },
 
+                /*
+                 * Nesta rodada, SOMENTE
+                 * o Pause explícito do usuário
+                 * salva progresso.
+                 */
                 onPlayPauseClick = {
                     if (
                         exoPlayer.isPlaying
                     ) {
+                        val pausePositionMs =
+                            exoPlayer
+                                .currentPosition
+                                .coerceAtLeast(
+                                    0L
+                                )
+
+                        val pauseDurationMs =
+                            exoPlayer
+                                .safeDuration()
+
+                        val hasKnownProgress =
+                            knownProgressContentUuid ==
+                                    activeContentUuid
+
+                        val lastKnownPosition =
+                            if (
+                                hasKnownProgress
+                            ) {
+                                lastPersistedPositionSeconds
+                            } else {
+                                null
+                            }
+
+                        /*
+                         * Pause precisa ser
+                         * imediato para o usuário.
+                         *
+                         * O POST ocorre de forma
+                         * assíncrona depois.
+                         */
                         exoPlayer.pause()
+
+                        watchingProgressViewModel
+                            .savePausedProgress(
+                                contentType =
+                                    activeContentType,
+
+                                contentUuid =
+                                    activeContentUuid,
+
+                                positionMs =
+                                    pausePositionMs,
+
+                                durationMs =
+                                    pauseDurationMs,
+
+                                hasKnownProgress =
+                                    hasKnownProgress,
+
+                                lastPersistedPositionSeconds =
+                                    lastKnownPosition,
+
+                                onResult = {
+                                        result ->
+
+                                    /*
+                                     * Se o backend devolveu um
+                                     * progress_uuid, agora sabemos
+                                     * que existe progresso persistido
+                                     * para esse conteúdo.
+                                     */
+                                    if (
+                                        result.progressUuid
+                                            .isNotBlank()
+                                    ) {
+                                        knownProgressContentUuid =
+                                            result.contentUuid
+
+                                        lastPersistedPositionSeconds =
+                                            result.positionSeconds
+                                    }
+                                }
+                            )
                     } else {
                         exoPlayer.play()
                     }
