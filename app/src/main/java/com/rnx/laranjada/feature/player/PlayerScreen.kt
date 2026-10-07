@@ -543,6 +543,43 @@ private fun HlsPlayer(
         )
     }
 
+    /*
+     * Estado local usado somente para preservar
+     * o Media3 e a posição enquanto a
+     * WatchingSession é liberada no background.
+     *
+     * PiP reproduzindo não entra neste fluxo.
+     */
+    var backgroundLifecycleSuspended by remember {
+        mutableStateOf(
+            false
+        )
+    }
+
+    var backgroundSuspendedSessionUuid by remember {
+        mutableStateOf<String?>(
+            null
+        )
+    }
+
+    var backgroundResumeContentUuid by remember {
+        mutableStateOf<String?>(
+            null
+        )
+    }
+
+    var backgroundResumePositionMs by remember {
+        mutableLongStateOf(
+            0L
+        )
+    }
+
+    var backgroundPlaybackUrl by remember {
+        mutableStateOf<String?>(
+            null
+        )
+    }
+
     var currentEpisodeUuid by remember {
         mutableStateOf(
             activeContentUuid
@@ -773,6 +810,20 @@ private fun HlsPlayer(
         }
     }
 
+    fun clearBackgroundResumeState() {
+        backgroundSuspendedSessionUuid =
+            null
+
+        backgroundResumeContentUuid =
+            null
+
+        backgroundResumePositionMs =
+            0L
+
+        backgroundPlaybackUrl =
+            null
+    }
+
     fun requestExitWithProgress() {
         if (
             exitInProgress ||
@@ -981,6 +1032,31 @@ private fun HlsPlayer(
                         event ->
 
                     if (
+                        event ==
+                        Lifecycle.Event.ON_START
+                    ) {
+                        if (
+                            !backgroundLifecycleSuspended
+                        ) {
+                            return@LifecycleEventObserver
+                        }
+
+                        backgroundLifecycleSuspended =
+                            false
+
+                        Log.d(
+                            "LaranjadaPlayback",
+                            "Foreground detectado após suspensão. " +
+                                    "Revalidando WatchingSession."
+                        )
+
+                        playerViewModel
+                            .resumePlaybackAfterBackground()
+
+                        return@LifecycleEventObserver
+                    }
+
+                    if (
                         event !=
                         Lifecycle.Event.ON_STOP
                     ) {
@@ -989,10 +1065,7 @@ private fun HlsPlayer(
 
                     if (
                         exitInProgress ||
-                        endInProgress ||
-                        playerViewModel
-                            .playbackUiState
-                            .isStopping
+                        endInProgress
                     ) {
                         Log.d(
                             "LaranjadaProgress",
@@ -1053,6 +1126,21 @@ private fun HlsPlayer(
 
                     val wasPlaying =
                         exoPlayer.isPlaying
+
+                    backgroundLifecycleSuspended =
+                        true
+
+                    backgroundSuspendedSessionUuid =
+                        playbackSessionUuid
+
+                    backgroundResumeContentUuid =
+                        activeContentUuid
+
+                    backgroundResumePositionMs =
+                        backgroundPositionMs
+
+                    backgroundPlaybackUrl =
+                        playbackUrl
 
                     exoPlayer.pause()
 
@@ -1116,6 +1204,19 @@ private fun HlsPlayer(
                                 )
                             }
                         )
+
+                    /*
+                     * O save de progresso usa a API
+                     * normal do Django e independe
+                     * do Bearer HLS.
+                     *
+                     * Portanto podemos liberar a
+                     * WatchingSession imediatamente,
+                     * sem manter Presence/Renew vivos
+                     * enquanto o app está oculto.
+                     */
+                    playerViewModel
+                        .suspendPlaybackForBackground()
                 }
 
             lifecycleOwner
@@ -1297,6 +1398,96 @@ private fun HlsPlayer(
         playbackSessionUuid,
         activeContentUuid
     ) {
+        /*
+         * Uma Reserve pode terminar enquanto a
+         * Activity continua em background.
+         *
+         * O ViewModel já encerra essa sessão.
+         * Aqui apenas garantimos que o Media3
+         * permaneça parado e não tente consumir
+         * HLS sem uma sessão ativa.
+         */
+        if (
+            backgroundLifecycleSuspended
+        ) {
+            exoPlayer.pause()
+
+            return@LaunchedEffect
+        }
+
+        val restoringFromBackground =
+            backgroundSuspendedSessionUuid !=
+                    null &&
+                    backgroundSuspendedSessionUuid !=
+                    playbackSessionUuid &&
+                    backgroundResumeContentUuid ==
+                    activeContentUuid
+
+        val backgroundUrlUnchanged =
+            restoringFromBackground &&
+                    backgroundPlaybackUrl ==
+                    playbackUrl
+
+        /*
+         * Caso comum:
+         *
+         * mesma URL HLS + novo Bearer.
+         *
+         * PlaybackHttpDataSourceFactory consulta
+         * AuthorizationStore em cada open(), então
+         * não precisamos recriar o MediaSource.
+         * Isso preserva buffer e posição local.
+         */
+        if (
+            backgroundUrlUnchanged
+        ) {
+            playerErrorMessage =
+                null
+
+            exoPlayer.pause()
+
+            exoPlayer.seekTo(
+                backgroundResumePositionMs
+                    .coerceAtLeast(
+                        0L
+                    )
+            )
+
+            currentPositionMs =
+                backgroundResumePositionMs
+                    .coerceAtLeast(
+                        0L
+                    )
+
+            draggedProgress =
+                currentPositionMs
+                    .toFloat()
+
+            durationMs =
+                exoPlayer
+                    .safeDuration()
+
+            isPlaying =
+                false
+
+            playerViewModel
+                .updatePresenceStatus(
+                    "paused"
+                )
+
+            Log.d(
+                "LaranjadaPlayback",
+                "Playback reautorizado após background " +
+                        "sem recriar Media3. " +
+                        "position=" +
+                        "${currentPositionMs / 1_000L}s"
+            )
+
+            clearBackgroundResumeState()
+
+            return@LaunchedEffect
+        }
+
         playerErrorMessage =
             null
 
@@ -1339,27 +1530,52 @@ private fun HlsPlayer(
             mediaSource
         )
 
-        val shouldResume =
+        val shouldResumeInitialPosition =
             initialResumePending &&
                     activeContentUuid ==
                     initialContentUuid &&
                     initialPositionMs >
                     0L
 
+        val shouldRestoreBackgroundPosition =
+            restoringFromBackground &&
+                    backgroundResumeContentUuid ==
+                    activeContentUuid
+
+        val positionToRestoreMs =
+            when {
+                shouldRestoreBackgroundPosition ->
+                    backgroundResumePositionMs
+                        .coerceAtLeast(
+                            0L
+                        )
+
+                shouldResumeInitialPosition ->
+                    initialPositionMs
+
+                else ->
+                    null
+            }
+
         if (
-            shouldResume
+            positionToRestoreMs !=
+            null
         ) {
             exoPlayer.seekTo(
-                initialPositionMs
+                positionToRestoreMs
             )
 
             currentPositionMs =
-                initialPositionMs
+                positionToRestoreMs
 
             draggedProgress =
-                initialPositionMs
+                positionToRestoreMs
                     .toFloat()
+        }
 
+        if (
+            shouldResumeInitialPosition
+        ) {
             initialResumePending =
                 false
         }
@@ -1370,10 +1586,39 @@ private fun HlsPlayer(
             playbackSpeed
         )
 
-        exoPlayer.playWhenReady =
-            true
+        if (
+            shouldRestoreBackgroundPosition
+        ) {
+            /*
+             * Mesmo se a URL HLS tiver mudado,
+             * voltamos exatamente na posição local
+             * e permanecemos pausados.
+             */
+            exoPlayer.playWhenReady =
+                false
 
-        exoPlayer.play()
+            exoPlayer.pause()
+
+            playerViewModel
+                .updatePresenceStatus(
+                    "paused"
+                )
+
+            Log.d(
+                "LaranjadaPlayback",
+                "Playback reautorizado após background " +
+                        "com nova URL HLS. " +
+                        "position=" +
+                        "${currentPositionMs / 1_000L}s"
+            )
+
+            clearBackgroundResumeState()
+        } else {
+            exoPlayer.playWhenReady =
+                true
+
+            exoPlayer.play()
+        }
     }
 
     LaunchedEffect(

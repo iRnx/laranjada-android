@@ -127,6 +127,39 @@ class PlayerViewModel(
             String? =
         null
 
+    /*
+     * Background normal não deve manter
+     * WatchingSession, Presence ou Renew vivos.
+     *
+     * Mantemos a reservation local apenas para
+     * conseguir reautorizar o mesmo conteúdo
+     * quando a Activity voltar ao foreground.
+     */
+    private var backgroundSuspendedSessionUuid:
+            String? =
+        null
+
+    /*
+     * Se o usuário voltar ao app antes do Stop
+     * de background terminar, a nova Reserve
+     * fica enfileirada até o Stop concluir.
+     */
+    private var resumeAfterBackgroundRequested =
+        false
+
+    /*
+     * Representa a intenção atual do lifecycle.
+     *
+     * true:
+     * o app está em background normal e qualquer
+     * sessão que terminar de ser reservada nesse
+     * intervalo deve ser liberada novamente.
+     *
+     * PiP reproduzindo não ativa esta flag.
+     */
+    private var backgroundSuspensionActive =
+        false
+
     fun ensureInitialPlayback(
         contentType: String,
         contentUuid: String
@@ -242,6 +275,133 @@ class PlayerViewModel(
                             clientSessionKey
                     )
 
+                val previousReservationWasTerminal =
+                    previousReservation !=
+                            null &&
+                            terminalSessionUuid ==
+                            previousReservation
+                                .sessionUuid
+
+                val previousReservationWasBackgroundSuspended =
+                    previousReservation !=
+                            null &&
+                            backgroundSuspendedSessionUuid ==
+                            previousReservation
+                                .sessionUuid
+
+                /*
+                 * A Reserve pode ter começado no
+                 * foreground e terminar depois do
+                 * ON_STOP.
+                 *
+                 * Nesse caso NÃO ativamos
+                 * Presence/Renew nem entregamos
+                 * Bearer ao Media3. Registramos a
+                 * nova sessão apenas para poder
+                 * encerrá-la e reautorizar depois.
+                 */
+                if (
+                    backgroundSuspensionActive
+                ) {
+                    renewJob?.cancel()
+                    presenceJob?.cancel()
+
+                    renewJob =
+                        null
+
+                    presenceJob =
+                        null
+
+                    authorizationStore.clear()
+
+                    renewRetryAttempt =
+                        0
+
+                    renewDeadlineElapsedMs =
+                        null
+
+                    expiresDeadlineElapsedMs =
+                        null
+
+                    terminalSessionUuid =
+                        reservation.sessionUuid
+
+                    backgroundSuspendedSessionUuid =
+                        reservation.sessionUuid
+
+                    currentPresenceStatus =
+                        PRESENCE_PAUSED
+
+                    playbackUiState =
+                        playbackUiState.copy(
+                            isReserving =
+                                false,
+                            reservation =
+                                reservation,
+                            reserveErrorCode =
+                                null,
+                            reserveErrorMessage =
+                                null,
+                            isRenewing =
+                                false,
+                            renewErrorCode =
+                                null,
+                            renewErrorMessage =
+                                null,
+                            presenceErrorMessage =
+                                null,
+                            isStopping =
+                                true,
+                            stopErrorMessage =
+                                null,
+                            fatalAuthorizationError =
+                                false,
+                            fatalPlaybackMessage =
+                                null
+                        )
+
+                    Log.d(
+                        TAG,
+                        "Reserve concluída já em background. " +
+                                "Sessão será liberada. " +
+                                "session=${reservation.sessionUuid}"
+                    )
+
+                    viewModelScope.launch {
+                        stopReservationQuietly(
+                            reservation =
+                                reservation,
+                            status =
+                                STOP_STOPPED
+                        )
+
+                        val currentSessionUuid =
+                            playbackUiState
+                                .reservation
+                                ?.sessionUuid
+
+                        if (
+                            currentSessionUuid ==
+                            reservation.sessionUuid
+                        ) {
+                            playbackUiState =
+                                playbackUiState.copy(
+                                    isStopping =
+                                        false
+                                )
+                        }
+
+                        if (
+                            !backgroundSuspensionActive &&
+                            resumeAfterBackgroundRequested
+                        ) {
+                            resumePlaybackAfterBackground()
+                        }
+                    }
+
+                    return@launch
+                }
+
                 /*
                  * Daqui em diante a nova
                  * reprodução passa a ser a
@@ -266,8 +426,20 @@ class PlayerViewModel(
                 terminalSessionUuid =
                     null
 
+                backgroundSuspendedSessionUuid =
+                    null
+
+                resumeAfterBackgroundRequested =
+                    false
+
                 currentPresenceStatus =
-                    PRESENCE_BUFFERING
+                    if (
+                        previousReservationWasBackgroundSuspended
+                    ) {
+                        PRESENCE_PAUSED
+                    } else {
+                        PRESENCE_BUFFERING
+                    }
 
                 configureDeadlines(
                     reservation.playback
@@ -308,6 +480,17 @@ class PlayerViewModel(
                             "content=${reservation.contentType}:${reservation.contentUuid}"
                 )
 
+                if (
+                    previousReservationWasBackgroundSuspended
+                ) {
+                    Log.d(
+                        TAG,
+                        "Playback reautorizado após background. " +
+                                "session=${reservation.sessionUuid} " +
+                                "status=paused"
+                    )
+                }
+
                 scheduleRenew(
                     reservation.sessionUuid
                 )
@@ -329,7 +512,8 @@ class PlayerViewModel(
                     null &&
                     previousReservation
                         .sessionUuid !=
-                    reservation.sessionUuid
+                    reservation.sessionUuid &&
+                    !previousReservationWasTerminal
                 ) {
                     viewModelScope.launch {
                         stopReservationQuietly(
@@ -422,6 +606,175 @@ class PlayerViewModel(
 
         currentPresenceStatus =
             normalized
+    }
+
+    fun suspendPlaybackForBackground() {
+        backgroundSuspensionActive =
+            true
+
+        /*
+         * Se existia uma retomada enfileirada
+         * por um retorno muito rápido ao app,
+         * o novo ON_STOP cancela essa intenção.
+         */
+        resumeAfterBackgroundRequested =
+            false
+
+        val reservation =
+            playbackUiState
+                .reservation
+
+        if (
+            reservation ==
+            null
+        ) {
+            Log.d(
+                TAG,
+                "Background sem reservation ativa. " +
+                        "Qualquer Reserve pendente será liberada ao concluir."
+            )
+
+            return
+        }
+
+        val sessionUuid =
+            reservation.sessionUuid
+
+        backgroundSuspendedSessionUuid =
+            sessionUuid
+
+        if (
+            terminalSessionUuid ==
+            sessionUuid
+        ) {
+            Log.d(
+                TAG,
+                "Background já possui sessão suspensa. " +
+                        "session=$sessionUuid"
+            )
+
+            return
+        }
+
+        Log.d(
+            TAG,
+            "Suspendendo playback por background. " +
+                    "session=$sessionUuid"
+        )
+
+        stopPlayback(
+            status =
+                STOP_STOPPED,
+            clearLocalAfter =
+                false
+        )
+    }
+
+    fun resumePlaybackAfterBackground() {
+        backgroundSuspensionActive =
+            false
+
+        val reservation =
+            playbackUiState
+                .reservation
+
+        /*
+         * Pode acontecer de o app ter ido ao
+         * background enquanto a primeira Reserve
+         * ainda estava em andamento.
+         */
+        if (
+            reservation ==
+            null
+        ) {
+            if (
+                playbackUiState.isReserving
+            ) {
+                return
+            }
+
+            if (
+                lastRequestedContentType
+                    .isBlank() ||
+                lastRequestedContentUuid
+                    .isBlank()
+            ) {
+                return
+            }
+
+            Log.d(
+                TAG,
+                "Retomando playback após background " +
+                        "sem reservation local."
+            )
+
+            startPlayback(
+                contentType =
+                    lastRequestedContentType,
+                contentUuid =
+                    lastRequestedContentUuid,
+                force =
+                    true
+            )
+
+            return
+        }
+
+        val suspendedSessionUuid =
+            backgroundSuspendedSessionUuid
+                ?: return
+
+        if (
+            reservation.sessionUuid !=
+            suspendedSessionUuid
+        ) {
+            return
+        }
+
+        resumeAfterBackgroundRequested =
+            true
+
+        if (
+            playbackUiState.isStopping
+        ) {
+            Log.d(
+                TAG,
+                "Retomada de background aguardando Stop. " +
+                        "session=$suspendedSessionUuid"
+            )
+
+            return
+        }
+
+        if (
+            playbackUiState.isReserving
+        ) {
+            Log.d(
+                TAG,
+                "Retomada de background aguardando Reserve em andamento."
+            )
+
+            return
+        }
+
+        resumeAfterBackgroundRequested =
+            false
+
+        Log.d(
+            TAG,
+            "Reautorizando playback após background. " +
+                    "content=${reservation.contentType}:" +
+                    "${reservation.contentUuid}"
+        )
+
+        startPlayback(
+            contentType =
+                reservation.contentType,
+            contentUuid =
+                reservation.contentUuid,
+            force =
+                true
+        )
     }
 
     fun stopPlayback(
@@ -563,6 +916,17 @@ class PlayerViewModel(
                         .reservation
                         ?.sessionUuid
 
+                val shouldResumeAfterBackground =
+                    !clearLocalAfter &&
+                            normalizedStatus ==
+                            STOP_STOPPED &&
+                            currentSessionUuid ==
+                            sessionUuid &&
+                            backgroundSuspendedSessionUuid ==
+                            sessionUuid &&
+                            resumeAfterBackgroundRequested &&
+                            !backgroundSuspensionActive
+
                 if (
                     currentSessionUuid ==
                     sessionUuid
@@ -581,6 +945,18 @@ class PlayerViewModel(
                 }
 
                 onComplete()
+
+                if (
+                    shouldResumeAfterBackground
+                ) {
+                    Log.d(
+                        TAG,
+                        "Stop de background concluído. " +
+                                "Executando Reserve enfileirada."
+                    )
+
+                    resumePlaybackAfterBackground()
+                }
             }
         }
     }
@@ -1520,6 +1896,15 @@ class PlayerViewModel(
 
         terminalSessionUuid =
             null
+
+        backgroundSuspendedSessionUuid =
+            null
+
+        resumeAfterBackgroundRequested =
+            false
+
+        backgroundSuspensionActive =
+            false
 
         currentPresenceStatus =
             PRESENCE_BUFFERING

@@ -47,6 +47,31 @@ class WatchingProgressRepositoryImpl(
         )
     }
 
+    override suspend fun resetProgress(
+        contentType: String,
+        contentUuid: String
+    ): Int {
+
+        val response =
+            apiService
+                .resetProgress(
+                    contentType =
+                        contentType,
+
+                    contentUuid =
+                        contentUuid
+                )
+
+        return response
+            .optInt(
+                "deleted_count",
+                0
+            )
+            .coerceAtLeast(
+                0
+            )
+    }
+
     private fun mapResponse(
         json: JSONObject
     ): WatchingProgressSaveResult {

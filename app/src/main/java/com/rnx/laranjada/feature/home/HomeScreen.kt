@@ -41,10 +41,6 @@ private val LaranjadaDarkBackground =
 
 @Composable
 fun HomeScreen(
-    onBannerClick: (
-        HeroBannerUi
-    ) -> Unit = {},
-
     onContinueWatchingClick: (
         ContinueWatchingUi
     ) -> Unit = {},
@@ -87,32 +83,9 @@ fun HomeScreen(
             )
         }
 
-    /*
-     * Estado independente da faixa
-     * Continue Assistindo.
-     *
-     * Quando os dados forem atualizados,
-     * podemos voltar a faixa ao item 0
-     * sem mexer no scroll vertical da Home.
-     */
     val continueWatchingListState =
         rememberLazyListState()
 
-    /*
-     * Quando entramos novamente na Home
-     * depois de sair do Player, este
-     * LaunchedEffect é criado novamente.
-     *
-     * O ViewModel permanece associado
-     * à entrada da Home no Navigation,
-     * portanto fazemos apenas um refresh
-     * do Continue Assistindo.
-     *
-     * Na primeira abertura da aplicação,
-     * loadHome() já estará executando e
-     * refreshContinueWatching() simplesmente
-     * ignora a chamada duplicada.
-     */
     LaunchedEffect(
         Unit
     ) {
@@ -120,17 +93,6 @@ fun HomeScreen(
             .refreshContinueWatching()
     }
 
-    /*
-     * Marcador do primeiro item.
-     *
-     * Quando o backend atualiza
-     * last_watched_at, o GET devolve o
-     * conteúdo recém-assistido em primeiro.
-     *
-     * Ao detectar que o primeiro item mudou
-     * ou recebeu um novo last_watched_at,
-     * fazemos a faixa voltar ao início.
-     */
     val firstContinueWatchingMarker =
         uiState
             .continueWatching
@@ -185,15 +147,15 @@ fun HomeScreen(
                     18.dp
                 )
         ) {
-
-            /*
-             * HERO
-             */
             item {
                 HeroSection(
                     banners =
                         uiState
                             .heroBanners,
+
+                    continueWatching =
+                        uiState
+                            .continueWatching,
 
                     onBannerClick = {
                             banner ->
@@ -204,17 +166,79 @@ fun HomeScreen(
                             banner.contentType
                                 .isNotBlank()
                         ) {
-                            onBannerClick(
-                                banner
+                            onMediaClick(
+                                banner.contentType,
+                                banner.uuid
                             )
                         }
+                    },
+
+                    onWatchClick = {
+                            banner,
+                            continueItem ->
+
+                        when {
+                            continueItem !=
+                                    null -> {
+
+                                onContinueWatchingClick(
+                                    continueItem
+                                )
+                            }
+
+                            banner
+                                .isSeriesBanner() -> {
+
+                                if (
+                                    banner.uuid
+                                        .isNotBlank() &&
+                                    banner.contentType
+                                        .isNotBlank()
+                                ) {
+                                    onMediaClick(
+                                        banner.contentType,
+                                        banner.uuid
+                                    )
+                                }
+                            }
+
+                            banner.uuid
+                                .isNotBlank() &&
+                                    banner.contentType
+                                        .isNotBlank() -> {
+
+                                onContinueWatchingClick(
+                                    banner
+                                        .toFreshPlaybackRequest()
+                                )
+                            }
+                        }
+                    },
+
+                    onRestartClick = {
+                            continueItem ->
+
+                        viewModel
+                            .restartContinueWatching(
+                                item =
+                                    continueItem,
+
+                                onSuccess = {
+                                    onContinueWatchingClick(
+                                        continueItem.copy(
+                                            positionSeconds =
+                                                0L,
+
+                                            progress =
+                                                0f
+                                        )
+                                    )
+                                }
+                            )
                     }
                 )
             }
 
-            /*
-             * CATEGORIAS
-             */
             item {
                 Box(
                     modifier =
@@ -266,9 +290,6 @@ fun HomeScreen(
                 }
             }
 
-            /*
-             * CONTINUE ASSISTINDO
-             */
             if (
                 uiState
                     .continueWatching
@@ -315,15 +336,6 @@ fun HomeScreen(
                             uiState
                                 .continueWatching,
 
-                            /*
-                             * UUID do conteúdo como chave.
-                             *
-                             * Agora que a ordem pode mudar
-                             * depois de um refresh, uma chave
-                             * estável ajuda o Compose a saber
-                             * que é o mesmo card apenas em
-                             * outra posição.
-                             */
                             key = {
                                     item ->
 
@@ -354,9 +366,6 @@ fun HomeScreen(
                 }
             }
 
-            /*
-             * SEÇÕES
-             */
             items(
                 uiState
                     .contentSections
@@ -412,9 +421,6 @@ fun HomeScreen(
                 )
             }
 
-            /*
-             * COLEÇÕES
-             */
             if (
                 uiState
                     .collections
@@ -432,9 +438,6 @@ fun HomeScreen(
                 }
             }
 
-            /*
-             * FOOTER
-             */
             item {
                 HomeFooter(
                     modifier =
@@ -487,6 +490,68 @@ fun HomeScreen(
                 )
         )
     }
+}
+
+private fun HeroBannerUi
+        .toFreshPlaybackRequest():
+        ContinueWatchingUi {
+
+    return ContinueWatchingUi(
+        title =
+            title,
+
+        episodeInfo =
+            "",
+
+        remainingTime =
+            "",
+
+        progress =
+            0f,
+
+        imageUrl =
+            imageUrl,
+
+        gradientColors =
+            gradientColors,
+
+        contentType =
+            contentType,
+
+        contentUuid =
+            uuid,
+
+        seriesUuid =
+            null,
+
+        positionSeconds =
+            0L,
+
+        durationSeconds =
+            0L,
+
+        seasonNumber =
+            null,
+
+        episodeNumber =
+            null,
+
+        lastWatchedAt =
+            ""
+    )
+}
+
+private fun HeroBannerUi
+        .isSeriesBanner():
+        Boolean {
+
+    return contentType
+        .trim()
+        .lowercase() in
+            setOf(
+                "series",
+                "serie"
+            )
 }
 
 @Composable

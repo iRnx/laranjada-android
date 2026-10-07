@@ -7,14 +7,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rnx.laranjada.data.repository.LaranjadaRepositoryImpl
+import com.rnx.laranjada.data.repository.WatchingProgressRepositoryImpl
 import com.rnx.laranjada.domain.repository.LaranjadaRepository
+import com.rnx.laranjada.domain.repository.WatchingProgressRepository
 import com.rnx.laranjada.feature.home.data.HomeMockData
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val repository:
     LaranjadaRepository =
-        LaranjadaRepositoryImpl()
+        LaranjadaRepositoryImpl(),
+
+    private val watchingProgressRepository:
+    WatchingProgressRepository =
+        WatchingProgressRepositoryImpl()
 ) : ViewModel() {
 
     var uiState by mutableStateOf(
@@ -32,6 +38,11 @@ class HomeViewModel(
     )
         private set
 
+    var restartingContentUuid by mutableStateOf<String?>(
+        null
+    )
+        private set
+
     var errorMessage by mutableStateOf<String?>(
         null
     )
@@ -42,14 +53,6 @@ class HomeViewModel(
     }
 
     fun loadHome() {
-        /*
-         * Marcamos o carregamento ANTES
-         * de abrir a coroutine.
-         *
-         * Isso evita que a Home recém-criada
-         * faça um segundo GET de Continue
-         * ao mesmo tempo que o primeiro load.
-         */
         if (
             isLoading
         ) {
@@ -65,13 +68,6 @@ class HomeViewModel(
                 null
 
             try {
-                /*
-                 * Primeiro carregamos a Home.
-                 *
-                 * Se o Continue Assistindo
-                 * falhar, não queremos perder
-                 * banner, categorias e catálogo.
-                 */
                 val homeState =
                     repository.getHome()
 
@@ -127,24 +123,7 @@ class HomeViewModel(
         }
     }
 
-    /*
-     * Atualiza SOMENTE o Continue Assistindo.
-     *
-     * Não recarrega:
-     * - banner;
-     * - categorias;
-     * - catálogo;
-     * - coleções.
-     *
-     * Isso deixa o retorno do Player leve
-     * e evita requisições desnecessárias.
-     */
     fun refreshContinueWatching() {
-        /*
-         * Se a Home ainda estiver fazendo
-         * o carregamento inicial, ela já vai
-         * buscar o Continue Assistindo.
-         */
         if (
             isLoading
         ) {
@@ -157,9 +136,6 @@ class HomeViewModel(
             return
         }
 
-        /*
-         * Evita dois refreshes simultâneos.
-         */
         if (
             isRefreshingContinueWatching
         ) {
@@ -212,14 +188,6 @@ class HomeViewModel(
             } catch (
                 exception: Exception
             ) {
-                /*
-                 * Não destruímos a lista antiga
-                 * caso o refresh falhe.
-                 *
-                 * O usuário continua vendo
-                 * o Continue que já estava
-                 * carregado.
-                 */
                 errorMessage =
                     exception.message
 
@@ -232,6 +200,119 @@ class HomeViewModel(
             } finally {
                 isRefreshingContinueWatching =
                     false
+            }
+        }
+    }
+
+    fun restartContinueWatching(
+        item: ContinueWatchingUi,
+        onSuccess: () -> Unit
+    ) {
+        val normalizedContentType =
+            item.contentType
+                .trim()
+                .lowercase()
+
+        val normalizedContentUuid =
+            item.contentUuid
+                .trim()
+
+        if (
+            normalizedContentType !in
+            setOf(
+                "movie",
+                "episode"
+            ) ||
+            normalizedContentUuid
+                .isBlank()
+        ) {
+            Log.w(
+                TAG,
+                "Restart ignorado: conteúdo inválido. " +
+                        "content=${item.contentType}:" +
+                        "${item.contentUuid}"
+            )
+
+            return
+        }
+
+        if (
+            restartingContentUuid !=
+            null
+        ) {
+            Log.d(
+                TAG,
+                "Restart ignorado: já existe " +
+                        "uma reinicialização em andamento."
+            )
+
+            return
+        }
+
+        restartingContentUuid =
+            normalizedContentUuid
+
+        errorMessage =
+            null
+
+        viewModelScope.launch {
+            try {
+                val deletedCount =
+                    watchingProgressRepository
+                        .resetProgress(
+                            contentType =
+                                normalizedContentType,
+
+                            contentUuid =
+                                normalizedContentUuid
+                        )
+
+                uiState =
+                    uiState.copy(
+                        continueWatching =
+                            uiState
+                                .continueWatching
+                                .filterNot {
+                                        current ->
+
+                                    current.contentType
+                                        .trim()
+                                        .lowercase() ==
+                                            normalizedContentType &&
+                                            current.contentUuid
+                                                .trim() ==
+                                            normalizedContentUuid
+                                }
+                    )
+
+                Log.d(
+                    TAG,
+                    "Progresso reiniciado. " +
+                            "content=$normalizedContentType:" +
+                            "$normalizedContentUuid " +
+                            "deleted=$deletedCount"
+                )
+
+                onSuccess()
+
+            } catch (
+                exception: Exception
+            ) {
+                errorMessage =
+                    exception.message
+                        ?: "Não foi possível reiniciar o conteúdo."
+
+                Log.w(
+                    TAG,
+                    "Falha ao reiniciar progresso. " +
+                            "content=$normalizedContentType:" +
+                            "$normalizedContentUuid " +
+                            "error=${exception.message}"
+                )
+
+            } finally {
+                restartingContentUuid =
+                    null
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -24,11 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,7 +50,9 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.rnx.laranjada.core.design.theme.LaranjadaBlack
 import com.rnx.laranjada.core.design.theme.LaranjadaMutedText
+import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+import com.rnx.laranjada.feature.home.ContinueWatchingUi
 import com.rnx.laranjada.feature.home.HeroBannerUi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,10 +71,22 @@ private const val HERO_SCROLL_DURATION_MS =
 @Composable
 fun HeroSection(
     banners: List<HeroBannerUi>,
+    continueWatching: List<ContinueWatchingUi>,
     modifier: Modifier = Modifier,
+
     onBannerClick: (
         HeroBannerUi
     ) -> Unit = {},
+
+    onWatchClick: (
+        banner: HeroBannerUi,
+        continueItem: ContinueWatchingUi?
+    ) -> Unit = { _, _ -> },
+
+    onRestartClick: (
+        ContinueWatchingUi
+    ) -> Unit = {},
+
     onFavoriteClick: (
         HeroBannerUi
     ) -> Unit = {}
@@ -82,7 +99,9 @@ fun HeroSection(
 
     val pagerState =
         rememberPagerState(
-            initialPage = 0,
+            initialPage =
+                0,
+
             pageCount = {
                 banners.size
             }
@@ -91,21 +110,6 @@ fun HeroSection(
     val coroutineScope =
         rememberCoroutineScope()
 
-    /*
-     * Essa chave é atualizada toda vez
-     * que um movimento do pager termina.
-     *
-     * Isso inclui:
-     *
-     * - swipe manual
-     * - clique nas bolinhas
-     * - autoplay
-     *
-     * Dessa forma, cada banner recebe
-     * novamente 10 segundos completos
-     * depois que passa a ser o banner
-     * atual.
-     */
     val pagerInteractionVersion =
         remember {
             mutableIntStateOf(
@@ -113,48 +117,28 @@ fun HeroSection(
             )
         }
 
-    /*
-     * Observa o fim de qualquer movimento
-     * do pager.
-     *
-     * Quando o movimento termina,
-     * reiniciamos o relógio do autoplay.
-     */
     LaunchedEffect(
-        pagerState.isScrollInProgress
+        pagerState
+            .isScrollInProgress
     ) {
         if (
-            !pagerState.isScrollInProgress
+            !pagerState
+                .isScrollInProgress
         ) {
             pagerInteractionVersion
                 .intValue++
         }
     }
 
-    /*
-     * AUTOPLAY
-     *
-     * O timer depende da página realmente
-     * estabilizada e também da versão de
-     * interação.
-     *
-     * Exemplo:
-     *
-     * Banner 2:
-     * passaram 8 segundos
-     *
-     * usuário vai manualmente para o 3
-     *
-     * Banner 3:
-     * ganha novos 10 segundos completos.
-     */
     LaunchedEffect(
         banners.size,
         pagerState.settledPage,
-        pagerInteractionVersion.intValue
+        pagerInteractionVersion
+            .intValue
     ) {
         if (
-            banners.size <= 1
+            banners.size <=
+            1
         ) {
             return@LaunchedEffect
         }
@@ -163,24 +147,16 @@ fun HeroSection(
             HERO_AUTOPLAY_DELAY_MS
         )
 
-        /*
-         * Se exatamente nesse momento
-         * o usuário estiver arrastando o
-         * banner, não brigamos com o gesto.
-         *
-         * Quando o movimento terminar,
-         * pagerInteractionVersion será
-         * atualizado e um novo timer de
-         * 10 segundos começará.
-         */
         if (
-            pagerState.isScrollInProgress
+            pagerState
+                .isScrollInProgress
         ) {
             return@LaunchedEffect
         }
 
         val currentPage =
-            pagerState.settledPage
+            pagerState
+                .settledPage
 
         val nextPage =
             if (
@@ -189,7 +165,8 @@ fun HeroSection(
             ) {
                 0
             } else {
-                currentPage + 1
+                currentPage +
+                        1
             }
 
         pagerState
@@ -213,7 +190,8 @@ fun HeroSection(
             pagerState,
 
         modifier =
-            modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
     ) { page ->
 
         val banner =
@@ -221,9 +199,27 @@ fun HeroSection(
                 page
             ]
 
+        val continueItem =
+            remember(
+                banner.uuid,
+                banner.contentType,
+                continueWatching
+            ) {
+                findContinueItemForBanner(
+                    banner =
+                        banner,
+
+                    continueWatching =
+                        continueWatching
+                )
+            }
+
         HeroBannerSlide(
             banner =
                 banner,
+
+            continueItem =
+                continueItem,
 
             selectedIndex =
                 pagerState
@@ -238,6 +234,24 @@ fun HeroSection(
                 )
             },
 
+            onWatchClick = {
+                onWatchClick(
+                    banner,
+                    continueItem
+                )
+            },
+
+            onRestartClick = {
+                if (
+                    continueItem !=
+                    null
+                ) {
+                    onRestartClick(
+                        continueItem
+                    )
+                }
+            },
+
             onFavoriteClick = {
                 onFavoriteClick(
                     banner
@@ -247,13 +261,6 @@ fun HeroSection(
             onIndicatorClick = {
                     index ->
 
-                /*
-                 * Mesmo clicando no banner
-                 * atual, consideramos uma
-                 * interação do usuário.
-                 *
-                 * Isso reinicia os 10s.
-                 */
                 if (
                     index ==
                     pagerState.currentPage
@@ -288,9 +295,12 @@ fun HeroSection(
 @Composable
 private fun HeroBannerSlide(
     banner: HeroBannerUi,
+    continueItem: ContinueWatchingUi?,
     selectedIndex: Int,
     totalItems: Int,
     onBannerClick: () -> Unit,
+    onWatchClick: () -> Unit,
+    onRestartClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     onIndicatorClick: (
         Int
@@ -306,7 +316,8 @@ private fun HeroBannerSlide(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(
-                    5f / 9f
+                    5f /
+                            9f
                 )
                 .background(
                     LaranjadaBlack
@@ -330,68 +341,60 @@ private fun HeroBannerSlide(
                 banner.title,
 
             modifier =
-                Modifier.fillMaxSize(),
+                Modifier
+                    .fillMaxSize(),
 
             contentScale =
                 ContentScale.Crop
         )
 
-        /*
-         * DEGRADÊ
-         *
-         * A parte superior permanece limpa.
-         *
-         * A partir da metade inferior
-         * começamos a misturar a imagem
-         * com exatamente a mesma cor do
-         * background da Home.
-         */
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
-                            colorStops =
-                                arrayOf(
-                                    0.00f to
-                                            Color.Transparent,
+                        Brush
+                            .verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0.00f to
+                                                Color.Transparent,
 
-                                    0.42f to
-                                            Color.Transparent,
+                                        0.42f to
+                                                Color.Transparent,
 
-                                    0.58f to
-                                            HeroBodyBackground
-                                                .copy(
-                                                    alpha =
-                                                        0.05f
-                                                ),
+                                        0.58f to
+                                                HeroBodyBackground
+                                                    .copy(
+                                                        alpha =
+                                                            0.05f
+                                                    ),
 
-                                    0.70f to
-                                            HeroBodyBackground
-                                                .copy(
-                                                    alpha =
-                                                        0.28f
-                                                ),
+                                        0.70f to
+                                                HeroBodyBackground
+                                                    .copy(
+                                                        alpha =
+                                                            0.28f
+                                                    ),
 
-                                    0.82f to
-                                            HeroBodyBackground
-                                                .copy(
-                                                    alpha =
-                                                        0.68f
-                                                ),
+                                        0.82f to
+                                                HeroBodyBackground
+                                                    .copy(
+                                                        alpha =
+                                                            0.68f
+                                                    ),
 
-                                    0.92f to
-                                            HeroBodyBackground
-                                                .copy(
-                                                    alpha =
-                                                        0.94f
-                                                ),
+                                        0.92f to
+                                                HeroBodyBackground
+                                                    .copy(
+                                                        alpha =
+                                                            0.94f
+                                                    ),
 
-                                    1.00f to
-                                            HeroBodyBackground
-                                )
-                        )
+                                        1.00f to
+                                                HeroBodyBackground
+                                    )
+                            )
                     )
         )
 
@@ -399,8 +402,14 @@ private fun HeroBannerSlide(
             banner =
                 banner,
 
+            continueItem =
+                continueItem,
+
             onWatchClick =
-                onBannerClick,
+                onWatchClick,
+
+            onRestartClick =
+                onRestartClick,
 
             onFavoriteClick =
                 onFavoriteClick,
@@ -448,13 +457,16 @@ private fun HeroBannerSlide(
 @Composable
 private fun HeroContent(
     banner: HeroBannerUi,
+    continueItem: ContinueWatchingUi?,
     onWatchClick: () -> Unit,
+    onRestartClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier =
-            modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
     ) {
         HeroTitle(
             banner =
@@ -496,21 +508,24 @@ private fun HeroContent(
             }
 
         if (
-            metadata.isNotEmpty()
+            metadata
+                .isNotEmpty()
         ) {
             Spacer(
                 modifier =
-                    Modifier.height(
-                        8.dp
-                    )
+                    Modifier
+                        .height(
+                            8.dp
+                        )
             )
 
             Text(
                 text =
-                    metadata.joinToString(
-                        separator =
-                            "  ·  "
-                    ),
+                    metadata
+                        .joinToString(
+                            separator =
+                                "  ·  "
+                        ),
 
                 color =
                     LaranjadaText,
@@ -532,24 +547,29 @@ private fun HeroContent(
         if (
             banner.rating
                 .isNotBlank() &&
-            banner.rating != "0" &&
-            banner.rating != "0.0"
+            banner.rating !=
+            "0" &&
+            banner.rating !=
+            "0.0"
         ) {
             Spacer(
                 modifier =
-                    Modifier.height(
-                        8.dp
-                    )
+                    Modifier
+                        .height(
+                            8.dp
+                        )
             )
 
             Row(
                 verticalAlignment =
-                    Alignment.CenterVertically,
+                    Alignment
+                        .CenterVertically,
 
                 horizontalArrangement =
-                    Arrangement.spacedBy(
-                        4.dp
-                    )
+                    Arrangement
+                        .spacedBy(
+                            4.dp
+                        )
             ) {
                 Text(
                     text =
@@ -567,7 +587,9 @@ private fun HeroContent(
 
                 Icon(
                     imageVector =
-                        Icons.Rounded.Star,
+                        Icons
+                            .Rounded
+                            .Star,
 
                     contentDescription =
                         null,
@@ -578,28 +600,32 @@ private fun HeroContent(
                         ),
 
                     modifier =
-                        Modifier.size(
-                            16.dp
-                        )
+                        Modifier
+                            .size(
+                                16.dp
+                            )
                 )
             }
         }
 
         Spacer(
             modifier =
-                Modifier.height(
-                    10.dp
-                )
+                Modifier
+                    .height(
+                        10.dp
+                    )
         )
 
         Row(
             verticalAlignment =
-                Alignment.CenterVertically,
+                Alignment
+                    .CenterVertically,
 
             horizontalArrangement =
-                Arrangement.spacedBy(
-                    8.dp
-                )
+                Arrangement
+                    .spacedBy(
+                        8.dp
+                    )
         ) {
             Button(
                 onClick =
@@ -630,43 +656,91 @@ private fun HeroContent(
                     ),
 
                 modifier =
-                    Modifier.height(
-                        38.dp
-                    )
+                    Modifier
+                        .height(
+                            38.dp
+                        )
             ) {
                 Icon(
                     imageVector =
-                        Icons.Rounded.PlayArrow,
+                        Icons
+                            .Rounded
+                            .PlayArrow,
 
                     contentDescription =
                         null,
 
                     modifier =
-                        Modifier.size(
-                            19.dp
-                        )
+                        Modifier
+                            .size(
+                                19.dp
+                            )
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.size(
-                            4.dp
-                        )
+                        Modifier
+                            .size(
+                                4.dp
+                            )
                 )
 
                 Text(
                     text =
-                        "ASSISTIR",
+                        if (
+                            continueItem !=
+                            null
+                        ) {
+                            "CONTINUAR"
+                        } else {
+                            "ASSISTIR"
+                        },
 
                     fontSize =
                         11.sp,
 
                     fontWeight =
-                        FontWeight.ExtraBold,
+                        FontWeight
+                            .ExtraBold,
 
                     letterSpacing =
                         0.8.sp
                 )
+            }
+
+            if (
+                continueItem !=
+                null
+            ) {
+                IconButton(
+                    onClick =
+                        onRestartClick,
+
+                    modifier =
+                        Modifier
+                            .size(
+                                40.dp
+                            )
+                ) {
+                    Icon(
+                        imageVector =
+                            Icons
+                                .Rounded
+                                .Replay,
+
+                        contentDescription =
+                            "Reiniciar",
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier
+                                .size(
+                                    27.dp
+                                )
+                    )
+                }
             }
 
             IconButton(
@@ -674,13 +748,16 @@ private fun HeroContent(
                     onFavoriteClick,
 
                 modifier =
-                    Modifier.size(
-                        40.dp
-                    )
+                    Modifier
+                        .size(
+                            40.dp
+                        )
             ) {
                 Icon(
                     imageVector =
-                        Icons.Rounded.FavoriteBorder,
+                        Icons
+                            .Rounded
+                            .FavoriteBorder,
 
                     contentDescription =
                         "Adicionar aos favoritos",
@@ -689,11 +766,22 @@ private fun HeroContent(
                         Color.White,
 
                     modifier =
-                        Modifier.size(
-                            28.dp
-                        )
+                        Modifier
+                            .size(
+                                28.dp
+                            )
                 )
             }
+        }
+
+        if (
+            continueItem !=
+            null
+        ) {
+            HeroContinueProgress(
+                item =
+                    continueItem
+            )
         }
 
         if (
@@ -702,9 +790,10 @@ private fun HeroContent(
         ) {
             Spacer(
                 modifier =
-                    Modifier.height(
-                        8.dp
-                    )
+                    Modifier
+                        .height(
+                            8.dp
+                        )
             )
 
             Text(
@@ -730,6 +819,151 @@ private fun HeroContent(
                     TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+private fun HeroContinueProgress(
+    item: ContinueWatchingUi
+) {
+    val percentage =
+        (
+                item.progress
+                    .coerceIn(
+                        0f,
+                        1f
+                    ) *
+                        100f
+                )
+            .toInt()
+            .coerceIn(
+                0,
+                100
+            )
+
+    Spacer(
+        modifier =
+            Modifier
+                .height(
+                    9.dp
+                )
+    )
+
+    Row(
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+        LinearProgressIndicator(
+            progress = {
+                item.progress
+                    .coerceIn(
+                        0f,
+                        1f
+                    )
+            },
+
+            modifier =
+                Modifier
+                    .width(
+                        132.dp
+                    )
+                    .height(
+                        4.dp
+                    ),
+
+            color =
+                LaranjadaOrange,
+
+            trackColor =
+                Color.White
+                    .copy(
+                        alpha =
+                            0.32f
+                    )
+        )
+
+        Spacer(
+            modifier =
+                Modifier
+                    .width(
+                        9.dp
+                    )
+        )
+
+        Text(
+            text =
+                "$percentage% assistido",
+
+            color =
+                Color.White,
+
+            fontSize =
+                11.sp,
+
+            fontWeight =
+                FontWeight.SemiBold,
+
+            maxLines =
+                1
+        )
+    }
+
+    val secondaryMetadata =
+        buildList {
+            if (
+                item.episodeInfo
+                    .isNotBlank()
+            ) {
+                add(
+                    item.episodeInfo
+                )
+            }
+
+            if (
+                item.remainingTime
+                    .isNotBlank()
+            ) {
+                add(
+                    item.remainingTime
+                )
+            }
+        }
+
+    if (
+        secondaryMetadata
+            .isNotEmpty()
+    ) {
+        Spacer(
+            modifier =
+                Modifier
+                    .height(
+                        5.dp
+                    )
+        )
+
+        Text(
+            text =
+                secondaryMetadata
+                    .joinToString(
+                        separator =
+                            "  ·  "
+                    ),
+
+            color =
+                Color.White,
+
+            fontSize =
+                11.sp,
+
+            fontWeight =
+                FontWeight.Medium,
+
+            maxLines =
+                1,
+
+            overflow =
+                TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -802,7 +1036,8 @@ private fun HeroIndicators(
     modifier: Modifier = Modifier
 ) {
     if (
-        totalItems <= 1
+        totalItems <=
+        1
     ) {
         return
     }
@@ -815,7 +1050,8 @@ private fun HeroIndicators(
             Arrangement.Center,
 
         verticalAlignment =
-            Alignment.CenterVertically
+            Alignment
+                .CenterVertically
     ) {
         repeat(
             totalItems
@@ -830,13 +1066,6 @@ private fun HeroIndicators(
                     MutableInteractionSource()
                 }
 
-            /*
-             * Área de toque maior do que
-             * a bolinha visual.
-             *
-             * 22dp de área clicável,
-             * 9/11dp de indicador visual.
-             */
             Box(
                 modifier =
                     Modifier
@@ -892,5 +1121,64 @@ private fun HeroIndicators(
                 )
             }
         }
+    }
+}
+
+private fun findContinueItemForBanner(
+    banner: HeroBannerUi,
+    continueWatching: List<ContinueWatchingUi>
+): ContinueWatchingUi? {
+
+    val bannerContentType =
+        banner.contentType
+            .trim()
+            .lowercase()
+
+    val bannerUuid =
+        banner.uuid
+            .trim()
+
+    if (
+        bannerUuid
+            .isBlank()
+    ) {
+        return null
+    }
+
+    val isSeries =
+        bannerContentType in
+                setOf(
+                    "series",
+                    "serie"
+                )
+
+    return if (
+        isSeries
+    ) {
+        continueWatching
+            .firstOrNull {
+                    item ->
+
+                item.contentType
+                    .trim()
+                    .lowercase() ==
+                        "episode" &&
+                        item.seriesUuid
+                            ?.trim() ==
+                        bannerUuid
+            }
+    } else {
+        continueWatching
+            .firstOrNull {
+                    item ->
+
+                item.contentType
+                    .trim()
+                    .lowercase() ==
+                        "movie" &&
+                        item.contentUuid
+                            .trim() ==
+                        bannerUuid
+            }
     }
 }

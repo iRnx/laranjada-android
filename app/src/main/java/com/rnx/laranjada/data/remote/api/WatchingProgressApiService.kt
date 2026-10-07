@@ -119,6 +119,110 @@ object WatchingProgressApiService {
         )
     }
 
+    /*
+     * REINICIAR PROGRESSO
+     *
+     * O backend Web já possui endpoints
+     * próprios para apagar o progresso.
+     *
+     * Não enviamos position=0 pelo endpoint
+     * normal porque o backend protege
+     * progresso antigo contra regressões
+     * acidentais para posições muito baixas.
+     */
+    suspend fun resetProgress(
+        contentType: String,
+        contentUuid: String
+    ): JSONObject {
+
+        val normalizedContentType =
+            contentType
+                .trim()
+                .lowercase()
+
+        val normalizedContentUuid =
+            contentUuid
+                .trim()
+
+        if (
+            normalizedContentType !in
+            setOf(
+                "movie",
+                "episode"
+            )
+        ) {
+            throw IllegalArgumentException(
+                "Tipo de conteúdo inválido para reiniciar progresso."
+            )
+        }
+
+        if (
+            normalizedContentUuid
+                .isBlank()
+        ) {
+            throw IllegalArgumentException(
+                "Conteúdo inválido para reiniciar progresso."
+            )
+        }
+
+        ensureCsrfAvailable()
+
+        val resetPath =
+            when (
+                normalizedContentType
+            ) {
+                "movie" ->
+                    "/watching/progress/movie/" +
+                            "$normalizedContentUuid/reset/"
+
+                "episode" ->
+                    "/watching/progress/episode/" +
+                            "$normalizedContentUuid/reset/"
+
+                else ->
+                    throw IllegalArgumentException(
+                        "Tipo de conteúdo inválido para reiniciar progresso."
+                    )
+            }
+
+        val response =
+            ApiHttpClient.postJson(
+                path =
+                    resetPath,
+
+                body =
+                    JSONObject(),
+
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode ==
+            200
+        ) {
+            val json =
+                response.jsonObject()
+
+            if (
+                json.optBoolean(
+                    "ok",
+                    false
+                )
+            ) {
+                return json
+            }
+        }
+
+        throw buildException(
+            response =
+                response,
+
+            fallbackMessage =
+                "Não foi possível reiniciar o progresso."
+        )
+    }
+
     private suspend fun ensureCsrfAvailable() {
         if (
             hasCsrfCookie()

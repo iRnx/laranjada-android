@@ -12,4 +12,9 @@ interface WatchingProgressRepository {
         status: String,
         forceProgressSave: Boolean
     ): WatchingProgressSaveResult
+
+    suspend fun resetProgress(
+        contentType: String,
+        contentUuid: String
+    ): Int
 }
