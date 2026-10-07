@@ -527,6 +527,22 @@ private fun HlsPlayer(
         )
     }
 
+    /*
+     * Protege o fluxo terminal:
+     *
+     * STATE_ENDED
+     * -> Progress ended
+     * -> Stop ended
+     *
+     * Enquanto esse fluxo roda, X/Back não
+     * iniciam uma segunda finalização.
+     */
+    var endInProgress by remember {
+        mutableStateOf(
+            false
+        )
+    }
+
     var currentEpisodeUuid by remember {
         mutableStateOf(
             activeContentUuid
@@ -759,7 +775,8 @@ private fun HlsPlayer(
 
     fun requestExitWithProgress() {
         if (
-            exitInProgress
+            exitInProgress ||
+            endInProgress
         ) {
             return
         }
@@ -831,6 +848,105 @@ private fun HlsPlayer(
             )
     }
 
+    /*
+     * FINAL NATURAL
+     *
+     * Não fechamos o Player automaticamente.
+     *
+     * Primeiro:
+     * Progress ended
+     *
+     * Depois:
+     * Stop da WatchingSession ended.
+     *
+     * Quando tudo termina o usuário continua
+     * no Player no frame final e pode usar
+     * X/Back normalmente.
+     */
+    fun requestEndedWithProgress() {
+        if (
+            endInProgress ||
+            exitInProgress
+        ) {
+            return
+        }
+
+        endInProgress =
+            true
+
+        controlsVisible =
+            true
+
+        val endedPositionMs =
+            exoPlayer
+                .currentPosition
+                .coerceAtLeast(
+                    0L
+                )
+
+        val endedDurationMs =
+            exoPlayer
+                .safeDuration()
+
+        Log.d(
+            "LaranjadaProgress",
+            "Fim natural detectado. " +
+                    "content=$activeContentType:" +
+                    "$activeContentUuid " +
+                    "position=" +
+                    "${endedPositionMs / 1_000L}s " +
+                    "duration=" +
+                    "${endedDurationMs / 1_000L}s"
+        )
+
+        watchingProgressViewModel
+            .saveEndedProgress(
+                contentType =
+                    activeContentType,
+
+                contentUuid =
+                    activeContentUuid,
+
+                positionMs =
+                    endedPositionMs,
+
+                durationMs =
+                    endedDurationMs,
+
+                onResult = {
+                        result ->
+
+                    registerProgressResult(
+                        result
+                    )
+                },
+
+                onComplete = {
+                    /*
+                     * Somente depois de tentar
+                     * persistir a conclusão
+                     * encerramos a sessão.
+                     */
+                    playerViewModel
+                        .stopPlayback(
+                            status =
+                                "ended",
+
+                            clearLocalAfter =
+                                false,
+
+                            onComplete = {
+                                endInProgress =
+                                    false
+
+                                controlsVisible =
+                                    true
+                            }
+                        )
+                }
+            )
+    }
+
     LaunchedEffect(
         externalCloseRequestId
     ) {
@@ -873,6 +989,7 @@ private fun HlsPlayer(
 
                     if (
                         exitInProgress ||
+                        endInProgress ||
                         playerViewModel
                             .playbackUiState
                             .isStopping
@@ -880,7 +997,7 @@ private fun HlsPlayer(
                         Log.d(
                             "LaranjadaProgress",
                             "Background ignorado: " +
-                                    "Player já está encerrando."
+                                    "Player já está encerrando/concluindo."
                         )
 
                         return@LifecycleEventObserver
@@ -1017,8 +1134,19 @@ private fun HlsPlayer(
         }
     }
 
+    /*
+     * Listener também depende da identidade
+     * atual do conteúdo.
+     *
+     * Isso evita que STATE_ENDED de um
+     * episódio trocado dentro do mesmo
+     * ExoPlayer utilize o UUID anterior.
+     */
     DisposableEffect(
-        exoPlayer
+        exoPlayer,
+        playbackSessionUuid,
+        activeContentType,
+        activeContentUuid
     ) {
         val listener =
             object :
@@ -1085,14 +1213,21 @@ private fun HlsPlayer(
                         }
 
                         Player.STATE_ENDED -> {
-                            playerViewModel
-                                .stopPlayback(
-                                    status =
-                                        "ended",
+                            /*
+                             * Antes:
+                             *
+                             * Stop ended direto.
+                             *
+                             * Agora:
+                             *
+                             * Progress ended
+                             * -> Stop ended.
+                             */
+                            requestEndedWithProgress()
+                        }
 
-                                    clearLocalAfter =
-                                        false
-                                )
+                        Player.STATE_IDLE -> {
+                            Unit
                         }
                     }
                 }
@@ -1183,6 +1318,9 @@ private fun HlsPlayer(
         exitInProgress =
             false
 
+        endInProgress =
+            false
+
         val mediaItem =
             MediaItem.fromUri(
                 playbackUrl
@@ -1269,21 +1407,6 @@ private fun HlsPlayer(
 
     /*
      * CHECKPOINT PERIÓDICO
-     *
-     * Verificamos uma vez por segundo,
-     * mas NÃO fazemos POST uma vez por
-     * segundo.
-     *
-     * O POST somente acontece quando:
-     *
-     * conteúdo novo:
-     * >= 90s
-     *
-     * conteúdo conhecido:
-     * >= última posição persistida + 30s
-     *
-     * e somente enquanto Media3 está
-     * realmente reproduzindo.
      */
     LaunchedEffect(
         exoPlayer,
@@ -1297,22 +1420,13 @@ private fun HlsPlayer(
                 1.seconds
             )
 
-            /*
-             * isPlaying do Media3 só fica true
-             * quando:
-             *
-             * READY
-             * playWhenReady=true
-             * sem supressão
-             *
-             * Buffering naturalmente fica false.
-             */
             if (
                 !exoPlayer.isPlaying ||
                 exoPlayer.playbackState !=
                 Player.STATE_READY ||
                 isDraggingProgress ||
                 exitInProgress ||
+                endInProgress ||
                 isStoppingPlayback
             ) {
                 continue
@@ -1353,14 +1467,6 @@ private fun HlsPlayer(
                     null
                 }
 
-            /*
-             * Filtro local para não chamar
-             * ViewModel a cada segundo sem
-             * necessidade.
-             *
-             * ViewModel revalida novamente
-             * antes do POST.
-             */
             val shouldRequestCheckpoint =
                 if (
                     hasKnownProgress
@@ -1584,7 +1690,8 @@ private fun HlsPlayer(
             isBuffering ||
             isSwitchingPlayback ||
             isStoppingPlayback ||
-            exitInProgress
+            exitInProgress ||
+            endInProgress
         ) {
             CircularProgressIndicator(
                 modifier =

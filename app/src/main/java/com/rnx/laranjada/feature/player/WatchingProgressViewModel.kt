@@ -35,8 +35,9 @@ class WatchingProgressViewModel(
     /*
      * Um único canal de escrita de progresso.
      *
-     * Periodic / Pause / Background / Exit
-     * nunca fazem POST concorrente.
+     * Periodic / Pause / Background /
+     * Exit / Ended nunca fazem POST
+     * concorrente.
      */
     private val progressSaveMutex =
         Mutex()
@@ -98,8 +99,8 @@ class WatchingProgressViewModel(
          * Periodic nunca precisa competir
          * com um save mais importante.
          *
-         * Se Pause / Background / Exit
-         * estiver salvando, simplesmente
+         * Se Pause / Background / Exit /
+         * Ended estiver salvando, simplesmente
          * esperamos a próxima verificação.
          */
         if (
@@ -133,14 +134,6 @@ class WatchingProgressViewModel(
             progressSaveMutex
                 .withLock {
 
-                    /*
-                     * Reavaliamos tudo depois
-                     * de adquirir o Mutex.
-                     *
-                     * Um Pause pode ter salvo
-                     * exatamente enquanto este
-                     * checkpoint aguardava.
-                     */
                     val latestPersistedPosition =
                         resolveLastPersistedPosition(
                             contentUuid =
@@ -186,14 +179,6 @@ class WatchingProgressViewModel(
                         return@withLock
                     }
 
-                    /*
-                     * O timestamp de tentativa
-                     * é marcado imediatamente
-                     * antes do request.
-                     *
-                     * Em caso de erro de rede,
-                     * teremos pequeno backoff.
-                     */
                     lastPeriodicAttemptElapsedByContent[
                         request.contentUuid
                     ] =
@@ -228,13 +213,6 @@ class WatchingProgressViewModel(
                                     status =
                                         STATUS_PLAYING,
 
-                                    /*
-                                     * Checkpoint periódico NÃO é
-                                     * um save forçado.
-                                     *
-                                     * O backend mantém sua própria
-                                     * proteção de intervalo.
-                                     */
                                     forceProgressSave =
                                         false
                                 )
@@ -828,13 +806,248 @@ class WatchingProgressViewModel(
     }
 
     /*
+     * FIM NATURAL DA REPRODUÇÃO
+     *
+     * Esta operação é diferente das demais:
+     *
+     * - não depende dos 90 segundos;
+     * - não depende do intervalo de 30s;
+     * - sempre usa force_progress_save=true;
+     * - status=ended;
+     * - posição final = duração.
+     *
+     * Portanto até um conteúdo muito curto
+     * será corretamente marcado como concluído
+     * se chegar naturalmente ao STATE_ENDED.
+     */
+    fun saveEndedProgress(
+        contentType: String,
+        contentUuid: String,
+        positionMs: Long,
+        durationMs: Long,
+        onResult: (
+            WatchingProgressSaveResult
+        ) -> Unit = {},
+        onComplete: () -> Unit = {}
+    ) {
+        val normalizedContentType =
+            contentType
+                .trim()
+                .lowercase(
+                    Locale.US
+                )
+
+        val normalizedContentUuid =
+            contentUuid.trim()
+
+        if (
+            normalizedContentType !in
+            VALID_CONTENT_TYPES ||
+            normalizedContentUuid.isBlank()
+        ) {
+            Log.w(
+                TAG,
+                "Progress Ended ignorado: " +
+                        "conteúdo inválido."
+            )
+
+            onComplete()
+
+            return
+        }
+
+        val reportedPositionSeconds =
+            positionMs
+                .coerceAtLeast(
+                    0L
+                ) /
+                    1_000L
+
+        val reportedDurationSeconds =
+            durationMs
+                .coerceAtLeast(
+                    0L
+                ) /
+                    1_000L
+
+        /*
+         * Em VOD o Media3 normalmente informa
+         * duration no STATE_ENDED.
+         *
+         * Como proteção, se duration vier 0
+         * mas currentPosition já for válido,
+         * usamos a posição final como duração.
+         *
+         * STATE_ENDED nos garante que estamos
+         * efetivamente no final da mídia.
+         */
+        val finalDurationSeconds =
+            when {
+                reportedDurationSeconds >
+                        0L -> {
+                    reportedDurationSeconds
+                }
+
+                reportedPositionSeconds >
+                        0L -> {
+                    reportedPositionSeconds
+                }
+
+                else -> {
+                    0L
+                }
+            }
+
+        if (
+            finalDurationSeconds <=
+            0L
+        ) {
+            Log.w(
+                TAG,
+                "Progress Ended ignorado: " +
+                        "posição e duração indisponíveis."
+            )
+
+            onComplete()
+
+            return
+        }
+
+        /*
+         * O próprio backend também força
+         * position=duration quando status=ended.
+         *
+         * Mesmo assim já enviamos o contrato
+         * correto daqui.
+         */
+        val finalPositionSeconds =
+            finalDurationSeconds
+
+        viewModelScope.launch {
+            try {
+                /*
+                 * Ended NUNCA é descartado porque
+                 * outro save esteja em andamento.
+                 *
+                 * Se houver um Periodic/Pause
+                 * terminando, aguardamos o Mutex
+                 * e salvamos o estado terminal
+                 * depois dele.
+                 */
+                progressSaveMutex
+                    .withLock {
+
+                        uiState =
+                            uiState.copy(
+                                isSaving =
+                                    true,
+
+                                errorMessage =
+                                    null
+                            )
+
+                        try {
+                            val result =
+                                repository
+                                    .saveProgress(
+                                        contentType =
+                                            normalizedContentType,
+
+                                        contentUuid =
+                                            normalizedContentUuid,
+
+                                        positionSeconds =
+                                            finalPositionSeconds,
+
+                                        durationSeconds =
+                                            finalDurationSeconds,
+
+                                        status =
+                                            STATUS_ENDED,
+
+                                        forceProgressSave =
+                                            true
+                                    )
+
+                            registerPersistedResult(
+                                result
+                            )
+
+                            uiState =
+                                uiState.copy(
+                                    isSaving =
+                                        false,
+
+                                    lastResult =
+                                        result,
+
+                                    errorMessage =
+                                        null
+                                )
+
+                            Log.d(
+                                TAG,
+                                "Progress Ended processado. " +
+                                        "content=" +
+                                        "${result.contentType}:" +
+                                        "${result.contentUuid} " +
+                                        "reported=" +
+                                        "${reportedPositionSeconds}s " +
+                                        "requested=" +
+                                        "${result.requestedPositionSeconds}s " +
+                                        "persisted=" +
+                                        "${result.positionSeconds}s " +
+                                        "duration=" +
+                                        "${result.durationSeconds}s " +
+                                        "saved=${result.saved} " +
+                                        "reason=${result.reason} " +
+                                        "status=${result.status} " +
+                                        "completed=" +
+                                        "${result.isCompleted}"
+                            )
+
+                            onResult(
+                                result
+                            )
+
+                        } catch (
+                            exception: Exception
+                        ) {
+                            uiState =
+                                uiState.copy(
+                                    isSaving =
+                                        false,
+
+                                    errorMessage =
+                                        exception.message
+                                            ?: "Não foi possível concluir o progresso."
+                                )
+
+                            Log.w(
+                                TAG,
+                                "Falha ao salvar Progress Ended. " +
+                                        "content=" +
+                                        "$normalizedContentType:" +
+                                        "$normalizedContentUuid " +
+                                        "error=${exception.message}"
+                            )
+                        }
+                    }
+
+            } finally {
+                /*
+                 * Mesmo se o POST de progresso
+                 * falhar, precisamos encerrar
+                 * a WatchingSession.
+                 */
+                onComplete()
+            }
+        }
+    }
+
+    /*
      * Centralizamos aqui a noção de
      * "já existe progresso".
-     *
-     * Isso também ajuda quando um conteúdo
-     * começou novo, recebeu o primeiro
-     * checkpoint aos 90s e depois Pause /
-     * Background / Exit acontecem.
      */
     private fun buildProgressRequest(
         contentType: String,
@@ -888,11 +1101,6 @@ class WatchingProgressViewModel(
             durationSeconds <=
             0L
         ) {
-            /*
-             * Para o periódico não queremos
-             * poluir Logcat enquanto Media3
-             * ainda prepara a mídia.
-             */
             if (
                 source !=
                 ProgressSaveSource.PERIODIC
@@ -915,15 +1123,11 @@ class WatchingProgressViewModel(
                         )
 
         /*
-         * A política de produto do Android
-         * continua sendo:
+         * Conteúdo novo somente entra no
+         * Continue Assistindo a partir de 90s.
          *
-         * conteúdo novo somente entra
-         * automaticamente a partir de 90s.
-         *
-         * O backend possui um mínimo técnico
-         * menor, mas nós não dependemos dele
-         * para decidir a UX.
+         * END não passa por este método.
+         * Ended possui regra terminal própria.
          */
         if (
             !hasPersistedProgressNow &&
@@ -1030,28 +1234,12 @@ class WatchingProgressViewModel(
         const val TAG =
             "LaranjadaProgress"
 
-        /*
-         * UX do Continue Assistindo.
-         */
         const val FIRST_SAVE_AT_SECONDS =
             90L
 
-        /*
-         * Intervalo de avanço da posição.
-         *
-         * Não é um simples timer de parede.
-         * Precisamos avançar 30s no conteúdo.
-         */
         const val PERIODIC_SAVE_INTERVAL_SECONDS =
             30L
 
-        /*
-         * Apenas proteção de falha.
-         *
-         * Se o POST periódico falhar,
-         * não repetimos request a cada
-         * segundo.
-         */
         const val PERIODIC_RETRY_MIN_INTERVAL_MS =
             5_000L
 
@@ -1063,6 +1251,9 @@ class WatchingProgressViewModel(
 
         const val STATUS_STOPPED =
             "stopped"
+
+        const val STATUS_ENDED =
+            "ended"
 
         val VALID_CONTENT_TYPES =
             setOf(
