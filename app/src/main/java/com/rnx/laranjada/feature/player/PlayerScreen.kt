@@ -741,6 +741,22 @@ private fun HlsPlayer(
                 }
         }
 
+    fun registerProgressResult(
+        result:
+        com.rnx.laranjada.domain.model.WatchingProgressSaveResult
+    ) {
+        if (
+            result.progressUuid
+                .isNotBlank()
+        ) {
+            knownProgressContentUuid =
+                result.contentUuid
+
+            lastPersistedPositionSeconds =
+                result.positionSeconds
+        }
+    }
+
     fun requestExitWithProgress() {
         if (
             exitInProgress
@@ -828,19 +844,6 @@ private fun HlsPlayer(
 
     /*
      * CICLO DE VIDA DO PLAYER
-     *
-     * ON_STOP cobre:
-     *
-     * - botão Home;
-     * - troca de aplicativo;
-     * - tela de Recentes;
-     * - bloqueio da tela.
-     *
-     * PiP com a tela ligada é ignorado.
-     *
-     * Se a tela estiver bloqueada,
-     * salvamos mesmo que Android ainda
-     * reporte Picture-in-Picture.
      */
     DisposableEffect(
         lifecycleOwner,
@@ -868,12 +871,6 @@ private fun HlsPlayer(
                         return@LifecycleEventObserver
                     }
 
-                    /*
-                     * Se estamos no meio de uma
-                     * saída real do Player,
-                     * Exit já está cuidando
-                     * do progresso.
-                     */
                     if (
                         exitInProgress ||
                         playerViewModel
@@ -904,15 +901,6 @@ private fun HlsPlayer(
                             ?.isInPictureInPictureMode
                             ?: false
 
-                    /*
-                     * PiP é reprodução legítima
-                     * em background visual.
-                     *
-                     * Não pausamos se:
-                     *
-                     * - continua em PiP;
-                     * - tela continua ligada.
-                     */
                     if (
                         isInPictureInPicture &&
                         deviceInteractive
@@ -949,13 +937,6 @@ private fun HlsPlayer(
                     val wasPlaying =
                         exoPlayer.isPlaying
 
-                    /*
-                     * Pausa imediatamente.
-                     *
-                     * O próprio listener do
-                     * ExoPlayer também atualizará
-                     * Presence para paused.
-                     */
                     exoPlayer.pause()
 
                     playerViewModel
@@ -1013,16 +994,9 @@ private fun HlsPlayer(
                             onResult = {
                                     result ->
 
-                                if (
-                                    result.progressUuid
-                                        .isNotBlank()
-                                ) {
-                                    knownProgressContentUuid =
-                                        result.contentUuid
-
-                                    lastPersistedPositionSeconds =
-                                        result.positionSeconds
-                                }
+                                registerProgressResult(
+                                    result
+                                )
                             }
                         )
                 }
@@ -1293,6 +1267,154 @@ private fun HlsPlayer(
         }
     }
 
+    /*
+     * CHECKPOINT PERIÓDICO
+     *
+     * Verificamos uma vez por segundo,
+     * mas NÃO fazemos POST uma vez por
+     * segundo.
+     *
+     * O POST somente acontece quando:
+     *
+     * conteúdo novo:
+     * >= 90s
+     *
+     * conteúdo conhecido:
+     * >= última posição persistida + 30s
+     *
+     * e somente enquanto Media3 está
+     * realmente reproduzindo.
+     */
+    LaunchedEffect(
+        exoPlayer,
+        activeContentType,
+        activeContentUuid
+    ) {
+        while (
+            true
+        ) {
+            delay(
+                1.seconds
+            )
+
+            /*
+             * isPlaying do Media3 só fica true
+             * quando:
+             *
+             * READY
+             * playWhenReady=true
+             * sem supressão
+             *
+             * Buffering naturalmente fica false.
+             */
+            if (
+                !exoPlayer.isPlaying ||
+                exoPlayer.playbackState !=
+                Player.STATE_READY ||
+                isDraggingProgress ||
+                exitInProgress ||
+                isStoppingPlayback
+            ) {
+                continue
+            }
+
+            val periodicPositionMs =
+                exoPlayer
+                    .currentPosition
+                    .coerceAtLeast(
+                        0L
+                    )
+
+            val periodicDurationMs =
+                exoPlayer
+                    .safeDuration()
+
+            if (
+                periodicDurationMs <=
+                0L
+            ) {
+                continue
+            }
+
+            val periodicPositionSeconds =
+                periodicPositionMs /
+                        1_000L
+
+            val hasKnownProgress =
+                knownProgressContentUuid ==
+                        activeContentUuid
+
+            val lastKnownPosition =
+                if (
+                    hasKnownProgress
+                ) {
+                    lastPersistedPositionSeconds
+                } else {
+                    null
+                }
+
+            /*
+             * Filtro local para não chamar
+             * ViewModel a cada segundo sem
+             * necessidade.
+             *
+             * ViewModel revalida novamente
+             * antes do POST.
+             */
+            val shouldRequestCheckpoint =
+                if (
+                    hasKnownProgress
+                ) {
+                    (
+                            periodicPositionSeconds -
+                                    lastPersistedPositionSeconds
+                            ) >=
+                            30L
+                } else {
+                    periodicPositionSeconds >=
+                            90L
+                }
+
+            if (
+                !shouldRequestCheckpoint
+            ) {
+                continue
+            }
+
+            watchingProgressViewModel
+                .savePeriodicProgress(
+                    contentType =
+                        activeContentType,
+
+                    contentUuid =
+                        activeContentUuid,
+
+                    positionMs =
+                        periodicPositionMs,
+
+                    durationMs =
+                        periodicDurationMs,
+
+                    hasKnownProgress =
+                        hasKnownProgress,
+
+                    lastPersistedPositionSeconds =
+                        lastKnownPosition,
+
+                    onResult = {
+                            result ->
+
+                        registerProgressResult(
+                            result
+                        )
+                    }
+                )
+        }
+    }
+
+    /*
+     * Atualização da UI do Player.
+     */
     LaunchedEffect(
         exoPlayer
     ) {
@@ -1656,16 +1778,9 @@ private fun HlsPlayer(
                                 onResult = {
                                         result ->
 
-                                    if (
-                                        result.progressUuid
-                                            .isNotBlank()
-                                    ) {
-                                        knownProgressContentUuid =
-                                            result.contentUuid
-
-                                        lastPersistedPositionSeconds =
-                                            result.positionSeconds
-                                    }
+                                    registerProgressResult(
+                                        result
+                                    )
                                 }
                             )
                     } else {
