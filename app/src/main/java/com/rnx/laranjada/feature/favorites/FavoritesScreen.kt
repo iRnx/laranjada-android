@@ -58,6 +58,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +72,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.domain.model.FavoriteGenre
@@ -78,20 +82,12 @@ import com.rnx.laranjada.domain.model.FavoritesQuery
 import com.rnx.laranjada.feature.favorites.components.FavoriteCard
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
 
-private val FavoritesBackground =
-    Color(0xFF070B0F)
-
-private val FavoritesPanel =
-    Color(0xFF101417)
-
-private val FavoritesMuted =
-    Color(0xFFBFC4C8)
+private val FavoritesBackground = Color(0xFF070B0F)
+private val FavoritesPanel = Color(0xFF101417)
+private val FavoritesMuted = Color(0xFFBFC4C8)
 
 private val Alphabet =
-    listOf("#") +
-            ('A'..'Z').map {
-                it.toString()
-            }
+    listOf("#") + ('A'..'Z').map { it.toString() }
 
 private val Orders = listOf(
     "Nome A-Z" to "name_asc",
@@ -130,95 +126,77 @@ fun FavoritesScreen(
     ) -> Unit,
     viewModel: FavoritesViewModel = viewModel()
 ) {
-    val state =
-        viewModel.uiState
+    val state = viewModel.uiState
+    val gridState = rememberLazyGridState()
+    val snackbar = remember { SnackbarHostState() }
 
-    val gridState =
-        rememberLazyGridState()
-
-    val snackbar =
-        remember {
-            SnackbarHostState()
-        }
-
-    var sortOpen by remember {
-        mutableStateOf(false)
-    }
-
-    var filtersOpen by remember {
-        mutableStateOf(false)
-    }
+    var sortOpen by remember { mutableStateOf(false) }
+    var filtersOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(profileUuid) {
         viewModel.start(profileUuid)
     }
 
-    LaunchedEffect(
-        viewModel.feedbackMessage
-    ) {
+    /*
+     * Atualiza Favoritos quando esta tela
+     * volta a ficar ativa, sem perder
+     * os filtros selecionados.
+     */
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, profileUuid) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshAfterReturn()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(viewModel.feedbackMessage) {
         val message =
-            viewModel.feedbackMessage
-                ?: return@LaunchedEffect
+            viewModel.feedbackMessage ?: return@LaunchedEffect
 
         viewModel.consumeFeedback()
-
         snackbar.showSnackbar(message)
     }
 
-    LaunchedEffect(
-        state.query,
-        state.page
-    ) {
+    LaunchedEffect(state.query, state.page) {
         gridState.scrollToItem(0)
     }
 
     Scaffold(
-        containerColor =
-            FavoritesBackground,
-
+        containerColor = FavoritesBackground,
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbar,
-
-                modifier =
-                    Modifier.padding(
-                        bottom = 128.dp
-                    )
+                modifier = Modifier.padding(bottom = 128.dp)
             )
         }
     ) { padding ->
-
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(
-                    FavoritesBackground
-                )
+                .background(FavoritesBackground)
         ) {
             LazyVerticalGrid(
-                columns =
-                    GridCells.Fixed(2),
-
-                state =
-                    gridState,
-
-                modifier =
-                    Modifier.fillMaxSize(),
-
-                contentPadding =
-                    PaddingValues(
-                        start = 14.dp,
-                        end = 14.dp,
-                        top = 10.dp,
-                        bottom = 160.dp
-                    ),
-
-                horizontalArrangement =
-                    Arrangement.spacedBy(12.dp),
-
-                verticalArrangement =
-                    Arrangement.spacedBy(24.dp)
+                columns = GridCells.Fixed(2),
+                state = gridState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 14.dp,
+                    end = 14.dp,
+                    top = 10.dp,
+                    bottom = 160.dp
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 item(
                     span = {
@@ -228,10 +206,7 @@ fun FavoritesScreen(
                     Column {
                         FavoritesHeader(
                             profileName = profileName,
-
-                            onBackClick =
-                                onBackClick,
-
+                            onBackClick = onBackClick,
                             onSearchClick = {
                                 filtersOpen = true
                             }
@@ -239,33 +214,23 @@ fun FavoritesScreen(
 
                         FavoritesToolbar(
                             label = state.rangeLabel,
-
                             canPrevious =
                                 !state.isLoading &&
                                         state.previousPage != null,
-
                             canNext =
                                 !state.isLoading &&
                                         state.nextPage != null,
-
-                            onPrevious =
-                                viewModel::previousPage,
-
-                            onNext =
-                                viewModel::nextPage,
-
+                            onPrevious = viewModel::previousPage,
+                            onNext = viewModel::nextPage,
                             onSort = {
                                 sortOpen = true
                             },
-
                             onFilters = {
                                 filtersOpen = true
                             }
                         )
 
-                        Spacer(
-                            Modifier.height(32.dp)
-                        )
+                        Spacer(modifier = Modifier.height(32.dp))
                     }
                 }
 
@@ -278,8 +243,7 @@ fun FavoritesScreen(
                         ) {
                             CenterState {
                                 CircularProgressIndicator(
-                                    color =
-                                        LaranjadaOrange
+                                    color = LaranjadaOrange
                                 )
                             }
                         }
@@ -293,23 +257,15 @@ fun FavoritesScreen(
                         ) {
                             CenterState {
                                 Text(
-                                    text =
-                                        state.error.orEmpty(),
-
-                                    color =
-                                        Color.White,
-
-                                    textAlign =
-                                        TextAlign.Center
+                                    text = state.error.orEmpty(),
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center
                                 )
 
                                 TextButton(
-                                    onClick =
-                                        viewModel::retry
+                                    onClick = viewModel::retry
                                 ) {
-                                    Text(
-                                        "Tentar novamente"
-                                    )
+                                    Text("Tentar novamente")
                                 }
                             }
                         }
@@ -325,55 +281,32 @@ fun FavoritesScreen(
                                 Icon(
                                     imageVector =
                                         Icons.Rounded.FavoriteBorder,
-
-                                    contentDescription =
-                                        null,
-
-                                    tint =
-                                        LaranjadaOrange,
-
-                                    modifier =
-                                        Modifier.size(32.dp)
+                                    contentDescription = null,
+                                    tint = LaranjadaOrange,
+                                    modifier = Modifier.size(32.dp)
                                 )
 
                                 Text(
-                                    text =
-                                        "Nenhum favorito encontrado",
-
-                                    color =
-                                        Color.White,
-
-                                    fontWeight =
-                                        FontWeight.Bold
+                                    text = "Nenhum favorito encontrado",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
                                 )
 
                                 Text(
-                                    text =
-                                        if (
-                                            state.totalFavorites == 0
-                                        ) {
-                                            "Use o coração nos detalhes de filmes e séries para criar sua lista."
-                                        } else {
-                                            "Altere os filtros para encontrar outros conteúdos."
-                                        },
-
-                                    color =
-                                        FavoritesMuted,
-
-                                    textAlign =
-                                        TextAlign.Center,
-
-                                    fontSize =
-                                        13.sp
+                                    text = if (state.totalFavorites == 0) {
+                                        "Use o coração nos detalhes de filmes e séries para criar sua lista."
+                                    } else {
+                                        "Altere os filtros para encontrar outros conteúdos."
+                                    },
+                                    color = FavoritesMuted,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 13.sp
                                 )
 
                                 TextButton(
-                                    onClick =
-                                        viewModel::clearFilters
+                                    onClick = viewModel::clearFilters
                                 ) {
-                                    Text(
-                                        "Limpar filtros"
-                                    )
+                                    Text("Limpar filtros")
                                 }
                             }
                         }
@@ -381,27 +314,20 @@ fun FavoritesScreen(
 
                     else -> {
                         items(
-                            state.items,
-
-                            key = {
-                                it.stableKey
-                            }
+                            items = state.items,
+                            key = { it.stableKey }
                         ) { favorite ->
-
                             FavoriteCard(
                                 item = favorite,
-
                                 removing =
                                     state.removingContentKey ==
                                             favorite.stableKey,
-
                                 onOpen = {
                                     onMediaClick(
                                         favorite.contentType,
                                         favorite.contentUuid
                                     )
                                 },
-
                                 onRemove = {
                                     viewModel.removeFavorite(
                                         favorite.contentType,
@@ -414,35 +340,20 @@ fun FavoritesScreen(
                 }
             }
 
-            /*
-             * ALFABETO + BOTTOM BAR
-             *
-             * O alfabeto permanece acima
-             * da navegação nativa.
-             */
             Column(
-                modifier =
-                    Modifier.align(
-                        Alignment.BottomCenter
-                    )
+                modifier = Modifier.align(
+                    Alignment.BottomCenter
+                )
             ) {
                 AlphabetBar(
-                    selected =
-                        state.query.letter,
-
-                    onSelected =
-                        viewModel::selectLetter
+                    selected = state.query.letter,
+                    onSelected = viewModel::selectLetter
                 )
 
                 HomeBottomBar(
                     selectedIndex = 2,
-
-                    profileName =
-                        profileName,
-
-                    profileAvatarUrl =
-                        profileAvatarUrl,
-
+                    profileName = profileName,
+                    profileAvatarUrl = profileAvatarUrl,
                     onItemClick = { index ->
                         when (index) {
                             0 -> onHomeClick()
@@ -454,24 +365,15 @@ fun FavoritesScreen(
         }
     }
 
-    /*
-     * PAINEL DE ORDENAÇÃO
-     *
-     * ModalBottomSheet requer
-     * ExperimentalMaterial3Api.
-     */
     if (sortOpen) {
         ModalBottomSheet(
             onDismissRequest = {
                 sortOpen = false
             },
-
-            containerColor =
-                FavoritesPanel
+            containerColor = FavoritesPanel
         ) {
             SheetTitle(
                 title = "Ordenar por",
-
                 onClose = {
                     sortOpen = false
                 }
@@ -480,10 +382,7 @@ fun FavoritesScreen(
             Orders.forEach { (label, value) ->
                 ChoiceRow(
                     label = label,
-
-                    selected =
-                        state.query.order == value,
-
+                    selected = state.query.order == value,
                     onClick = {
                         viewModel.applyOrder(value)
                         sortOpen = false
@@ -491,41 +390,24 @@ fun FavoritesScreen(
                 )
             }
 
-            Spacer(
-                Modifier.height(30.dp)
-            )
+            Spacer(modifier = Modifier.height(30.dp))
         }
     }
 
-    /*
-     * PAINEL DE FILTROS
-     *
-     * Utiliza a mesma API experimental
-     * do painel de ordenação.
-     */
     if (filtersOpen) {
         ModalBottomSheet(
             onDismissRequest = {
                 filtersOpen = false
             },
-
-            containerColor =
-                FavoritesPanel
+            containerColor = FavoritesPanel
         ) {
             FiltersSheet(
-                current =
-                    state.query,
-
-                years =
-                    state.availableYears,
-
-                genres =
-                    state.availableGenres,
-
+                current = state.query,
+                years = state.availableYears,
+                genres = state.availableGenres,
                 onClose = {
                     filtersOpen = false
                 },
-
                 onApply = {
                         type,
                         category,
@@ -545,7 +427,6 @@ fun FavoritesScreen(
 
                     filtersOpen = false
                 },
-
                 onClear = {
                     viewModel.clearFilters()
                     filtersOpen = false
@@ -561,127 +442,71 @@ private fun FavoritesHeader(
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
-    Column(
-        Modifier.fillMaxWidth()
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth(),
-
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-
-            verticalAlignment =
-                Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onBackClick
-            ) {
+            IconButton(onClick = onBackClick) {
                 Icon(
-                    Icons.AutoMirrored.Rounded.ArrowBack,
-
-                    contentDescription =
-                        "Voltar",
-
-                    tint =
-                        Color.White
+                    imageVector =
+                        Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Voltar",
+                    tint = Color.White
                 )
             }
 
-            IconButton(
-                onClick = onSearchClick
-            ) {
+            IconButton(onClick = onSearchClick) {
                 Icon(
-                    Icons.Rounded.Search,
-
-                    contentDescription =
-                        "Buscar favoritos",
-
-                    tint =
-                        Color.White
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = "Buscar favoritos",
+                    tint = Color.White
                 )
             }
         }
 
-        Spacer(
-            Modifier.height(27.dp)
-        )
+        Spacer(modifier = Modifier.height(27.dp))
 
         Text(
-            text =
-                "PERFIL ${profileName.trim().uppercase()}",
-
-            color =
-                LaranjadaOrange,
-
-            fontSize =
-                11.sp,
-
-            fontWeight =
-                FontWeight.Bold,
-
-            letterSpacing =
-                1.4.sp,
-
-            modifier =
-                Modifier.align(
-                    Alignment.CenterHorizontally
-                )
+            text = "PERFIL ${profileName.trim().uppercase()}",
+            color = LaranjadaOrange,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
         )
 
-        Spacer(
-            Modifier.height(5.dp)
-        )
+        Spacer(modifier = Modifier.height(5.dp))
 
         Text(
             text = "Favoritos",
-
             color = Color.White,
-
             fontSize = 28.sp,
-
-            fontWeight =
-                FontWeight.Bold,
-
-            modifier =
-                Modifier.align(
-                    Alignment.CenterHorizontally
-                )
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
         )
 
-        Spacer(
-            Modifier.height(9.dp)
-        )
+        Spacer(modifier = Modifier.height(9.dp))
 
         Text(
             text =
                 "Filmes, séries, animes, doramas e desenhos ficam salvos somente neste perfil.",
-
-            color =
-                FavoritesMuted,
-
-            fontSize =
-                12.sp,
-
-            fontWeight =
-                FontWeight.SemiBold,
-
-            lineHeight =
-                17.sp,
-
-            textAlign =
-                TextAlign.Center,
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 15.dp
-                    )
+            color = FavoritesMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 17.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp)
         )
 
-        Spacer(
-            Modifier.height(26.dp)
-        )
+        Spacer(modifier = Modifier.height(26.dp))
     }
 }
 
@@ -696,110 +521,70 @@ private fun FavoritesToolbar(
     onFilters: () -> Unit
 ) {
     Row(
-        Modifier.fillMaxWidth(),
-
-        verticalAlignment =
-            Alignment.CenterVertically,
-
-        horizontalArrangement =
-            Arrangement.Center
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
         Text(
             text = label,
-
             color = Color.White,
-
-            fontWeight =
-                FontWeight.Bold,
-
+            fontWeight = FontWeight.Bold,
             fontSize = 12.sp
         )
 
-        Spacer(
-            Modifier.size(13.dp)
-        )
+        Spacer(modifier = Modifier.size(13.dp))
 
         IconButton(
             onClick = onPrevious,
-
             enabled = canPrevious,
-
-            modifier =
-                Modifier.size(38.dp)
+            modifier = Modifier.size(38.dp)
         ) {
             Icon(
-                Icons.Rounded.ChevronLeft,
-
-                contentDescription =
-                    "Página anterior",
-
-                tint =
-                    if (canPrevious) {
-                        Color.White
-                    } else {
-                        Color.DarkGray
-                    }
+                imageVector = Icons.Rounded.ChevronLeft,
+                contentDescription = "Página anterior",
+                tint = if (canPrevious) {
+                    Color.White
+                } else {
+                    Color.DarkGray
+                }
             )
         }
 
         IconButton(
             onClick = onNext,
-
             enabled = canNext,
-
-            modifier =
-                Modifier.size(38.dp)
+            modifier = Modifier.size(38.dp)
         ) {
             Icon(
-                Icons.Rounded.ChevronRight,
-
-                contentDescription =
-                    "Próxima página",
-
-                tint =
-                    if (canNext) {
-                        Color.White
-                    } else {
-                        Color.DarkGray
-                    }
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = "Próxima página",
+                tint = if (canNext) {
+                    Color.White
+                } else {
+                    Color.DarkGray
+                }
             )
         }
 
         Text(
             text = "A-Z",
-
             color = Color.White,
-
-            fontWeight =
-                FontWeight.ExtraBold,
-
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 14.sp,
-
-            modifier =
-                Modifier
-                    .clickable(
-                        onClick = onSort
-                    )
-                    .padding(10.dp)
+            modifier = Modifier
+                .clickable(onClick = onSort)
+                .padding(10.dp)
         )
 
         IconButton(
             onClick = onFilters,
-
-            modifier =
-                Modifier.size(38.dp)
+            modifier = Modifier.size(38.dp)
         ) {
             Icon(
-                Icons.Rounded.FilterAlt,
-
-                contentDescription =
-                    "Abrir filtros",
-
-                tint =
-                    Color.White,
-
-                modifier =
-                    Modifier.size(21.dp)
+                imageVector = Icons.Rounded.FilterAlt,
+                contentDescription = "Abrir filtros",
+                tint = Color.White,
+                modifier = Modifier.size(21.dp)
             )
         }
     }
@@ -810,48 +595,32 @@ private fun AlphabetBar(
     selected: String,
     onSelected: (String) -> Unit
 ) {
-    val listState =
-        rememberLazyListState()
+    val listState = rememberLazyListState()
 
     LaunchedEffect(selected) {
-        val selectedIndex =
-            Alphabet.indexOf(selected)
+        val selectedIndex = Alphabet.indexOf(selected)
 
         if (selectedIndex >= 0) {
-            listState.animateScrollToItem(
-                selectedIndex
-            )
+            listState.animateScrollToItem(selectedIndex)
         }
     }
 
     LazyRow(
         state = listState,
-
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    FavoritesBackground
-                ),
-
-        contentPadding =
-            PaddingValues(
-                horizontal = 8.dp,
-                vertical = 5.dp
-            ),
-
-        horizontalArrangement =
-            Arrangement.spacedBy(0.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FavoritesBackground),
+        contentPadding = PaddingValues(
+            horizontal = 8.dp,
+            vertical = 5.dp
+        ),
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        items(
-            Alphabet.size
-        ) { index ->
-
-            val letter =
-                Alphabet[index]
+        items(Alphabet.size) { index ->
+            val letter = Alphabet[index]
 
             Box(
-                Modifier
+                modifier = Modifier
                     .size(
                         width = 34.dp,
                         height = 39.dp
@@ -859,24 +628,17 @@ private fun AlphabetBar(
                     .clickable {
                         onSelected(letter)
                     },
-
-                contentAlignment =
-                    Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = letter,
-
-                    color =
-                        if (selected == letter) {
-                            Color.White
-                        } else {
-                            LaranjadaOrange
-                        },
-
+                    color = if (selected == letter) {
+                        Color.White
+                    } else {
+                        LaranjadaOrange
+                    },
                     fontSize = 12.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -924,151 +686,99 @@ private fun FiltersSheet(
     }
 
     Column(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 640.dp)
-            .verticalScroll(
-                rememberScrollState()
-            )
-            .padding(
-                horizontal = 19.dp
-            )
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 19.dp)
     ) {
         SheetTitle(
             title = "Filtros",
-
             onClose = onClose
         )
 
         Text(
             text = "Buscar",
-
             color = FavoritesMuted,
-
             fontSize = 12.sp,
-
-            fontWeight =
-                FontWeight.Bold
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            Modifier.height(7.dp)
-        )
+        Spacer(modifier = Modifier.height(7.dp))
 
         OutlinedTextField(
             value = search,
-
             onValueChange = {
                 search = it
             },
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
+            modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-
             placeholder = {
                 Text(
                     text = "Digite o título",
-
                     color = FavoritesMuted
                 )
             },
-
             leadingIcon = {
                 Icon(
-                    Icons.Rounded.Search,
-
+                    imageVector = Icons.Rounded.Search,
                     contentDescription = null
                 )
             },
-
-            keyboardOptions =
-                KeyboardOptions(
-                    imeAction =
-                        ImeAction.Search
-                ),
-
-            keyboardActions =
-                KeyboardActions(
-                    onSearch = {
-                        onApply(
-                            type,
-                            category,
-                            search,
-                            year,
-                            rating,
-                            chosenGenres
-                        )
-                    }
-                ),
-
-            colors =
-                OutlinedTextFieldDefaults.colors(
-                    focusedTextColor =
-                        Color.White,
-
-                    unfocusedTextColor =
-                        Color.White,
-
-                    focusedBorderColor =
-                        LaranjadaOrange,
-
-                    unfocusedBorderColor =
-                        FavoritesMuted,
-
-                    focusedPlaceholderColor =
-                        FavoritesMuted,
-
-                    unfocusedPlaceholderColor =
-                        FavoritesMuted
-                )
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Search
+            ),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    onApply(
+                        type,
+                        category,
+                        search,
+                        year,
+                        rating,
+                        chosenGenres
+                    )
+                }
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = LaranjadaOrange,
+                unfocusedBorderColor = FavoritesMuted,
+                focusedPlaceholderColor = FavoritesMuted,
+                unfocusedPlaceholderColor = FavoritesMuted
+            )
         )
 
-        SheetLabel(
-            "Tipo de conteúdo"
-        )
+        SheetLabel("Tipo de conteúdo")
 
         ContentTypes.forEach { (label, value) ->
             ChoiceRow(
                 label = label,
-
-                selected =
-                    type == value,
-
+                selected = type == value,
                 onClick = {
                     type = value
                 }
             )
         }
 
-        SheetLabel(
-            "Categoria"
-        )
+        SheetLabel("Categoria")
 
         Categories.forEach { (label, value) ->
             ChoiceRow(
                 label = label,
-
-                selected =
-                    category == value,
-
+                selected = category == value,
                 onClick = {
                     category = value
                 }
             )
         }
 
-        SheetLabel(
-            "Ano"
-        )
+        SheetLabel("Ano")
 
         SelectionRow(
             label = "Todos",
-
-            selected =
-                year.isBlank(),
-
+            selected = year.isBlank(),
             onClick = {
                 year = ""
             }
@@ -1076,22 +786,15 @@ private fun FiltersSheet(
 
         years.forEach { available ->
             SelectionRow(
-                label =
-                    available.toString(),
-
-                selected =
-                    year == available.toString(),
-
+                label = available.toString(),
+                selected = year == available.toString(),
                 onClick = {
-                    year =
-                        available.toString()
+                    year = available.toString()
                 }
             )
         }
 
-        SheetLabel(
-            "Nota mínima"
-        )
+        SheetLabel("Nota mínima")
 
         listOf(
             "Qualquer" to "",
@@ -1101,59 +804,41 @@ private fun FiltersSheet(
             "8+" to "8",
             "9+" to "9"
         ).forEach { (label, value) ->
-
             SelectionRow(
                 label = label,
-
-                selected =
-                    rating == value,
-
+                selected = rating == value,
                 onClick = {
                     rating = value
                 }
             )
         }
 
-        SheetLabel(
-            "Gêneros"
-        )
+        SheetLabel("Gêneros")
 
         if (genres.isEmpty()) {
             Text(
                 text =
                     "Nenhum gênero disponível para estes filtros.",
-
-                color =
-                    FavoritesMuted,
-
-                fontSize =
-                    12.sp
+                color = FavoritesMuted,
+                fontSize = 12.sp
             )
-
         } else {
             genres.forEach { genre ->
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                chosenGenres =
-                                    if (
-                                        genre.id in chosenGenres
-                                    ) {
-                                        chosenGenres - genre.id
-                                    } else {
-                                        chosenGenres + genre.id
-                                    }
-                            },
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            chosenGenres =
+                                if (genre.id in chosenGenres) {
+                                    chosenGenres - genre.id
+                                } else {
+                                    chosenGenres + genre.id
+                                }
+                        },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked =
-                            genre.id in chosenGenres,
-
+                        checked = genre.id in chosenGenres,
                         onCheckedChange = { checked ->
                             chosenGenres =
                                 if (checked) {
@@ -1162,28 +847,21 @@ private fun FiltersSheet(
                                     chosenGenres - genre.id
                                 }
                         },
-
-                        colors =
-                            CheckboxDefaults.colors(
-                                checkedColor =
-                                    LaranjadaOrange
-                            )
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = LaranjadaOrange
+                        )
                     )
 
                     Text(
                         text = genre.name,
-
                         color = Color.White,
-
                         fontSize = 13.sp
                     )
                 }
             }
         }
 
-        Spacer(
-            Modifier.height(18.dp)
-        )
+        Spacer(modifier = Modifier.height(18.dp))
 
         Button(
             onClick = {
@@ -1196,48 +874,32 @@ private fun FiltersSheet(
                     chosenGenres
                 )
             },
-
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor =
-                        LaranjadaOrange,
-
-                    contentColor =
-                        Color.Black
-                ),
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            shape =
-                RoundedCornerShape(8.dp)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = LaranjadaOrange,
+                contentColor = Color.Black
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
         ) {
             Text(
                 text = "Aplicar filtros",
-
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
 
         TextButton(
             onClick = onClear,
-
-            modifier =
-                Modifier.align(
-                    Alignment.CenterHorizontally
-                )
+            modifier = Modifier.align(
+                Alignment.CenterHorizontally
+            )
         ) {
             Text(
                 text = "Limpar filtros",
-
                 color = Color.White
             )
         }
 
-        Spacer(
-            Modifier.height(26.dp)
-        )
+        Spacer(modifier = Modifier.height(26.dp))
     }
 }
 
@@ -1247,36 +909,23 @@ private fun SheetTitle(
     onClose: () -> Unit
 ) {
     Row(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp),
-
-        verticalAlignment =
-            Alignment.CenterVertically,
-
-        horizontalArrangement =
-            Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = title,
-
             color = Color.White,
-
-            fontWeight =
-                FontWeight.Bold,
-
+            fontWeight = FontWeight.Bold,
             fontSize = 20.sp
         )
 
-        IconButton(
-            onClick = onClose
-        ) {
+        IconButton(onClick = onClose) {
             Icon(
-                Icons.Rounded.Close,
-
-                contentDescription =
-                    "Fechar",
-
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "Fechar",
                 tint = Color.White
             )
         }
@@ -1284,38 +933,23 @@ private fun SheetTitle(
 }
 
 @Composable
-private fun SheetLabel(
-    label: String
-) {
-    Spacer(
-        Modifier.height(15.dp)
-    )
+private fun SheetLabel(label: String) {
+    Spacer(modifier = Modifier.height(15.dp))
 
     HorizontalDivider(
-        color =
-            Color.White.copy(
-                alpha = 0.10f
-            )
+        color = Color.White.copy(alpha = 0.10f)
     )
 
-    Spacer(
-        Modifier.height(13.dp)
-    )
+    Spacer(modifier = Modifier.height(13.dp))
 
     Text(
         text = label,
-
         color = Color.White,
-
-        fontWeight =
-            FontWeight.Bold,
-
+        fontWeight = FontWeight.Bold,
         fontSize = 14.sp
     )
 
-    Spacer(
-        Modifier.height(5.dp)
-    )
+    Spacer(modifier = Modifier.height(5.dp))
 }
 
 @Composable
@@ -1325,35 +959,23 @@ private fun ChoiceRow(
     onClick: () -> Unit
 ) {
     Row(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable(
-                onClick = onClick
-            )
-            .padding(
-                vertical = 7.dp
-            ),
-
-        verticalAlignment =
-            Alignment.CenterVertically
+            .clickable(onClick = onClick)
+            .padding(vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = selected,
-
             onClick = onClick,
-
-            colors =
-                RadioButtonDefaults.colors(
-                    selectedColor =
-                        LaranjadaOrange
-                )
+            colors = RadioButtonDefaults.colors(
+                selectedColor = LaranjadaOrange
+            )
         )
 
         Text(
             text = label,
-
             color = Color.White,
-
             fontSize = 13.sp
         )
     }
@@ -1367,9 +989,7 @@ private fun SelectionRow(
 ) {
     ChoiceRow(
         label = label,
-
         selected = selected,
-
         onClick = onClick
     )
 }
@@ -1379,18 +999,14 @@ private fun CenterState(
     content: @Composable () -> Unit
 ) {
     Column(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(
                 horizontal = 20.dp,
                 vertical = 42.dp
             ),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-
-        verticalArrangement =
-            Arrangement.spacedBy(12.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         content()
     }

@@ -1,3 +1,4 @@
+
 package com.rnx.laranjada.feature.home
 
 import android.util.Log
@@ -10,42 +11,46 @@ import com.rnx.laranjada.data.repository.LaranjadaRepositoryImpl
 import com.rnx.laranjada.data.repository.WatchingProgressRepositoryImpl
 import com.rnx.laranjada.domain.repository.LaranjadaRepository
 import com.rnx.laranjada.domain.repository.WatchingProgressRepository
-import com.rnx.laranjada.feature.home.data.HomeMockData
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val repository:
-    LaranjadaRepository =
+    private val repository: LaranjadaRepository =
         LaranjadaRepositoryImpl(),
 
-    private val watchingProgressRepository:
-    WatchingProgressRepository =
+    private val watchingProgressRepository: WatchingProgressRepository =
         WatchingProgressRepositoryImpl()
 ) : ViewModel() {
 
+    /*
+     * Estado inicial vazio.
+     *
+     * Não utilizamos HomeMockData.
+     * Os conteúdos serão carregados
+     * exclusivamente pela API.
+     */
     var uiState by mutableStateOf(
-        HomeMockData.uiState
+        HomeUiState(
+            heroBanners = emptyList(),
+            selectedHeroIndex = 0,
+            categories = emptyList(),
+            selectedCategoryIndex = 0,
+            continueWatching = emptyList(),
+            contentSections = emptyList(),
+            collections = emptyList()
+        )
     )
         private set
 
-    var isLoading by mutableStateOf(
-        false
-    )
+    var isLoading by mutableStateOf(false)
         private set
 
-    var isRefreshingContinueWatching by mutableStateOf(
-        false
-    )
+    var isRefreshingContinueWatching by mutableStateOf(false)
         private set
 
-    var restartingContentUuid by mutableStateOf<String?>(
-        null
-    )
+    var restartingContentUuid by mutableStateOf<String?>(null)
         private set
 
-    var errorMessage by mutableStateOf<String?>(
-        null
-    )
+    var errorMessage by mutableStateOf<String?>(null)
         private set
 
     init {
@@ -53,37 +58,27 @@ class HomeViewModel(
     }
 
     fun loadHome() {
-        if (
-            isLoading
-        ) {
+        if (isLoading) {
             return
         }
 
-        isLoading =
-            true
+        isLoading = true
 
         viewModelScope.launch {
-
-            errorMessage =
-                null
+            errorMessage = null
 
             try {
-                val homeState =
-                    repository.getHome()
+                val homeState = repository.getHome()
 
-                uiState =
-                    homeState
+                uiState = homeState
 
                 try {
                     val continueWatching =
-                        repository
-                            .getContinueWatching()
+                        repository.getContinueWatching()
 
-                    uiState =
-                        uiState.copy(
-                            continueWatching =
-                                continueWatching
-                        )
+                    uiState = uiState.copy(
+                        continueWatching = continueWatching
+                    )
 
                     Log.d(
                         TAG,
@@ -91,11 +86,8 @@ class HomeViewModel(
                                 "count=${continueWatching.size}"
                     )
 
-                } catch (
-                    exception: Exception
-                ) {
-                    errorMessage =
-                        exception.message
+                } catch (exception: Exception) {
+                    errorMessage = exception.message
 
                     Log.w(
                         TAG,
@@ -104,11 +96,8 @@ class HomeViewModel(
                     )
                 }
 
-            } catch (
-                exception: Exception
-            ) {
-                errorMessage =
-                    exception.message
+            } catch (exception: Exception) {
+                errorMessage = exception.message
 
                 Log.w(
                     TAG,
@@ -117,79 +106,58 @@ class HomeViewModel(
                 )
 
             } finally {
-                isLoading =
-                    false
+                isLoading = false
             }
         }
     }
 
     fun refreshContinueWatching() {
-        if (
-            isLoading
-        ) {
+        if (isLoading) {
             Log.d(
                 TAG,
-                "Refresh ignorado: " +
-                        "Home ainda está carregando."
+                "Refresh ignorado: Home ainda está carregando."
             )
-
             return
         }
 
-        if (
-            isRefreshingContinueWatching
-        ) {
+        if (isRefreshingContinueWatching) {
             Log.d(
                 TAG,
-                "Refresh ignorado: " +
-                        "já existe atualização em andamento."
+                "Refresh ignorado: já existe atualização em andamento."
             )
-
             return
         }
 
-        isRefreshingContinueWatching =
-            true
+        isRefreshingContinueWatching = true
 
         viewModelScope.launch {
             try {
                 val continueWatching =
-                    repository
-                        .getContinueWatching()
+                    repository.getContinueWatching()
 
-                uiState =
-                    uiState.copy(
-                        continueWatching =
-                            continueWatching
-                    )
+                uiState = uiState.copy(
+                    continueWatching = continueWatching
+                )
 
                 val firstItem =
-                    continueWatching
-                        .firstOrNull()
+                    continueWatching.firstOrNull()
 
                 Log.d(
                     TAG,
                     "Continue Assistindo atualizado. " +
                             "count=${continueWatching.size} " +
                             "first=" +
-                            if (
-                                firstItem !=
-                                null
-                            ) {
+                            if (firstItem != null) {
                                 "${firstItem.contentType}:" +
                                         "${firstItem.contentUuid} " +
-                                        "position=" +
-                                        "${firstItem.positionSeconds}s"
+                                        "position=${firstItem.positionSeconds}s"
                             } else {
                                 "none"
                             }
                 )
 
-            } catch (
-                exception: Exception
-            ) {
-                errorMessage =
-                    exception.message
+            } catch (exception: Exception) {
+                errorMessage = exception.message
 
                 Log.w(
                     TAG,
@@ -198,8 +166,7 @@ class HomeViewModel(
                 )
 
             } finally {
-                isRefreshingContinueWatching =
-                    false
+                isRefreshingContinueWatching = false
             }
         }
     }
@@ -209,22 +176,17 @@ class HomeViewModel(
         onSuccess: () -> Unit
     ) {
         val normalizedContentType =
-            item.contentType
-                .trim()
-                .lowercase()
+            item.contentType.trim().lowercase()
 
         val normalizedContentUuid =
-            item.contentUuid
-                .trim()
+            item.contentUuid.trim()
 
         if (
-            normalizedContentType !in
-            setOf(
+            normalizedContentType !in setOf(
                 "movie",
                 "episode"
             ) ||
-            normalizedContentUuid
-                .isBlank()
+            normalizedContentUuid.isBlank()
         ) {
             Log.w(
                 TAG,
@@ -232,58 +194,40 @@ class HomeViewModel(
                         "content=${item.contentType}:" +
                         "${item.contentUuid}"
             )
-
             return
         }
 
-        if (
-            restartingContentUuid !=
-            null
-        ) {
+        if (restartingContentUuid != null) {
             Log.d(
                 TAG,
-                "Restart ignorado: já existe " +
-                        "uma reinicialização em andamento."
+                "Restart ignorado: já existe uma reinicialização em andamento."
             )
-
             return
         }
 
         restartingContentUuid =
             normalizedContentUuid
 
-        errorMessage =
-            null
+        errorMessage = null
 
         viewModelScope.launch {
             try {
                 val deletedCount =
-                    watchingProgressRepository
-                        .resetProgress(
-                            contentType =
-                                normalizedContentType,
-
-                            contentUuid =
-                                normalizedContentUuid
-                        )
-
-                uiState =
-                    uiState.copy(
-                        continueWatching =
-                            uiState
-                                .continueWatching
-                                .filterNot {
-                                        current ->
-
-                                    current.contentType
-                                        .trim()
-                                        .lowercase() ==
-                                            normalizedContentType &&
-                                            current.contentUuid
-                                                .trim() ==
-                                            normalizedContentUuid
-                                }
+                    watchingProgressRepository.resetProgress(
+                        contentType = normalizedContentType,
+                        contentUuid = normalizedContentUuid
                     )
+
+                uiState = uiState.copy(
+                    continueWatching =
+                        uiState.continueWatching.filterNot { current ->
+                            current.contentType
+                                .trim()
+                                .lowercase() == normalizedContentType &&
+                                    current.contentUuid
+                                        .trim() == normalizedContentUuid
+                        }
+                )
 
                 Log.d(
                     TAG,
@@ -295,9 +239,7 @@ class HomeViewModel(
 
                 onSuccess()
 
-            } catch (
-                exception: Exception
-            ) {
+            } catch (exception: Exception) {
                 errorMessage =
                     exception.message
                         ?: "Não foi possível reiniciar o conteúdo."
@@ -311,15 +253,12 @@ class HomeViewModel(
                 )
 
             } finally {
-                restartingContentUuid =
-                    null
+                restartingContentUuid = null
             }
         }
     }
 
     private companion object {
-
-        const val TAG =
-            "LaranjadaContinue"
+        const val TAG = "LaranjadaContinue"
     }
 }
