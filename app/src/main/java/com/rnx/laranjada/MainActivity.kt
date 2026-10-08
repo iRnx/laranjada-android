@@ -1,6 +1,8 @@
+
 package com.rnx.laranjada
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -8,28 +10,42 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rnx.laranjada.core.design.theme.LaranjadaBlack
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
 import com.rnx.laranjada.core.design.theme.LaranjadaTheme
+import com.rnx.laranjada.core.navigation.AppRoutes
 import com.rnx.laranjada.core.navigation.LaranjadaNavGraph
 import com.rnx.laranjada.core.network.ApiHttpClient
+import com.rnx.laranjada.feature.account.ProfileViewModel
 import com.rnx.laranjada.feature.auth.AppSessionState
 import com.rnx.laranjada.feature.auth.AppSessionViewModel
 import com.rnx.laranjada.feature.auth.LoginScreen
+import com.rnx.laranjada.feature.home.components.BottomBarNavigationContext
+import com.rnx.laranjada.feature.home.components.HomeBottomBar
+import com.rnx.laranjada.feature.home.components.LocalBottomBarNavigation
 
 class MainActivity : ComponentActivity() {
 
@@ -63,12 +79,8 @@ class MainActivity : ComponentActivity() {
                     }
 
                     is AppSessionState.Authenticated -> {
-                        val navController =
-                            rememberNavController()
-
-                        LaranjadaNavGraph(
-                            navController = navController,
-                            currentUser = sessionState.user,
+                        AuthenticatedApp(
+                            sessionState = sessionState,
                             isLoggingOut =
                                 sessionViewModel.isLoggingOut,
                             logoutErrorMessage =
@@ -80,8 +92,7 @@ class MainActivity : ComponentActivity() {
 
                     is AppSessionState.Unavailable -> {
                         SessionUnavailableScreen(
-                            message =
-                                sessionState.message,
+                            message = sessionState.message,
                             onRetryClick =
                                 sessionViewModel::checkSession
                         )
@@ -93,13 +104,272 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun AuthenticatedApp(
+    sessionState: AppSessionState.Authenticated,
+    isLoggingOut: Boolean,
+    logoutErrorMessage: String?,
+    onLogoutClick: () -> Unit
+) {
+    val context = LocalContext.current
+
+    /*
+     * Um único controlador de navegação
+     * para a sessão autenticada.
+     */
+    val navController = rememberNavController()
+
+    /*
+     * O NavGraph utiliza o mesmo
+     * ProfileViewModel da Activity.
+     *
+     * Assim, não criamos um segundo
+     * estado independente de perfil.
+     */
+    val profileViewModel: ProfileViewModel = viewModel()
+
+    val profileState = profileViewModel.uiState
+
+    val selectedProfile =
+        profileState.profiles.firstOrNull { profile ->
+            profile.uuid == profileState.selectedProfileUuid
+        } ?: profileState.profiles.firstOrNull { profile ->
+            profile.isSelected
+        }
+
+    /*
+     * Navegação principal somente
+     * após carregar e selecionar
+     * um perfil válido.
+     */
+    val canNavigate =
+        profileState.isLoading == false &&
+                selectedProfile != null
+
+    val backStackEntry by
+    navController.currentBackStackEntryAsState()
+
+    val currentRoute =
+        backStackEntry?.destination?.route
+
+    /*
+     * Apenas as páginas principais
+     * possuem bottom bar.
+     *
+     * Player, login, PIN e edição
+     * de perfis não possuem.
+     */
+    val showBottomBar =
+        canNavigate &&
+                currentRoute in setOf(
+            AppRoutes.Home.route,
+            AppRoutes.Favorites.route,
+            AppRoutes.Account.route,
+            AppRoutes.Detail.route,
+            AppRoutes.Collection.route,
+            AppRoutes.MediaGrid.route
+        )
+
+    /*
+     * A seleção do ícone depende
+     * da rota real, não de botões
+     * locais das telas.
+     *
+     * Nas páginas secundárias,
+     * mantemos Início como referência.
+     */
+    val selectedBottomIndex =
+        when (currentRoute) {
+            AppRoutes.Favorites.route -> 2
+
+            AppRoutes.Account.route -> 3
+
+            else -> 0
+        }
+
+    /*
+     * Toast de boas-vindas.
+     *
+     * Uma única vez nesta sessão
+     * autenticada do aplicativo.
+     *
+     * Não repete entre telas.
+     */
+    var welcomeShown by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(
+        canNavigate,
+        selectedProfile?.uuid
+    ) {
+        if (
+            canNavigate &&
+            welcomeShown == false
+        ) {
+            welcomeShown = true
+
+            val profileName =
+                selectedProfile?.name.orEmpty()
+
+            val message =
+                if (profileName.isBlank()) {
+                    "🍊 Bem-vindo ao Laranjada!"
+                } else {
+                    "🍊 Bem-vindo ao Laranjada, $profileName!"
+                }
+
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    /*
+     * NAVEGAÇÃO ENTRE SEÇÕES
+     *
+     * A Home é a raiz.
+     *
+     * Favoritos e Menu não são
+     * empilhados repetidamente.
+     *
+     * Não usamos saveState ou
+     * restoreState aqui.
+     */
+    val navigationContext =
+        BottomBarNavigationContext(
+            selectedIndex = selectedBottomIndex,
+
+            profileName =
+                selectedProfile?.name.orEmpty(),
+
+            profileAvatarUrl =
+                selectedProfile?.avatar?.imageUrl,
+
+            searchEnabled = false,
+
+            onNavigate = { index ->
+                if (canNavigate) {
+                    val destination =
+                        when (index) {
+                            0 -> AppRoutes.Home.route
+
+                            2 -> AppRoutes.Favorites.route
+
+                            3 -> AppRoutes.Account.route
+
+                            else -> null
+                        }
+
+                    if (
+                        destination != null &&
+                        currentRoute != destination
+                    ) {
+                        if (
+                            destination == AppRoutes.Home.route
+                        ) {
+                            /*
+                             * Retorna à Home existente,
+                             * evitando criar outra cópia.
+                             */
+                            val returned =
+                                navController.popBackStack(
+                                    AppRoutes.Home.route,
+                                    false
+                                )
+
+                            /*
+                             * Fallback caso a Home
+                             * não esteja no histórico.
+                             */
+                            if (returned == false) {
+                                navController.navigate(
+                                    AppRoutes.Home.route
+                                ) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        } else {
+                            /*
+                             * Remove telas anteriores
+                             * de Favoritos ou Menu.
+                             */
+                            navController.navigate(
+                                destination
+                            ) {
+                                popUpTo(
+                                    AppRoutes.Home.route
+                                ) {
+                                    inclusive = false
+                                }
+
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                }
+            }
+        )
+
+    /*
+     * Bottom bar global.
+     *
+     * As chamadas antigas de
+     * HomeBottomBar nas telas
+     * não são desenhadas quando
+     * este contexto está ativo.
+     */
+    CompositionLocalProvider(
+        LocalBottomBarNavigation provides
+                navigationContext
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                )
+        ) {
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                LaranjadaNavGraph(
+                    navController = navController,
+                    currentUser = sessionState.user,
+                    isLoggingOut = isLoggingOut,
+                    logoutErrorMessage =
+                        logoutErrorMessage,
+                    onLogoutClick = onLogoutClick
+                )
+            }
+
+            /*
+             * Somente esta bottom bar
+             * fica visível.
+             */
+            if (showBottomBar) {
+                HomeBottomBar(
+                    selectedIndex =
+                        selectedBottomIndex,
+                    profileName =
+                        selectedProfile?.name.orEmpty(),
+                    profileAvatarUrl =
+                        selectedProfile?.avatar?.imageUrl,
+                    modifier = Modifier.fillMaxWidth(),
+                    isHostBar = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SessionLoadingScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                LaranjadaBlack
-            ),
+            .background(LaranjadaBlack),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
@@ -116,17 +386,14 @@ private fun SessionUnavailableScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                LaranjadaBlack
-            )
-            .padding(
-                28.dp
-            ),
+            .background(LaranjadaBlack)
+            .padding(28.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Não foi possível verificar sua sessão.",
+            text =
+                "Não foi possível verificar sua sessão.",
             color = LaranjadaText,
             textAlign = TextAlign.Center
         )
@@ -150,9 +417,7 @@ private fun SessionUnavailableScreen(
                 contentColor = Color.White
             )
         ) {
-            Text(
-                text = "TENTAR NOVAMENTE"
-            )
+            Text("TENTAR NOVAMENTE")
         }
     }
 }

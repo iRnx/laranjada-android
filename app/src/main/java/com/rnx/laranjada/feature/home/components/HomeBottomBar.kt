@@ -1,3 +1,4 @@
+
 package com.rnx.laranjada.feature.home.components
 
 import androidx.compose.foundation.BorderStroke
@@ -25,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,10 +44,28 @@ import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaSurfaceLight
 import com.rnx.laranjada.core.design.theme.LaranjadaText
 
-private val LaranjadaBottomBarBackground =
-    Color(
-        0xFF101417
-    )
+private val BottomBarBackground =
+    Color(0xFF101417)
+
+/*
+ * Contexto global da navegação.
+ *
+ * A MainActivity define o destino
+ * selecionado e controla a troca
+ * entre as telas principais.
+ */
+data class BottomBarNavigationContext(
+    val selectedIndex: Int,
+    val profileName: String,
+    val profileAvatarUrl: String?,
+    val searchEnabled: Boolean = false,
+    val onNavigate: (Int) -> Unit
+)
+
+val LocalBottomBarNavigation =
+    compositionLocalOf<BottomBarNavigationContext?> {
+        null
+    }
 
 private enum class BottomNavItemType {
     Icon,
@@ -59,32 +79,83 @@ private data class BottomNavItemUi(
         BottomNavItemType.Icon
 )
 
+/*
+ * Componente único da bottom bar.
+ *
+ * isHostBar = true:
+ * a MainActivity desenha a barra.
+ *
+ * isHostBar = false:
+ * barras antigas das telas não são
+ * desenhadas quando há navegação global.
+ *
+ * Assim evitamos duas barras na tela.
+ */
 @Composable
 fun HomeBottomBar(
     selectedIndex: Int = 0,
     profileName: String = "",
     profileAvatarUrl: String? = null,
     modifier: Modifier = Modifier,
-    onItemClick: (Int) -> Unit = {}
+    onItemClick: (Int) -> Unit = {},
+    isHostBar: Boolean = false
 ) {
-    val items = listOf(
-        BottomNavItemUi(
-            label = "Início",
-            icon = Icons.Rounded.Home
-        ),
-        BottomNavItemUi(
-            label = "Pesquisar",
-            icon = Icons.Rounded.Search
-        ),
-        BottomNavItemUi(
-            label = "Favoritos",
-            icon = Icons.Rounded.FavoriteBorder
-        ),
-        BottomNavItemUi(
-            label = "Perfil",
-            type = BottomNavItemType.Avatar
+    val navigationContext =
+        LocalBottomBarNavigation.current
+
+    /*
+     * Impede barras duplicadas.
+     *
+     * Home, Detail, Favoritos e Coleções
+     * ainda possuem chamadas antigas.
+     *
+     * Não precisamos reescrever
+     * essas telas agora.
+     */
+    if (
+        navigationContext != null &&
+        !isHostBar
+    ) {
+        return
+    }
+
+    val effectiveSelectedIndex =
+        navigationContext?.selectedIndex
+            ?: selectedIndex
+
+    val effectiveProfileName =
+        navigationContext?.profileName
+            ?.takeIf { it.isNotBlank() }
+            ?: profileName
+
+    val effectiveAvatarUrl =
+        navigationContext?.profileAvatarUrl
+            ?: profileAvatarUrl
+
+    val searchEnabled =
+        navigationContext?.searchEnabled
+            ?: true
+
+    val items = remember {
+        listOf(
+            BottomNavItemUi(
+                label = "Início",
+                icon = Icons.Rounded.Home
+            ),
+            BottomNavItemUi(
+                label = "Pesquisar",
+                icon = Icons.Rounded.Search
+            ),
+            BottomNavItemUi(
+                label = "Favoritos",
+                icon = Icons.Rounded.FavoriteBorder
+            ),
+            BottomNavItemUi(
+                label = "Perfil",
+                type = BottomNavItemType.Avatar
+            )
         )
-    )
+    }
 
     Surface(
         modifier = modifier
@@ -93,10 +164,9 @@ fun HomeBottomBar(
                 WindowInsets.navigationBars
             ),
         shape = RectangleShape,
-        color =
-            LaranjadaBottomBarBackground.copy(
-                alpha = 0.96f
-            ),
+        color = BottomBarBackground.copy(
+            alpha = 0.96f
+        ),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
@@ -104,12 +174,11 @@ fun HomeBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
-                    border = BorderStroke(
+                    BorderStroke(
                         width = 1.dp,
-                        color =
-                            Color.White.copy(
-                                alpha = 0.05f
-                            )
+                        color = Color.White.copy(
+                            alpha = 0.05f
+                        )
                     )
                 )
                 .padding(
@@ -121,23 +190,28 @@ fun HomeBottomBar(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-            items.forEachIndexed {
-                    index,
-                    item ->
+            items.forEachIndexed { index, item ->
+
+                val enabled =
+                    index != 1 || searchEnabled
 
                 BottomNavItem(
                     item = item,
                     selected =
-                        index ==
-                                selectedIndex,
+                        index == effectiveSelectedIndex,
+                    enabled = enabled,
                     profileName =
-                        profileName,
+                        effectiveProfileName,
                     profileAvatarUrl =
-                        profileAvatarUrl,
+                        effectiveAvatarUrl,
                     onClick = {
-                        onItemClick(
-                            index
-                        )
+                        if (navigationContext != null) {
+                            navigationContext.onNavigate(
+                                index
+                            )
+                        } else {
+                            onItemClick(index)
+                        }
                     }
                 )
             }
@@ -149,71 +223,60 @@ fun HomeBottomBar(
 private fun BottomNavItem(
     item: BottomNavItemUi,
     selected: Boolean,
+    enabled: Boolean,
     profileName: String,
     profileAvatarUrl: String?,
     onClick: () -> Unit
 ) {
-    val interactionSource =
-        remember {
-            MutableInteractionSource()
-        }
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
 
     Box(
         modifier = Modifier
-            .size(
-                44.dp
-            )
-            .clip(
-                CircleShape
-            )
+            .size(44.dp)
+            .clip(CircleShape)
             .clickable(
-                interactionSource =
-                    interactionSource,
+                enabled = enabled,
+                interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             ),
-        contentAlignment =
-            Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        when (
-            item.type
-        ) {
+        when (item.type) {
             BottomNavItemType.Icon -> {
                 Icon(
                     imageVector =
-                        requireNotNull(
-                            item.icon
-                        ),
+                        requireNotNull(item.icon),
+
                     contentDescription =
                         item.label,
-                    tint = if (
-                        selected
-                    ) {
-                        LaranjadaOrange
-                    } else {
-                        LaranjadaMutedText
+
+                    tint = when {
+                        !enabled ->
+                            LaranjadaMutedText.copy(
+                                alpha = 0.45f
+                            )
+
+                        selected ->
+                            LaranjadaOrange
+
+                        else ->
+                            LaranjadaMutedText
                     },
-                    modifier =
-                        Modifier.size(
-                            if (
-                                selected
-                            ) {
-                                28.dp
-                            } else {
-                                26.dp
-                            }
-                        )
+
+                    modifier = Modifier.size(
+                        if (selected) 28.dp else 26.dp
+                    )
                 )
             }
 
             BottomNavItemType.Avatar -> {
                 ProfileAvatar(
-                    selected =
-                        selected,
-                    profileName =
-                        profileName,
-                    avatarUrl =
-                        profileAvatarUrl
+                    selected = selected,
+                    profileName = profileName,
+                    avatarUrl = profileAvatarUrl
                 )
             }
         }
@@ -228,12 +291,8 @@ private fun ProfileAvatar(
 ) {
     Box(
         modifier = Modifier
-            .requiredSize(
-                32.dp
-            )
-            .clip(
-                CircleShape
-            )
+            .requiredSize(32.dp)
+            .clip(CircleShape)
             .background(
                 LaranjadaSurfaceLight.copy(
                     alpha = 0.82f
@@ -241,31 +300,23 @@ private fun ProfileAvatar(
             )
             .border(
                 border = BorderStroke(
-                    width = if (
-                        selected
-                    ) {
-                        2.dp
-                    } else {
-                        1.dp
-                    },
-                    color = if (
-                        selected
-                    ) {
-                        LaranjadaOrange
-                    } else {
-                        LaranjadaMutedText.copy(
-                            alpha = 0.80f
-                        )
-                    }
+                    width =
+                        if (selected) 2.dp else 1.dp,
+
+                    color =
+                        if (selected) {
+                            LaranjadaOrange
+                        } else {
+                            LaranjadaMutedText.copy(
+                                alpha = 0.80f
+                            )
+                        }
                 ),
                 shape = CircleShape
             ),
-        contentAlignment =
-            Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        if (
-            !avatarUrl.isNullOrBlank()
-        ) {
+        if (!avatarUrl.isNullOrBlank()) {
             AsyncImage(
                 model = avatarUrl,
                 contentDescription =
@@ -274,11 +325,8 @@ private fun ProfileAvatar(
                     },
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(
-                        CircleShape
-                    ),
-                contentScale =
-                    ContentScale.Crop
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
             )
         } else {
             Text(
@@ -286,19 +334,15 @@ private fun ProfileAvatar(
                     .trim()
                     .take(1)
                     .uppercase()
-                    .ifBlank {
-                        "?"
+                    .ifBlank { "?" },
+                color =
+                    if (selected) {
+                        LaranjadaOrange
+                    } else {
+                        LaranjadaText
                     },
-                color = if (
-                    selected
-                ) {
-                    LaranjadaOrange
-                } else {
-                    LaranjadaText
-                },
                 fontSize = 11.sp,
-                fontWeight =
-                    FontWeight.Bold,
+                fontWeight = FontWeight.Bold,
                 lineHeight = 11.sp
             )
         }
