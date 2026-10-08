@@ -1,3 +1,4 @@
+
 package com.rnx.laranjada.data.remote.api
 
 import com.rnx.laranjada.core.network.ApiHttpClient
@@ -26,7 +27,8 @@ object LaranjadaApiService {
         year: String = "",
         order: String = "updated_desc",
         ratingMin: String = "",
-        kind: String = ""
+        kind: String = "",
+        letter: String = ""
     ): JSONObject {
         return getJson(
             path = "/api/v1/home/sections/$sectionSlug/",
@@ -37,7 +39,8 @@ object LaranjadaApiService {
                 "year" to year,
                 "order" to order,
                 "rating_min" to ratingMin,
-                "kind" to kind
+                "kind" to kind,
+                "letter" to normalizeLetter(letter)
             )
         )
     }
@@ -67,17 +70,12 @@ object LaranjadaApiService {
             contentType.lowercase()
 
         val path =
-            when (
-                normalizedContentType
-            ) {
-                "series",
-                "serie" -> {
+            when (normalizedContentType) {
+                "series", "serie" ->
                     "/api/v1/series/$uuid/related/"
-                }
 
-                else -> {
+                else ->
                     "/api/v1/movies/$uuid/related/"
-                }
             }
 
         return getJson(
@@ -94,7 +92,8 @@ object LaranjadaApiService {
         year: String = "",
         type: String = "",
         order: String = "created_desc",
-        ratingMin: String = ""
+        ratingMin: String = "",
+        letter: String = ""
     ): JSONObject {
         return getJson(
             path = "/api/v1/collections/$uuid/",
@@ -103,9 +102,27 @@ object LaranjadaApiService {
                 "year" to year,
                 "type" to type,
                 "order" to order,
-                "rating_min" to ratingMin
+                "rating_min" to ratingMin,
+                "letter" to normalizeLetter(letter)
             )
         )
+    }
+
+    private fun normalizeLetter(
+        value: String
+    ): String {
+        val normalized =
+            value.trim().uppercase()
+
+        return when {
+            normalized == "#" -> "#"
+
+            normalized.length == 1 &&
+                    normalized[0] in 'A'..'Z' ->
+                normalized
+
+            else -> ""
+        }
     }
 
     private suspend fun getJson(
@@ -120,12 +137,9 @@ object LaranjadaApiService {
             )
 
         val response =
-            ApiHttpClient.get(
-                finalPath
-            )
+            ApiHttpClient.get(finalPath)
 
-        return response
-            .requireSuccessJson()
+        return response.requireSuccessJson()
     }
 
     private fun buildPathWithQueryParams(
@@ -134,23 +148,15 @@ object LaranjadaApiService {
     ): String {
         val queryString =
             queryParams
-                .filter {
-                        (_, value) ->
-
+                .filter { (_, value) ->
                     value.isNotBlank()
                 }
-                .map {
-                        (key, value) ->
-
+                .map { (key, value) ->
                     "${encode(key)}=${encode(value)}"
                 }
-                .joinToString(
-                    "&"
-                )
+                .joinToString("&")
 
-        if (
-            queryString.isBlank()
-        ) {
+        if (queryString.isBlank()) {
             return path
         }
 

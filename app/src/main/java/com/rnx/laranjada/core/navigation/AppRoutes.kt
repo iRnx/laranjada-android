@@ -1,3 +1,4 @@
+
 package com.rnx.laranjada.core.navigation
 
 import android.net.Uri
@@ -5,87 +6,81 @@ import android.net.Uri
 object AppRoutes {
 
     object Home {
-        const val route =
-            "home"
+        const val route = "home"
+    }
+
+    /*
+     * FAVORITOS
+     *
+     * Rota independente da Home.
+     * Não recebe profileUuid pela URL.
+     *
+     * O perfil é identificado pela sessão
+     * Django já selecionada.
+     */
+    object Favorites {
+        const val route = "favorites"
     }
 
     object Account {
-        const val route =
-            "account"
+        const val route = "account"
     }
 
     object CreateProfile {
-        const val route =
-            "profile/create"
+        const val route = "profile/create"
     }
 
     object EditProfiles {
-        const val route =
-            "profiles/edit"
+        const val route = "profiles/edit"
     }
 
     object EditProfile {
-        const val profileUuidArg =
-            "profileUuid"
+        const val profileUuidArg = "profileUuid"
 
         const val route =
             "profiles/edit/{$profileUuidArg}"
 
-        fun createRoute(
-            profileUuid: String
-        ): String {
+        fun createRoute(profileUuid: String): String {
             return "profiles/edit/${Uri.encode(profileUuid)}"
         }
     }
 
     object ProfilePin {
-        const val profileUuidArg =
-            "profileUuid"
+        const val profileUuidArg = "profileUuid"
 
         const val route =
             "profiles/pin/{$profileUuidArg}"
 
-        fun createRoute(
-            profileUuid: String
-        ): String {
+        fun createRoute(profileUuid: String): String {
             return "profiles/pin/${Uri.encode(profileUuid)}"
         }
     }
 
     object AvatarPicker {
-        const val profileUuidArg =
-            "profileUuid"
+        const val profileUuidArg = "profileUuid"
 
         const val route =
             "profiles/avatar/{$profileUuidArg}"
 
-        fun createRoute(
-            profileUuid: String
-        ): String {
+        fun createRoute(profileUuid: String): String {
             return "profiles/avatar/${Uri.encode(profileUuid)}"
         }
     }
 
     object DeleteProfile {
-        const val profileUuidArg =
-            "profileUuid"
+        const val profileUuidArg = "profileUuid"
 
         const val route =
             "profiles/delete/{$profileUuidArg}"
 
-        fun createRoute(
-            profileUuid: String
-        ): String {
+        fun createRoute(profileUuid: String): String {
             return "profiles/delete/${Uri.encode(profileUuid)}"
         }
     }
 
     object Detail {
-        const val contentTypeArg =
-            "contentType"
-
-        const val uuidArg =
-            "uuid"
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
 
         const val route =
             "detail/{$contentTypeArg}/{$uuidArg}"
@@ -99,25 +94,19 @@ object AppRoutes {
     }
 
     object Collection {
-        const val uuidArg =
-            "uuid"
+        const val uuidArg = "uuid"
 
         const val route =
             "collection/{$uuidArg}"
 
-        fun createRoute(
-            uuid: String
-        ): String {
+        fun createRoute(uuid: String): String {
             return "collection/${Uri.encode(uuid)}"
         }
     }
 
     object MediaGrid {
-        const val sectionSlugArg =
-            "sectionSlug"
-
-        const val titleArg =
-            "title"
+        const val sectionSlugArg = "sectionSlug"
+        const val titleArg = "title"
 
         const val route =
             "media-grid/{$sectionSlugArg}?$titleArg={$titleArg}"
@@ -132,14 +121,9 @@ object AppRoutes {
     }
 
     object Player {
-        const val contentTypeArg =
-            "contentType"
-
-        const val uuidArg =
-            "uuid"
-
-        const val seriesUuidArg =
-            "seriesUuid"
+        const val contentTypeArg = "contentType"
+        const val uuidArg = "uuid"
+        const val seriesUuidArg = "seriesUuid"
 
         const val initialPositionSecondsArg =
             "initialPositionSeconds"
@@ -147,9 +131,9 @@ object AppRoutes {
         /*
          * O Player recebe:
          *
-         * - identidade do conteúdo
-         * - seriesUuid quando for episódio
-         * - posição inicial opcional
+         * - identidade do conteúdo;
+         * - seriesUuid quando for episódio;
+         * - posição inicial opcional.
          *
          * A URL HLS continua vindo
          * exclusivamente do Reserve.
@@ -165,11 +149,9 @@ object AppRoutes {
             seriesUuid: String = "",
             initialPositionSeconds: Long = 0L
         ): String {
+
             val safePosition =
-                initialPositionSeconds
-                    .coerceAtLeast(
-                        0L
-                    )
+                initialPositionSeconds.coerceAtLeast(0L)
 
             return "player/${Uri.encode(contentType)}/${Uri.encode(uuid)}" +
                     "?$seriesUuidArg=${Uri.encode(seriesUuid)}" +
