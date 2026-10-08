@@ -8,6 +8,7 @@ import com.rnx.laranjada.feature.home.HomeUiState
 import com.rnx.laranjada.feature.home.MediaItemUi
 import com.rnx.laranjada.feature.mediagrid.MediaGridAppliedFiltersUi
 import com.rnx.laranjada.feature.mediagrid.MediaGridUiState
+import com.rnx.laranjada.feature.search.SearchResponseUi
 
 interface LaranjadaRepository {
 
@@ -16,6 +17,10 @@ interface LaranjadaRepository {
 
     suspend fun getContinueWatching():
             List<ContinueWatchingUi>
+
+    suspend fun search(
+        query: String
+    ): SearchResponseUi
 
     suspend fun getHomeSection(
         sectionSlug: String,

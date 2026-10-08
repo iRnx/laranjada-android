@@ -1,4 +1,3 @@
-
 package com.rnx.laranjada.data.remote.api
 
 import com.rnx.laranjada.core.network.ApiHttpClient
@@ -16,6 +15,21 @@ object LaranjadaApiService {
     suspend fun getContinueWatching(): JSONObject {
         return getJson(
             "/api/v1/watching/continue/"
+        )
+    }
+
+    suspend fun search(
+        query: String
+    ): JSONObject {
+        return getJson(
+            path =
+                "/api/v1/search/",
+
+            queryParams =
+                mapOf(
+                    "q" to
+                            query.trim()
+                )
         )
     }
 
@@ -71,7 +85,8 @@ object LaranjadaApiService {
 
         val path =
             when (normalizedContentType) {
-                "series", "serie" ->
+                "series",
+                "serie" ->
                     "/api/v1/series/$uuid/related/"
 
                 else ->
@@ -80,8 +95,10 @@ object LaranjadaApiService {
 
         return getJson(
             path = path,
+
             queryParams = mapOf(
-                "limit" to limit.toString()
+                "limit" to
+                        limit.toString()
             )
         )
     }
@@ -96,15 +113,18 @@ object LaranjadaApiService {
         letter: String = ""
     ): JSONObject {
         return getJson(
-            path = "/api/v1/collections/$uuid/",
-            queryParams = mapOf(
-                "q" to q,
-                "year" to year,
-                "type" to type,
-                "order" to order,
-                "rating_min" to ratingMin,
-                "letter" to normalizeLetter(letter)
-            )
+            path =
+                "/api/v1/collections/$uuid/",
+
+            queryParams =
+                mapOf(
+                    "q" to q,
+                    "year" to year,
+                    "type" to type,
+                    "order" to order,
+                    "rating_min" to ratingMin,
+                    "letter" to normalizeLetter(letter)
+                )
         )
     }
 
@@ -112,16 +132,20 @@ object LaranjadaApiService {
         value: String
     ): String {
         val normalized =
-            value.trim().uppercase()
+            value
+                .trim()
+                .uppercase()
 
         return when {
-            normalized == "#" -> "#"
+            normalized == "#" ->
+                "#"
 
             normalized.length == 1 &&
                     normalized[0] in 'A'..'Z' ->
                 normalized
 
-            else -> ""
+            else ->
+                ""
         }
     }
 
@@ -132,14 +156,20 @@ object LaranjadaApiService {
     ): JSONObject {
         val finalPath =
             buildPathWithQueryParams(
-                path = path,
-                queryParams = queryParams
+                path =
+                    path,
+
+                queryParams =
+                    queryParams
             )
 
         val response =
-            ApiHttpClient.get(finalPath)
+            ApiHttpClient.get(
+                finalPath
+            )
 
-        return response.requireSuccessJson()
+        return response
+            .requireSuccessJson()
     }
 
     private fun buildPathWithQueryParams(
@@ -148,15 +178,23 @@ object LaranjadaApiService {
     ): String {
         val queryString =
             queryParams
-                .filter { (_, value) ->
+                .filter {
+                        (_, value) ->
+
                     value.isNotBlank()
                 }
-                .map { (key, value) ->
+                .map {
+                        (key, value) ->
+
                     "${encode(key)}=${encode(value)}"
                 }
-                .joinToString("&")
+                .joinToString(
+                    "&"
+                )
 
-        if (queryString.isBlank()) {
+        if (
+            queryString.isBlank()
+        ) {
             return path
         }
 

@@ -1,4 +1,3 @@
-
 package com.rnx.laranjada
 
 import android.os.Bundle
@@ -52,7 +51,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(
+            savedInstanceState
+        )
 
         ApiHttpClient.initialize(
             applicationContext
@@ -61,11 +62,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             LaranjadaTheme {
                 val sessionViewModel:
-                        AppSessionViewModel = viewModel()
+                        AppSessionViewModel =
+                    viewModel()
 
                 when (
                     val sessionState =
-                        sessionViewModel.sessionState
+                        sessionViewModel
+                            .sessionState
                 ) {
                     AppSessionState.Checking -> {
                         SessionLoadingScreen()
@@ -74,27 +77,38 @@ class MainActivity : ComponentActivity() {
                     AppSessionState.Unauthenticated -> {
                         LoginScreen(
                             onLoginSuccess =
-                                sessionViewModel::onLoginSuccess
+                                sessionViewModel::
+                                onLoginSuccess
                         )
                     }
 
                     is AppSessionState.Authenticated -> {
                         AuthenticatedApp(
-                            sessionState = sessionState,
+                            sessionState =
+                                sessionState,
+
                             isLoggingOut =
-                                sessionViewModel.isLoggingOut,
+                                sessionViewModel
+                                    .isLoggingOut,
+
                             logoutErrorMessage =
-                                sessionViewModel.logoutErrorMessage,
+                                sessionViewModel
+                                    .logoutErrorMessage,
+
                             onLogoutClick =
-                                sessionViewModel::logout
+                                sessionViewModel::
+                                logout
                         )
                     }
 
                     is AppSessionState.Unavailable -> {
                         SessionUnavailableScreen(
-                            message = sessionState.message,
+                            message =
+                                sessionState.message,
+
                             onRetryClick =
-                                sessionViewModel::checkSession
+                                sessionViewModel::
+                                checkSession
                         )
                     }
                 }
@@ -105,97 +119,94 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AuthenticatedApp(
-    sessionState: AppSessionState.Authenticated,
+    sessionState:
+    AppSessionState.Authenticated,
     isLoggingOut: Boolean,
     logoutErrorMessage: String?,
     onLogoutClick: () -> Unit
 ) {
-    val context = LocalContext.current
+    val context =
+        LocalContext.current
 
-    /*
-     * Um único controlador de navegação
-     * para a sessão autenticada.
-     */
-    val navController = rememberNavController()
+    val navController =
+        rememberNavController()
 
-    /*
-     * O NavGraph utiliza o mesmo
-     * ProfileViewModel da Activity.
-     *
-     * Assim, não criamos um segundo
-     * estado independente de perfil.
-     */
-    val profileViewModel: ProfileViewModel = viewModel()
+    val profileViewModel:
+            ProfileViewModel =
+        viewModel()
 
-    val profileState = profileViewModel.uiState
+    val profileState =
+        profileViewModel.uiState
 
     val selectedProfile =
-        profileState.profiles.firstOrNull { profile ->
-            profile.uuid == profileState.selectedProfileUuid
-        } ?: profileState.profiles.firstOrNull { profile ->
-            profile.isSelected
-        }
+        profileState.profiles
+            .firstOrNull {
+                    profile ->
 
-    /*
-     * Navegação principal somente
-     * após carregar e selecionar
-     * um perfil válido.
-     */
+                profile.uuid ==
+                        profileState
+                            .selectedProfileUuid
+            }
+            ?: profileState.profiles
+                .firstOrNull {
+                        profile ->
+
+                    profile.isSelected
+                }
+
     val canNavigate =
-        profileState.isLoading == false &&
+        profileState.isLoading ==
+                false &&
                 selectedProfile != null
 
     val backStackEntry by
-    navController.currentBackStackEntryAsState()
+    navController
+        .currentBackStackEntryAsState()
 
     val currentRoute =
-        backStackEntry?.destination?.route
+        backStackEntry
+            ?.destination
+            ?.route
 
-    /*
-     * Apenas as páginas principais
-     * possuem bottom bar.
-     *
-     * Player, login, PIN e edição
-     * de perfis não possuem.
-     */
     val showBottomBar =
         canNavigate &&
-                currentRoute in setOf(
-            AppRoutes.Home.route,
-            AppRoutes.Favorites.route,
-            AppRoutes.Account.route,
-            AppRoutes.Detail.route,
-            AppRoutes.Collection.route,
-            AppRoutes.MediaGrid.route
-        )
+                currentRoute in
+                setOf(
+                    AppRoutes.Home.route,
+                    AppRoutes.Search.route,
+                    AppRoutes.Favorites.route,
+                    AppRoutes.Account.route,
+                    AppRoutes.Detail.route,
+                    AppRoutes.Collection.route,
+                    AppRoutes.MediaGrid.route
+                )
 
-    /*
-     * A seleção do ícone depende
-     * da rota real, não de botões
-     * locais das telas.
-     *
-     * Nas páginas secundárias,
-     * mantemos Início como referência.
-     */
     val selectedBottomIndex =
-        when (currentRoute) {
-            AppRoutes.Favorites.route -> 2
+        when (
+            currentRoute
+        ) {
+            AppRoutes.Search.route ->
+                1
 
-            AppRoutes.Account.route -> 3
+            AppRoutes.Favorites.route ->
+                2
 
-            else -> 0
+            AppRoutes.Account.route ->
+                3
+
+            else ->
+                0
         }
 
     /*
-     * Toast de boas-vindas.
-     *
-     * Uma única vez nesta sessão
-     * autenticada do aplicativo.
-     *
-     * Não repete entre telas.
+     * Toast de boas-vindas continua
+     * aparecendo apenas uma vez.
      */
-    var welcomeShown by remember {
-        mutableStateOf(false)
+    var welcomeShown by
+    remember {
+        mutableStateOf(
+            false
+        )
     }
 
     LaunchedEffect(
@@ -206,13 +217,18 @@ private fun AuthenticatedApp(
             canNavigate &&
             welcomeShown == false
         ) {
-            welcomeShown = true
+            welcomeShown =
+                true
 
             val profileName =
-                selectedProfile?.name.orEmpty()
+                selectedProfile
+                    ?.name
+                    .orEmpty()
 
             val message =
-                if (profileName.isBlank()) {
+                if (
+                    profileName.isBlank()
+                ) {
                     "🍊 Bem-vindo ao Laranjada!"
                 } else {
                     "🍊 Bem-vindo ao Laranjada, $profileName!"
@@ -222,89 +238,117 @@ private fun AuthenticatedApp(
                 context,
                 message,
                 Toast.LENGTH_SHORT
-            ).show()
+            )
+                .show()
         }
     }
 
-    /*
-     * NAVEGAÇÃO ENTRE SEÇÕES
-     *
-     * A Home é a raiz.
-     *
-     * Favoritos e Menu não são
-     * empilhados repetidamente.
-     *
-     * Não usamos saveState ou
-     * restoreState aqui.
-     */
     val navigationContext =
         BottomBarNavigationContext(
-            selectedIndex = selectedBottomIndex,
+            selectedIndex =
+                selectedBottomIndex,
 
             profileName =
-                selectedProfile?.name.orEmpty(),
+                selectedProfile
+                    ?.name
+                    .orEmpty(),
 
             profileAvatarUrl =
-                selectedProfile?.avatar?.imageUrl,
+                selectedProfile
+                    ?.avatar
+                    ?.imageUrl,
 
-            searchEnabled = false,
+            /*
+             * Search agora existe
+             * de verdade.
+             */
+            searchEnabled =
+                true,
 
-            onNavigate = { index ->
+            onNavigate = {
+                    index ->
+
                 if (canNavigate) {
                     val destination =
-                        when (index) {
-                            0 -> AppRoutes.Home.route
+                        when (
+                            index
+                        ) {
+                            0 ->
+                                AppRoutes
+                                    .Home
+                                    .route
 
-                            2 -> AppRoutes.Favorites.route
+                            1 ->
+                                AppRoutes
+                                    .Search
+                                    .route
 
-                            3 -> AppRoutes.Account.route
+                            2 ->
+                                AppRoutes
+                                    .Favorites
+                                    .route
 
-                            else -> null
+                            3 ->
+                                AppRoutes
+                                    .Account
+                                    .route
+
+                            else ->
+                                null
                         }
 
                     if (
                         destination != null &&
-                        currentRoute != destination
+                        currentRoute !=
+                        destination
                     ) {
                         if (
-                            destination == AppRoutes.Home.route
+                            destination ==
+                            AppRoutes.Home.route
                         ) {
-                            /*
-                             * Retorna à Home existente,
-                             * evitando criar outra cópia.
-                             */
                             val returned =
-                                navController.popBackStack(
-                                    AppRoutes.Home.route,
-                                    false
-                                )
+                                navController
+                                    .popBackStack(
+                                        AppRoutes
+                                            .Home
+                                            .route,
 
-                            /*
-                             * Fallback caso a Home
-                             * não esteja no histórico.
-                             */
-                            if (returned == false) {
+                                        false
+                                    )
+
+                            if (
+                                returned ==
+                                false
+                            ) {
                                 navController.navigate(
-                                    AppRoutes.Home.route
+                                    AppRoutes
+                                        .Home
+                                        .route
                                 ) {
-                                    launchSingleTop = true
+                                    launchSingleTop =
+                                        true
                                 }
                             }
                         } else {
-                            /*
-                             * Remove telas anteriores
-                             * de Favoritos ou Menu.
-                             */
                             navController.navigate(
                                 destination
                             ) {
+                                /*
+                                 * Home continua sendo
+                                 * a raiz das seções
+                                 * principais.
+                                 */
                                 popUpTo(
-                                    AppRoutes.Home.route
+                                    AppRoutes
+                                        .Home
+                                        .route
                                 ) {
-                                    inclusive = false
+                                    inclusive =
+                                        false
                                 }
 
-                                launchSingleTop = true
+                                launchSingleTop =
+                                    true
                             }
                         }
                     }
@@ -312,52 +356,66 @@ private fun AuthenticatedApp(
             }
         )
 
-    /*
-     * Bottom bar global.
-     *
-     * As chamadas antigas de
-     * HomeBottomBar nas telas
-     * não são desenhadas quando
-     * este contexto está ativo.
-     */
     CompositionLocalProvider(
-        LocalBottomBarNavigation provides
+        LocalBottomBarNavigation
+                provides
                 navigationContext
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    LaranjadaBlack
-                )
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        LaranjadaBlack
+                    )
         ) {
             Box(
-                modifier = Modifier.weight(1f)
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
             ) {
                 LaranjadaNavGraph(
-                    navController = navController,
-                    currentUser = sessionState.user,
-                    isLoggingOut = isLoggingOut,
+                    navController =
+                        navController,
+
+                    currentUser =
+                        sessionState.user,
+
+                    isLoggingOut =
+                        isLoggingOut,
+
                     logoutErrorMessage =
                         logoutErrorMessage,
-                    onLogoutClick = onLogoutClick
+
+                    onLogoutClick =
+                        onLogoutClick
                 )
             }
 
-            /*
-             * Somente esta bottom bar
-             * fica visível.
-             */
-            if (showBottomBar) {
+            if (
+                showBottomBar
+            ) {
                 HomeBottomBar(
                     selectedIndex =
                         selectedBottomIndex,
+
                     profileName =
-                        selectedProfile?.name.orEmpty(),
+                        selectedProfile
+                            ?.name
+                            .orEmpty(),
+
                     profileAvatarUrl =
-                        selectedProfile?.avatar?.imageUrl,
-                    modifier = Modifier.fillMaxWidth(),
-                    isHostBar = true
+                        selectedProfile
+                            ?.avatar
+                            ?.imageUrl,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
+
+                    isHostBar =
+                        true
                 )
             }
         }
@@ -367,13 +425,19 @@ private fun AuthenticatedApp(
 @Composable
 private fun SessionLoadingScreen() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LaranjadaBlack),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                ),
+
+        contentAlignment =
+            Alignment.Center
     ) {
         CircularProgressIndicator(
-            color = LaranjadaOrange
+            color =
+                LaranjadaOrange
         )
     }
 }
@@ -384,40 +448,70 @@ private fun SessionUnavailableScreen(
     onRetryClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LaranjadaBlack)
-            .padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                )
+                .padding(
+                    28.dp
+                ),
+
+        verticalArrangement =
+            Arrangement.Center,
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
         Text(
             text =
                 "Não foi possível verificar sua sessão.",
-            color = LaranjadaText,
-            textAlign = TextAlign.Center
+
+            color =
+                LaranjadaText,
+
+            textAlign =
+                TextAlign.Center
         )
 
         Text(
-            text = message,
-            color = Color.White.copy(
-                alpha = 0.65f
-            ),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(
-                top = 8.dp,
-                bottom = 20.dp
-            )
+            text =
+                message,
+
+            color =
+                Color.White.copy(
+                    alpha = 0.65f
+                ),
+
+            textAlign =
+                TextAlign.Center,
+
+            modifier =
+                Modifier.padding(
+                    top = 8.dp,
+                    bottom = 20.dp
+                )
         )
 
         Button(
-            onClick = onRetryClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = LaranjadaOrange,
-                contentColor = Color.White
-            )
+            onClick =
+                onRetryClick,
+
+            colors =
+                ButtonDefaults
+                    .buttonColors(
+                        containerColor =
+                            LaranjadaOrange,
+
+                        contentColor =
+                            Color.White
+                    )
         ) {
-            Text("TENTAR NOVAMENTE")
+            Text(
+                text =
+                    "TENTAR NOVAMENTE"
+            )
         }
     }
 }
