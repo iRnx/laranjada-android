@@ -24,6 +24,11 @@ object AppRoutes {
             "account"
     }
 
+    object AccountDetails {
+        const val route =
+            "account/details"
+    }
+
     object CreateProfile {
         const val route =
             "profile/create"
@@ -44,7 +49,6 @@ object AppRoutes {
         fun createRoute(
             profileUuid: String
         ): String {
-
             return "profiles/edit/" +
                     Uri.encode(
                         profileUuid
@@ -62,7 +66,6 @@ object AppRoutes {
         fun createRoute(
             profileUuid: String
         ): String {
-
             return "profiles/pin/" +
                     Uri.encode(
                         profileUuid
@@ -80,7 +83,6 @@ object AppRoutes {
         fun createRoute(
             profileUuid: String
         ): String {
-
             return "profiles/avatar/" +
                     Uri.encode(
                         profileUuid
@@ -98,7 +100,6 @@ object AppRoutes {
         fun createRoute(
             profileUuid: String
         ): String {
-
             return "profiles/delete/" +
                     Uri.encode(
                         profileUuid
@@ -120,7 +121,6 @@ object AppRoutes {
             contentType: String,
             uuid: String
         ): String {
-
             return "detail/" +
                     "${Uri.encode(contentType)}/" +
                     Uri.encode(
@@ -139,7 +139,6 @@ object AppRoutes {
         fun createRoute(
             uuid: String
         ): String {
-
             return "collection/" +
                     Uri.encode(
                         uuid
@@ -162,7 +161,6 @@ object AppRoutes {
             sectionSlug: String,
             title: String
         ): String {
-
             return "media-grid/" +
                     Uri.encode(
                         sectionSlug

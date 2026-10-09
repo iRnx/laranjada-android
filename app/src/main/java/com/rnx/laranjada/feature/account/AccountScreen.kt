@@ -78,15 +78,9 @@ fun AccountScreen(
         {},
     onEditProfilesClick: () -> Unit =
         {},
-    onFavoritesClick: () -> Unit =
-        {},
-    onDownloadsClick: () -> Unit =
-        {},
     onSubscriptionClick: () -> Unit =
         {},
     onSupportClick: () -> Unit =
-        {},
-    onSwitchProfileClick: () -> Unit =
         {},
     onAccountDetailsClick: () -> Unit =
         {},
@@ -158,16 +152,6 @@ fun AccountScreen(
             )
 
             AccountMenuItem(
-                title = "Favoritos",
-                onClick = onFavoritesClick
-            )
-
-            AccountMenuItem(
-                title = "Downloads",
-                onClick = onDownloadsClick
-            )
-
-            AccountMenuItem(
                 title = "Minha assinatura",
                 onClick = onSubscriptionClick
             )
@@ -175,11 +159,6 @@ fun AccountScreen(
             AccountMenuItem(
                 title = "Atendimento",
                 onClick = onSupportClick
-            )
-
-            AccountMenuItem(
-                title = "Trocar perfil",
-                onClick = onSwitchProfileClick
             )
 
             AccountMenuItem(

@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.rnx.laranjada.domain.model.AuthenticatedUser
 import com.rnx.laranjada.domain.model.ViewerProfile
+import com.rnx.laranjada.feature.account.AccountDetailsScreen
 import com.rnx.laranjada.feature.account.AccountScreen
 import com.rnx.laranjada.feature.account.AvatarOptionUi
 import com.rnx.laranjada.feature.account.AvatarPickerScreen
@@ -37,6 +38,7 @@ fun LaranjadaNavGraph(
     isLoggingOut: Boolean,
     logoutErrorMessage: String?,
     onLogoutClick: () -> Unit,
+    onSessionEnded: () -> Unit,
     startDestination: String =
         AppRoutes.Home.route
 ) {
@@ -92,13 +94,14 @@ fun LaranjadaNavGraph(
 
     fun returnToAccount() {
         val returned =
-            navController
-                .popBackStack(
-                    AppRoutes.Account.route,
-                    false
-                )
+            navController.popBackStack(
+                AppRoutes.Account.route,
+                false
+            )
 
-        if (!returned) {
+        if (
+            !returned
+        ) {
             navController.navigate(
                 AppRoutes.Account.route
             ) {
@@ -131,10 +134,6 @@ fun LaranjadaNavGraph(
         startDestination =
             startDestination
     ) {
-
-        /*
-         * HOME
-         */
         composable(
             route =
                 AppRoutes.Home.route
@@ -154,8 +153,7 @@ fun LaranjadaNavGraph(
                 else -> {
                     HomeScreen(
                         profileName =
-                            selectedProfile
-                                .name,
+                            selectedProfile.name,
 
                         profileAvatarUrl =
                             selectedProfile
@@ -166,21 +164,20 @@ fun LaranjadaNavGraph(
                                 item ->
 
                             navController.navigate(
-                                AppRoutes.Player
-                                    .createRoute(
-                                        contentType =
-                                            item.contentType,
+                                AppRoutes.Player.createRoute(
+                                    contentType =
+                                        item.contentType,
 
-                                        uuid =
-                                            item.contentUuid,
+                                    uuid =
+                                        item.contentUuid,
 
-                                        seriesUuid =
-                                            item.seriesUuid
-                                                .orEmpty(),
+                                    seriesUuid =
+                                        item.seriesUuid
+                                            .orEmpty(),
 
-                                        initialPositionSeconds =
-                                            item.positionSeconds
-                                    )
+                                    initialPositionSeconds =
+                                        item.positionSeconds
+                                )
                             )
                         },
 
@@ -189,14 +186,13 @@ fun LaranjadaNavGraph(
                                 uuid ->
 
                             navController.navigate(
-                                AppRoutes.Detail
-                                    .createRoute(
-                                        contentType =
-                                            contentType,
+                                AppRoutes.Detail.createRoute(
+                                    contentType =
+                                        contentType,
 
-                                        uuid =
-                                            uuid
-                                    )
+                                    uuid =
+                                        uuid
+                                )
                             )
                         },
 
@@ -204,11 +200,10 @@ fun LaranjadaNavGraph(
                                 collection ->
 
                             navController.navigate(
-                                AppRoutes.Collection
-                                    .createRoute(
-                                        uuid =
-                                            collection.uuid
-                                    )
+                                AppRoutes.Collection.createRoute(
+                                    uuid =
+                                        collection.uuid
+                                )
                             )
                         },
 
@@ -217,14 +212,13 @@ fun LaranjadaNavGraph(
                                 title ->
 
                             navController.navigate(
-                                AppRoutes.MediaGrid
-                                    .createRoute(
-                                        sectionSlug =
-                                            sectionSlug,
+                                AppRoutes.MediaGrid.createRoute(
+                                    sectionSlug =
+                                        sectionSlug,
 
-                                        title =
-                                            title
-                                    )
+                                    title =
+                                        title
+                                )
                             )
                         },
 
@@ -233,22 +227,19 @@ fun LaranjadaNavGraph(
                                 title ->
 
                             navController.navigate(
-                                AppRoutes.MediaGrid
-                                    .createRoute(
-                                        sectionSlug =
-                                            sectionSlug,
+                                AppRoutes.MediaGrid.createRoute(
+                                    sectionSlug =
+                                        sectionSlug,
 
-                                        title =
-                                            title
-                                    )
+                                    title =
+                                        title
+                                )
                             )
                         },
 
                         onFavoritesClick = {
                             navController.navigate(
-                                AppRoutes
-                                    .Favorites
-                                    .route
+                                AppRoutes.Favorites.route
                             ) {
                                 launchSingleTop =
                                     true
@@ -257,9 +248,7 @@ fun LaranjadaNavGraph(
 
                         onAccountClick = {
                             navController.navigate(
-                                AppRoutes
-                                    .Account
-                                    .route
+                                AppRoutes.Account.route
                             )
                         }
                     )
@@ -267,9 +256,6 @@ fun LaranjadaNavGraph(
             }
         }
 
-        /*
-         * SEARCH
-         */
         composable(
             route =
                 AppRoutes.Search.route
@@ -293,14 +279,13 @@ fun LaranjadaNavGraph(
                                 uuid ->
 
                             navController.navigate(
-                                AppRoutes.Detail
-                                    .createRoute(
-                                        contentType =
-                                            contentType,
+                                AppRoutes.Detail.createRoute(
+                                    contentType =
+                                        contentType,
 
-                                        uuid =
-                                            uuid
-                                    )
+                                    uuid =
+                                        uuid
+                                )
                             )
                         }
                     )
@@ -308,9 +293,6 @@ fun LaranjadaNavGraph(
             }
         }
 
-        /*
-         * FAVORITOS
-         */
         composable(
             route =
                 AppRoutes.Favorites.route
@@ -330,12 +312,10 @@ fun LaranjadaNavGraph(
                 else -> {
                     FavoritesScreen(
                         profileUuid =
-                            selectedProfile
-                                .uuid,
+                            selectedProfile.uuid,
 
                         profileName =
-                            selectedProfile
-                                .name,
+                            selectedProfile.name,
 
                         profileAvatarUrl =
                             selectedProfile
@@ -353,9 +333,7 @@ fun LaranjadaNavGraph(
 
                         onAccountClick = {
                             navController.navigate(
-                                AppRoutes
-                                    .Account
-                                    .route
+                                AppRoutes.Account.route
                             )
                         },
 
@@ -364,14 +342,13 @@ fun LaranjadaNavGraph(
                                 uuid ->
 
                             navController.navigate(
-                                AppRoutes.Detail
-                                    .createRoute(
-                                        contentType =
-                                            contentType,
+                                AppRoutes.Detail.createRoute(
+                                    contentType =
+                                        contentType,
 
-                                        uuid =
-                                            uuid
-                                    )
+                                    uuid =
+                                        uuid
+                                )
                             )
                         }
                     )
@@ -379,9 +356,6 @@ fun LaranjadaNavGraph(
             }
         }
 
-        /*
-         * CONTA / PERFIS
-         */
         composable(
             route =
                 AppRoutes.Account.route
@@ -435,34 +409,29 @@ fun LaranjadaNavGraph(
                         profile.hasPin
                     ) {
                         navController.navigate(
-                            AppRoutes.ProfilePin
-                                .createRoute(
-                                    profileUuid =
-                                        profile.uuid
-                                )
+                            AppRoutes.ProfilePin.createRoute(
+                                profileUuid =
+                                    profile.uuid
+                            )
                         )
                     } else {
-                        profileViewModel
-                            .selectProfile(
-                                profileUuid =
-                                    profile.uuid,
+                        profileViewModel.selectProfile(
+                            profileUuid =
+                                profile.uuid,
 
-                                onSuccess = {
-                                    returnToHome()
-                                },
+                            onSuccess = {
+                                returnToHome()
+                            },
 
-                                onPinRequired = {
-                                    navController
-                                        .navigate(
-                                            AppRoutes
-                                                .ProfilePin
-                                                .createRoute(
-                                                    profileUuid =
-                                                        profile.uuid
-                                                )
-                                        )
-                                }
-                            )
+                            onPinRequired = {
+                                navController.navigate(
+                                    AppRoutes.ProfilePin.createRoute(
+                                        profileUuid =
+                                            profile.uuid
+                                    )
+                                )
+                            }
+                        )
                     }
                 },
 
@@ -471,35 +440,20 @@ fun LaranjadaNavGraph(
                         .clearCreateError()
 
                     navController.navigate(
-                        AppRoutes
-                            .CreateProfile
-                            .route
+                        AppRoutes.CreateProfile.route
                     )
                 },
 
                 onEditProfilesClick = {
                     navController.navigate(
-                        AppRoutes
-                            .EditProfiles
-                            .route
+                        AppRoutes.EditProfiles.route
                     )
                 },
 
-                onFavoritesClick = {
+                onAccountDetailsClick = {
                     navController.navigate(
-                        AppRoutes
-                            .Favorites
-                            .route
+                        AppRoutes.AccountDetails.route
                     ) {
-                        popUpTo(
-                            AppRoutes
-                                .Home
-                                .route
-                        ) {
-                            inclusive =
-                                false
-                        }
-
                         launchSingleTop =
                             true
                     }
@@ -507,14 +461,10 @@ fun LaranjadaNavGraph(
 
                 onSearchClick = {
                     navController.navigate(
-                        AppRoutes
-                            .Search
-                            .route
+                        AppRoutes.Search.route
                     ) {
                         popUpTo(
-                            AppRoutes
-                                .Home
-                                .route
+                            AppRoutes.Home.route
                         ) {
                             inclusive =
                                 false
@@ -527,9 +477,42 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * PIN
-         */
+        composable(
+            route =
+                AppRoutes.AccountDetails.route
+        ) {
+            when {
+                profileState.isLoading -> {
+                }
+
+                selectedProfile == null -> {
+                    LaunchedEffect(
+                        Unit
+                    ) {
+                        forceProfileSelection()
+                    }
+                }
+
+                else -> {
+                    AccountDetailsScreen(
+                        onBackClick = {
+                            navController
+                                .popBackStack()
+                        },
+
+                        onManageProfilesClick = {
+                            navController.navigate(
+                                AppRoutes.EditProfiles.route
+                            )
+                        },
+
+                        onSessionEnded =
+                            onSessionEnded
+                    )
+                }
+            }
+        }
+
         composable(
             route =
                 AppRoutes.ProfilePin.route,
@@ -548,8 +531,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val profileUuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.ProfilePin
                             .profileUuidArg
@@ -595,25 +577,21 @@ fun LaranjadaNavGraph(
                 onSubmitClick = {
                         pin ->
 
-                    profileViewModel
-                        .selectProfile(
-                            profileUuid =
-                                profileUuid,
+                    profileViewModel.selectProfile(
+                        profileUuid =
+                            profileUuid,
 
-                            pin =
-                                pin,
+                        pin =
+                            pin,
 
-                            onSuccess = {
-                                returnToHome()
-                            }
-                        )
+                        onSuccess = {
+                            returnToHome()
+                        }
+                    )
                 }
             )
         }
 
-        /*
-         * CRIAR PERFIL
-         */
         composable(
             route =
                 AppRoutes.CreateProfile.route
@@ -648,30 +626,26 @@ fun LaranjadaNavGraph(
                         usePin,
                         pin ->
 
-                    profileViewModel
-                        .createProfile(
-                            name =
-                                name,
+                    profileViewModel.createProfile(
+                        name =
+                            name,
 
-                            usePin =
-                                usePin,
+                        usePin =
+                            usePin,
 
-                            pin =
-                                pin.takeIf {
-                                    usePin
-                                },
+                        pin =
+                            pin.takeIf {
+                                usePin
+                            },
 
-                            onSuccess = {
-                                returnToHome()
-                            }
-                        )
+                        onSuccess = {
+                            returnToHome()
+                        }
+                    )
                 }
             )
         }
 
-        /*
-         * EDITAR PERFIS
-         */
         composable(
             route =
                 AppRoutes.EditProfiles.route
@@ -687,11 +661,10 @@ fun LaranjadaNavGraph(
                         .clearUpdateError()
 
                     navController.navigate(
-                        AppRoutes.EditProfile
-                            .createRoute(
-                                profileUuid =
-                                    profile.uuid
-                            )
+                        AppRoutes.EditProfile.createRoute(
+                            profileUuid =
+                                profile.uuid
+                        )
                     )
                 },
 
@@ -702,9 +675,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * EDITAR PERFIL
-         */
         composable(
             route =
                 AppRoutes.EditProfile.route,
@@ -723,8 +693,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val profileUuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.EditProfile
                             .profileUuidArg
@@ -779,11 +748,10 @@ fun LaranjadaNavGraph(
                         .clearAvatarMutationError()
 
                     navController.navigate(
-                        AppRoutes.AvatarPicker
-                            .createRoute(
-                                profileUuid =
-                                    profileUuid
-                            )
+                        AppRoutes.AvatarPicker.createRoute(
+                            profileUuid =
+                                profileUuid
+                        )
                     )
                 },
 
@@ -808,8 +776,7 @@ fun LaranjadaNavGraph(
                             normalizedName
                                 .takeIf {
                                     it !=
-                                            currentProfile
-                                                .name
+                                            currentProfile.name
                                 }
 
                         val pinPatch =
@@ -821,36 +788,35 @@ fun LaranjadaNavGraph(
                         val usePinPatch =
                             when {
                                 usePin !=
-                                        currentProfile
-                                            .hasPin ->
+                                        currentProfile.hasPin ->
                                     usePin
 
-                                pinPatch != null ->
+                                pinPatch !=
+                                        null ->
                                     true
 
                                 else ->
                                     null
                             }
 
-                        profileViewModel
-                            .updateProfile(
-                                profileUuid =
-                                    profileUuid,
+                        profileViewModel.updateProfile(
+                            profileUuid =
+                                profileUuid,
 
-                                name =
-                                    namePatch,
+                            name =
+                                namePatch,
 
-                                usePin =
-                                    usePinPatch,
+                            usePin =
+                                usePinPatch,
 
-                                pin =
-                                    pinPatch,
+                            pin =
+                                pinPatch,
 
-                                onSuccess = {
-                                    navController
-                                        .popBackStack()
-                                }
-                            )
+                            onSuccess = {
+                                navController
+                                    .popBackStack()
+                            }
+                        )
                     }
                 },
 
@@ -867,19 +833,15 @@ fun LaranjadaNavGraph(
                         .clearDeleteError()
 
                     navController.navigate(
-                        AppRoutes.DeleteProfile
-                            .createRoute(
-                                profileUuid =
-                                    profileUuid
-                            )
+                        AppRoutes.DeleteProfile.createRoute(
+                            profileUuid =
+                                profileUuid
+                        )
                     )
                 }
             )
         }
 
-        /*
-         * AVATAR
-         */
         composable(
             route =
                 AppRoutes.AvatarPicker.route,
@@ -898,8 +860,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val profileUuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.AvatarPicker
                             .profileUuidArg
@@ -1064,9 +1025,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * EXCLUIR PERFIL
-         */
         composable(
             route =
                 AppRoutes.DeleteProfile.route,
@@ -1085,8 +1043,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val profileUuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.DeleteProfile
                             .profileUuidArg
@@ -1143,9 +1100,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * GRID
-         */
         composable(
             route =
                 AppRoutes.MediaGrid.route,
@@ -1175,8 +1129,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val sectionSlug =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.MediaGrid
                             .sectionSlugArg
@@ -1184,8 +1137,7 @@ fun LaranjadaNavGraph(
                     .orEmpty()
 
             val encodedTitle =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.MediaGrid
                             .titleArg
@@ -1213,22 +1165,18 @@ fun LaranjadaNavGraph(
                         uuid ->
 
                     navController.navigate(
-                        AppRoutes.Detail
-                            .createRoute(
-                                contentType =
-                                    contentType,
+                        AppRoutes.Detail.createRoute(
+                            contentType =
+                                contentType,
 
-                                uuid =
-                                    uuid
-                            )
+                            uuid =
+                                uuid
+                        )
                     )
                 }
             )
         }
 
-        /*
-         * COLEÇÃO
-         */
         composable(
             route =
                 AppRoutes.Collection.route,
@@ -1247,8 +1195,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val uuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Collection
                             .uuidArg
@@ -1269,22 +1216,18 @@ fun LaranjadaNavGraph(
                         mediaUuid ->
 
                     navController.navigate(
-                        AppRoutes.Detail
-                            .createRoute(
-                                contentType =
-                                    contentType,
+                        AppRoutes.Detail.createRoute(
+                            contentType =
+                                contentType,
 
-                                uuid =
-                                    mediaUuid
-                            )
+                            uuid =
+                                mediaUuid
+                        )
                     )
                 }
             )
         }
 
-        /*
-         * DETAIL
-         */
         composable(
             route =
                 AppRoutes.Detail.route,
@@ -1311,8 +1254,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val contentType =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Detail
                             .contentTypeArg
@@ -1320,8 +1262,7 @@ fun LaranjadaNavGraph(
                     .orEmpty()
 
             val uuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Detail
                             .uuidArg
@@ -1350,8 +1291,7 @@ fun LaranjadaNavGraph(
                             uuid,
 
                         profileName =
-                            selectedProfile
-                                .name,
+                            selectedProfile.name,
 
                         profileAvatarUrl =
                             selectedProfile
@@ -1365,9 +1305,7 @@ fun LaranjadaNavGraph(
 
                         onAccountClick = {
                             navController.navigate(
-                                AppRoutes
-                                    .Account
-                                    .route
+                                AppRoutes.Account.route
                             )
                         },
 
@@ -1377,17 +1315,16 @@ fun LaranjadaNavGraph(
                                 seriesUuid ->
 
                             navController.navigate(
-                                AppRoutes.Player
-                                    .createRoute(
-                                        contentType =
-                                            playerContentType,
+                                AppRoutes.Player.createRoute(
+                                    contentType =
+                                        playerContentType,
 
-                                        uuid =
-                                            playerUuid,
+                                    uuid =
+                                        playerUuid,
 
-                                        seriesUuid =
-                                            seriesUuid
-                                    )
+                                    seriesUuid =
+                                        seriesUuid
+                                )
                             )
                         },
 
@@ -1401,14 +1338,13 @@ fun LaranjadaNavGraph(
                                 item ->
 
                             navController.navigate(
-                                AppRoutes.Detail
-                                    .createRoute(
-                                        contentType =
-                                            item.contentType,
+                                AppRoutes.Detail.createRoute(
+                                    contentType =
+                                        item.contentType,
 
-                                        uuid =
-                                            item.uuid
-                                    )
+                                    uuid =
+                                        item.uuid
+                                )
                             )
                         },
 
@@ -1417,17 +1353,16 @@ fun LaranjadaNavGraph(
                                 seriesUuid ->
 
                             navController.navigate(
-                                AppRoutes.Player
-                                    .createRoute(
-                                        contentType =
-                                            "episode",
+                                AppRoutes.Player.createRoute(
+                                    contentType =
+                                        "episode",
 
-                                        uuid =
-                                            episode.uuid,
+                                    uuid =
+                                        episode.uuid,
 
-                                        seriesUuid =
-                                            seriesUuid
-                                    )
+                                    seriesUuid =
+                                        seriesUuid
+                                )
                             )
                         }
                     )
@@ -1435,9 +1370,6 @@ fun LaranjadaNavGraph(
             }
         }
 
-        /*
-         * PLAYER
-         */
         composable(
             route =
                 AppRoutes.Player.route,
@@ -1486,8 +1418,7 @@ fun LaranjadaNavGraph(
                 backStackEntry ->
 
             val contentType =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Player
                             .contentTypeArg
@@ -1495,8 +1426,7 @@ fun LaranjadaNavGraph(
                     .orEmpty()
 
             val uuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Player
                             .uuidArg
@@ -1504,8 +1434,7 @@ fun LaranjadaNavGraph(
                     .orEmpty()
 
             val seriesUuid =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getString(
                         AppRoutes.Player
                             .seriesUuidArg
@@ -1514,8 +1443,7 @@ fun LaranjadaNavGraph(
                     .decodeRouteValue()
 
             val initialPositionSeconds =
-                backStackEntry
-                    .arguments
+                backStackEntry.arguments
                     ?.getLong(
                         AppRoutes.Player
                             .initialPositionSecondsArg

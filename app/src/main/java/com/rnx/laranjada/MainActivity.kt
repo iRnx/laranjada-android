@@ -46,10 +46,12 @@ import com.rnx.laranjada.feature.home.components.BottomBarNavigationContext
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
 import com.rnx.laranjada.feature.home.components.LocalBottomBarNavigation
 
-class MainActivity : ComponentActivity() {
+class MainActivity :
+    ComponentActivity() {
 
     override fun onCreate(
-        savedInstanceState: Bundle?
+        savedInstanceState:
+        Bundle?
     ) {
         super.onCreate(
             savedInstanceState
@@ -97,7 +99,11 @@ class MainActivity : ComponentActivity() {
 
                             onLogoutClick =
                                 sessionViewModel::
-                                logout
+                                logout,
+
+                            onSessionEnded =
+                                sessionViewModel::
+                                onSessionEnded
                         )
                     }
 
@@ -123,7 +129,8 @@ private fun AuthenticatedApp(
     AppSessionState.Authenticated,
     isLoggingOut: Boolean,
     logoutErrorMessage: String?,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onSessionEnded: () -> Unit
 ) {
     val context =
         LocalContext.current
@@ -176,6 +183,7 @@ private fun AuthenticatedApp(
                     AppRoutes.Search.route,
                     AppRoutes.Favorites.route,
                     AppRoutes.Account.route,
+                    AppRoutes.AccountDetails.route,
                     AppRoutes.Detail.route,
                     AppRoutes.Collection.route,
                     AppRoutes.MediaGrid.route
@@ -191,17 +199,14 @@ private fun AuthenticatedApp(
             AppRoutes.Favorites.route ->
                 2
 
-            AppRoutes.Account.route ->
+            AppRoutes.Account.route,
+            AppRoutes.AccountDetails.route ->
                 3
 
             else ->
                 0
         }
 
-    /*
-     * Toast de boas-vindas continua
-     * aparecendo apenas uma vez.
-     */
     var welcomeShown by
     remember {
         mutableStateOf(
@@ -215,7 +220,8 @@ private fun AuthenticatedApp(
     ) {
         if (
             canNavigate &&
-            welcomeShown == false
+            welcomeShown ==
+            false
         ) {
             welcomeShown =
                 true
@@ -227,7 +233,8 @@ private fun AuthenticatedApp(
 
             val message =
                 if (
-                    profileName.isBlank()
+                    profileName
+                        .isBlank()
                 ) {
                     "🍊 Bem-vindo ao Laranjada!"
                 } else {
@@ -258,17 +265,15 @@ private fun AuthenticatedApp(
                     ?.avatar
                     ?.imageUrl,
 
-            /*
-             * Search agora existe
-             * de verdade.
-             */
             searchEnabled =
                 true,
 
             onNavigate = {
                     index ->
 
-                if (canNavigate) {
+                if (
+                    canNavigate
+                ) {
                     val destination =
                         when (
                             index
@@ -298,7 +303,8 @@ private fun AuthenticatedApp(
                         }
 
                     if (
-                        destination != null &&
+                        destination !=
+                        null &&
                         currentRoute !=
                         destination
                     ) {
@@ -333,11 +339,6 @@ private fun AuthenticatedApp(
                             navController.navigate(
                                 destination
                             ) {
-                                /*
-                                 * Home continua sendo
-                                 * a raiz das seções
-                                 * principais.
-                                 */
                                 popUpTo(
                                     AppRoutes
                                         .Home
@@ -389,7 +390,10 @@ private fun AuthenticatedApp(
                         logoutErrorMessage,
 
                     onLogoutClick =
-                        onLogoutClick
+                        onLogoutClick,
+
+                    onSessionEnded =
+                        onSessionEnded
                 )
             }
 
@@ -411,8 +415,7 @@ private fun AuthenticatedApp(
                             ?.imageUrl,
 
                     modifier =
-                        Modifier
-                            .fillMaxWidth(),
+                        Modifier.fillMaxWidth(),
 
                     isHostBar =
                         true
