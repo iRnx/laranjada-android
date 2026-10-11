@@ -29,6 +29,7 @@ import com.rnx.laranjada.feature.home.HomeScreen
 import com.rnx.laranjada.feature.mediagrid.MediaGridScreen
 import com.rnx.laranjada.feature.player.PlayerScreen
 import com.rnx.laranjada.feature.search.SearchScreen
+import com.rnx.laranjada.feature.subscription.SubscriptionScreen
 import java.net.URLDecoder
 
 @Composable
@@ -450,6 +451,15 @@ fun LaranjadaNavGraph(
                     )
                 },
 
+                onSubscriptionClick = {
+                    navController.navigate(
+                        AppRoutes.Subscription.route
+                    ) {
+                        launchSingleTop =
+                            true
+                    }
+                },
+
                 onAccountDetailsClick = {
                     navController.navigate(
                         AppRoutes.AccountDetails.route
@@ -474,6 +484,21 @@ fun LaranjadaNavGraph(
                             true
                     }
                 }
+            )
+        }
+
+        composable(
+            route =
+                AppRoutes.Subscription.route
+        ) {
+            SubscriptionScreen(
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+
+                onSessionEnded =
+                    onSessionEnded
             )
         }
 

@@ -29,6 +29,11 @@ object AppRoutes {
             "account/details"
     }
 
+    object Subscription {
+        const val route =
+            "account/subscription"
+    }
+
     object CreateProfile {
         const val route =
             "profile/create"

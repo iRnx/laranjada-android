@@ -184,6 +184,7 @@ private fun AuthenticatedApp(
                     AppRoutes.Favorites.route,
                     AppRoutes.Account.route,
                     AppRoutes.AccountDetails.route,
+                    AppRoutes.Subscription.route,
                     AppRoutes.Detail.route,
                     AppRoutes.Collection.route,
                     AppRoutes.MediaGrid.route
@@ -200,7 +201,8 @@ private fun AuthenticatedApp(
                 2
 
             AppRoutes.Account.route,
-            AppRoutes.AccountDetails.route ->
+            AppRoutes.AccountDetails.route,
+            AppRoutes.Subscription.route ->
                 3
 
             else ->
