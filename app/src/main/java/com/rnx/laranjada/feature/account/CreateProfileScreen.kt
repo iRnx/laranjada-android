@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +13,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -44,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
@@ -92,493 +97,716 @@ fun CreateProfileScreen(
         localErrorMessage
             ?: errorMessage
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush =
-                    Brush.verticalGradient(
-                        colors =
-                            listOf(
-                                Color(
-                                    0xFF160800
-                                ),
-                                Color.Black,
-                                Color.Black
-                            )
-                    )
-            )
-    ) {
-        Column(
-            modifier = Modifier
+    BoxWithConstraints(
+        modifier =
+            Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(
-                    WindowInsets.statusBars
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    Color(
+                                        0xFF160800
+                                    ),
+                                    Color.Black,
+                                    Color.Black
+                                )
+                        )
                 )
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    horizontal =
-                        18.dp,
-                    vertical =
-                        18.dp
-                )
-        ) {
-            Text(
-                text =
-                    "LARANJADA",
-                color =
-                    LaranjadaOrange,
-                fontSize =
-                    25.sp,
-                fontWeight =
-                    FontWeight.ExtraBold,
-                letterSpacing =
-                    1.2.sp,
-                modifier =
-                    Modifier.align(
-                        Alignment
-                            .CenterHorizontally
-                    )
-            )
+    ) {
+        val isTablet =
+            maxWidth >=
+                    600.dp
 
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        30.dp
-                    )
-            )
+        val isExpanded =
+            maxWidth >=
+                    840.dp
 
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
+        val contentMaxWidth =
+            when {
+                isExpanded ->
+                    520.dp
+
+                isTablet ->
+                    500.dp
+
+                else ->
+                    maxWidth
+            }
+
+        val horizontalPadding =
+            if (
+                isTablet
             ) {
-                BackButton(
-                    onClick =
-                        onBackClick,
+                28.dp
+            } else {
+                18.dp
+            }
+
+        val avatarSize =
+            if (
+                isTablet
+            ) {
+                126.dp
+            } else {
+                112.dp
+            }
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.statusBars
+                    )
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars
+                    )
+                    .imePadding()
+                    .verticalScroll(
+                        rememberScrollState()
+                    ),
+
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .widthIn(
+                            max =
+                                contentMaxWidth
+                        )
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal =
+                                horizontalPadding,
+
+                            vertical =
+                                if (
+                                    isTablet
+                                ) {
+                                    26.dp
+                                } else {
+                                    18.dp
+                                }
+                        )
+            ) {
+                Text(
+                    text =
+                        "LARANJADA",
+
+                    color =
+                        LaranjadaOrange,
+
+                    fontSize =
+                        if (
+                            isTablet
+                        ) {
+                            29.sp
+                        } else {
+                            25.sp
+                        },
+
+                    fontWeight =
+                        FontWeight.ExtraBold,
+
+                    letterSpacing =
+                        1.2.sp,
+
                     modifier =
                         Modifier.align(
-                            Alignment
-                                .CenterStart
+                            Alignment.CenterHorizontally
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                38.dp
+                            } else {
+                                30.dp
+                            }
+                        )
+                )
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+                    BackButton(
+                        onClick =
+                            onBackClick,
+
+                        modifier =
+                            Modifier.align(
+                                Alignment.CenterStart
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "Criar perfil",
+
+                        color =
+                            Color.White,
+
+                        fontSize =
+                            if (
+                                isTablet
+                            ) {
+                                30.sp
+                            } else {
+                                27.sp
+                            },
+
+                        fontWeight =
+                            FontWeight.ExtraBold,
+
+                        modifier =
+                            Modifier.align(
+                                Alignment.Center
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                34.dp
+                            } else {
+                                30.dp
+                            }
+                        )
+                )
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    contentAlignment =
+                        Alignment.Center
+                ) {
+                    ProfileAvatarPreview(
+                        size =
+                            avatarSize
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            12.dp
                         )
                 )
 
                 Text(
                     text =
-                        "Criar perfil",
+                        "O avatar poderá ser escolhido\ndepois que o perfil for criado.",
+
                     color =
-                        Color.White,
+                        Color(
+                            0xFFB6BCC5
+                        ),
+
                     fontSize =
-                        27.sp,
-                    fontWeight =
-                        FontWeight.ExtraBold,
+                        if (
+                            isTablet
+                        ) {
+                            13.sp
+                        } else {
+                            12.sp
+                        },
+
+                    lineHeight =
+                        if (
+                            isTablet
+                        ) {
+                            19.sp
+                        } else {
+                            17.sp
+                        },
+
                     modifier =
                         Modifier.align(
-                            Alignment.Center
+                            Alignment.CenterHorizontally
                         )
                 )
-            }
 
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        30.dp
-                    )
-            )
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                34.dp
+                            } else {
+                                30.dp
+                            }
+                        )
+                )
 
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                contentAlignment =
-                    Alignment.Center
-            ) {
-                ProfileAvatarPreview()
-            }
+                Text(
+                    text =
+                        "Nome do perfil",
 
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        10.dp
-                    )
-            )
+                    color =
+                        Color.White,
 
-            Text(
-                text =
-                    "O avatar poderá ser escolhido\ndepois que o perfil for criado.",
-                color =
-                    Color(
-                        0xFFB6BCC5
-                    ),
-                fontSize =
-                    12.sp,
-                lineHeight =
-                    17.sp,
-                modifier =
-                    Modifier.align(
-                        Alignment
-                            .CenterHorizontally
-                    )
-            )
+                    fontSize =
+                        if (
+                            isTablet
+                        ) {
+                            16.sp
+                        } else {
+                            15.sp
+                        },
 
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        30.dp
-                    )
-            )
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
 
-            Text(
-                text =
-                    "Nome do perfil",
-                color =
-                    Color.White,
-                fontSize =
-                    15.sp,
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
+                )
 
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        10.dp
-                    )
-            )
+                OutlinedTextField(
+                    value =
+                        profileName,
 
-            OutlinedTextField(
-                value =
-                    profileName,
-                onValueChange = {
-                        newValue ->
+                    onValueChange = {
+                            newValue ->
 
-                    if (
-                        newValue.length <=
-                        40
-                    ) {
-                        profileName =
-                            newValue
+                        if (
+                            newValue.length <=
+                            40
+                        ) {
+                            profileName =
+                                newValue
+
+                            localErrorMessage =
+                                null
+                        }
+                    },
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(
+                                if (
+                                    isTablet
+                                ) {
+                                    62.dp
+                                } else {
+                                    58.dp
+                                }
+                            ),
+
+                    enabled =
+                        !isSubmitting,
+
+                    placeholder = {
+                        Text(
+                            text =
+                                "Nome do perfil",
+
+                            color =
+                                Color(
+                                    0xFF8F929A
+                                ),
+
+                            fontSize =
+                                16.sp,
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    },
+
+                    singleLine =
+                        true,
+
+                    shape =
+                        RoundedCornerShape(
+                            if (
+                                isTablet
+                            ) {
+                                9.dp
+                            } else {
+                                7.dp
+                            }
+                        ),
+
+                    colors =
+                        OutlinedTextFieldDefaults
+                            .colors(
+                                focusedTextColor =
+                                    Color.White,
+
+                                unfocusedTextColor =
+                                    Color.White,
+
+                                disabledTextColor =
+                                    Color.White,
+
+                                focusedBorderColor =
+                                    Color.White,
+
+                                unfocusedBorderColor =
+                                    Color.White.copy(
+                                        alpha =
+                                            0.70f
+                                    ),
+
+                                disabledBorderColor =
+                                    Color.White.copy(
+                                        alpha =
+                                            0.35f
+                                    ),
+
+                                cursorColor =
+                                    LaranjadaOrange,
+
+                                focusedContainerColor =
+                                    Color.Transparent,
+
+                                unfocusedContainerColor =
+                                    Color.Transparent,
+
+                                disabledContainerColor =
+                                    Color.Transparent
+                            )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                28.dp
+                            } else {
+                                24.dp
+                            }
+                        )
+                )
+
+                Text(
+                    text =
+                        "Configurações do perfil",
+
+                    color =
+                        Color.White,
+
+                    fontSize =
+                        if (
+                            isTablet
+                        ) {
+                            15.sp
+                        } else {
+                            14.sp
+                        },
+
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            12.dp
+                        )
+                )
+
+                PinSettingsCard(
+                    checked =
+                        usePin,
+
+                    enabled =
+                        !isSubmitting,
+
+                    isTablet =
+                        isTablet,
+
+                    onCheckedChange = {
+                            checked ->
+
+                        usePin =
+                            checked
 
                         localErrorMessage =
                             null
-                    }
-                },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(
-                            58.dp
-                        ),
-                enabled =
-                    !isSubmitting,
-                placeholder = {
-                    Text(
-                        text =
-                            "Nome do perfil",
-                        color =
-                            Color(
-                                0xFF8F929A
-                            ),
-                        fontSize =
-                            16.sp,
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                },
-                singleLine =
-                    true,
-                shape =
-                    RoundedCornerShape(
-                        7.dp
-                    ),
-                colors =
-                    OutlinedTextFieldDefaults
-                        .colors(
-                            focusedTextColor =
-                                Color.White,
-                            unfocusedTextColor =
-                                Color.White,
-                            disabledTextColor =
-                                Color.White,
-                            focusedBorderColor =
-                                Color.White,
-                            unfocusedBorderColor =
-                                Color.White.copy(
-                                    alpha =
-                                        0.70f
-                                ),
-                            disabledBorderColor =
-                                Color.White.copy(
-                                    alpha =
-                                        0.35f
-                                ),
-                            cursorColor =
-                                LaranjadaOrange,
-                            focusedContainerColor =
-                                Color.Transparent,
-                            unfocusedContainerColor =
-                                Color.Transparent,
-                            disabledContainerColor =
-                                Color.Transparent
-                        )
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        24.dp
-                    )
-            )
-
-            Text(
-                text =
-                    "Configurações do perfil",
-                color =
-                    Color.White,
-                fontSize =
-                    14.sp,
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        12.dp
-                    )
-            )
-
-            PinSettingsCard(
-                checked =
-                    usePin,
-                enabled =
-                    !isSubmitting,
-                onCheckedChange = {
-                        checked ->
-
-                    usePin =
-                        checked
-
-                    localErrorMessage =
-                        null
-
-                    if (
-                        !checked
-                    ) {
-                        pin =
-                            ""
-
-                        confirmPin =
-                            ""
-                    }
-                }
-            )
-
-            if (
-                usePin
-            ) {
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            16.dp
-                        )
-                )
-
-                PinField(
-                    label =
-                        "PIN",
-                    value =
-                        pin,
-                    placeholder =
-                        "PIN de 4 a 6 números",
-                    enabled =
-                        !isSubmitting,
-                    onValueChange = {
-                            newValue ->
 
                         if (
-                            newValue.length <=
-                            6 &&
-                            newValue.all {
-                                    character ->
-
-                                character
-                                    .isDigit()
-                            }
+                            !checked
                         ) {
                             pin =
-                                newValue
+                                ""
 
-                            localErrorMessage =
-                                null
+                            confirmPin =
+                                ""
                         }
                     }
                 )
 
+                if (
+                    usePin
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
+                            )
+                    )
+
+                    PinField(
+                        label =
+                            "PIN",
+
+                        value =
+                            pin,
+
+                        placeholder =
+                            "PIN de 4 a 6 números",
+
+                        enabled =
+                            !isSubmitting,
+
+                        isTablet =
+                            isTablet,
+
+                        onValueChange = {
+                                newValue ->
+
+                            if (
+                                newValue.length <=
+                                6 &&
+                                newValue.all {
+                                        character ->
+
+                                    character.isDigit()
+                                }
+                            ) {
+                                pin =
+                                    newValue
+
+                                localErrorMessage =
+                                    null
+                            }
+                        }
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                14.dp
+                            )
+                    )
+
+                    PinField(
+                        label =
+                            "Confirmar PIN",
+
+                        value =
+                            confirmPin,
+
+                        placeholder =
+                            "Confirme o PIN",
+
+                        enabled =
+                            !isSubmitting,
+
+                        isTablet =
+                            isTablet,
+
+                        onValueChange = {
+                                newValue ->
+
+                            if (
+                                newValue.length <=
+                                6 &&
+                                newValue.all {
+                                        character ->
+
+                                    character.isDigit()
+                                }
+                            ) {
+                                confirmPin =
+                                    newValue
+
+                                localErrorMessage =
+                                    null
+                            }
+                        }
+                    )
+                }
+
+                if (
+                    !displayedError
+                        .isNullOrBlank()
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            displayedError,
+
+                        color =
+                            Color(
+                                0xFFFF8E8E
+                            ),
+
+                        fontSize =
+                            13.sp,
+
+                        lineHeight =
+                            18.sp
+                    )
+                }
+
                 Spacer(
                     modifier =
                         Modifier.height(
-                            14.dp
+                            if (
+                                isTablet
+                            ) {
+                                30.dp
+                            } else {
+                                26.dp
+                            }
                         )
                 )
 
-                PinField(
-                    label =
-                        "Confirmar PIN",
-                    value =
-                        confirmPin,
-                    placeholder =
-                        "Confirme o PIN",
+                PrimaryProfileButton(
                     enabled =
                         !isSubmitting,
-                    onValueChange = {
-                            newValue ->
 
-                        if (
-                            newValue.length <=
-                            6 &&
-                            newValue.all {
-                                    character ->
+                    isLoading =
+                        isSubmitting,
 
-                                character
-                                    .isDigit()
+                    isTablet =
+                        isTablet,
+
+                    onClick = {
+                        val name =
+                            profileName
+                                .trim()
+
+                        when {
+                            name.isBlank() -> {
+                                localErrorMessage =
+                                    "Informe o nome do perfil."
                             }
-                        ) {
-                            confirmPin =
-                                newValue
 
-                            localErrorMessage =
-                                null
+                            usePin &&
+                                    pin.length !in
+                                    4..6 -> {
+
+                                localErrorMessage =
+                                    "O PIN deve ter entre 4 e 6 números."
+                            }
+
+                            usePin &&
+                                    pin !=
+                                    confirmPin -> {
+
+                                localErrorMessage =
+                                    "Os PINs não coincidem."
+                            }
+
+                            else -> {
+                                localErrorMessage =
+                                    null
+
+                                onDoneClick(
+                                    name,
+                                    usePin,
+                                    if (
+                                        usePin
+                                    ) {
+                                        pin
+                                    } else {
+                                        ""
+                                    }
+                                )
+                            }
                         }
                     }
                 )
-            }
 
-            if (
-                !displayedError
-                    .isNullOrBlank()
-            ) {
                 Spacer(
                     modifier =
                         Modifier.height(
-                            16.dp
+                            12.dp
+                        )
+                )
+
+                SecondaryProfileButton(
+                    enabled =
+                        !isSubmitting,
+
+                    isTablet =
+                        isTablet,
+
+                    onClick =
+                        onCancelClick
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                40.dp
+                            } else {
+                                48.dp
+                            }
                         )
                 )
 
                 Text(
                     text =
-                        displayedError,
+                        "LARANJADA",
+
                     color =
-                        Color(
-                            0xFFFF8E8E
-                        ),
+                        LaranjadaOrange,
+
                     fontSize =
                         13.sp,
-                    lineHeight =
-                        18.sp
+
+                    fontWeight =
+                        FontWeight.ExtraBold,
+
+                    letterSpacing =
+                        1.4.sp,
+
+                    modifier =
+                        Modifier
+                            .align(
+                                Alignment.CenterHorizontally
+                            )
+                            .padding(
+                                bottom =
+                                    16.dp
+                            )
                 )
             }
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        26.dp
-                    )
-            )
-
-            PrimaryProfileButton(
-                enabled =
-                    !isSubmitting,
-                isLoading =
-                    isSubmitting,
-                onClick = {
-                    val name =
-                        profileName
-                            .trim()
-
-                    when {
-                        name.isBlank() -> {
-                            localErrorMessage =
-                                "Informe o nome do perfil."
-                        }
-
-                        usePin &&
-                                pin.length !in
-                                4..6 -> {
-                            localErrorMessage =
-                                "O PIN deve ter entre 4 e 6 números."
-                        }
-
-                        usePin &&
-                                pin !=
-                                confirmPin -> {
-                            localErrorMessage =
-                                "Os PINs não coincidem."
-                        }
-
-                        else -> {
-                            localErrorMessage =
-                                null
-
-                            onDoneClick(
-                                name,
-                                usePin,
-                                if (
-                                    usePin
-                                ) {
-                                    pin
-                                } else {
-                                    ""
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        12.dp
-                    )
-            )
-
-            SecondaryProfileButton(
-                enabled =
-                    !isSubmitting,
-                onClick =
-                    onCancelClick
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        48.dp
-                    )
-            )
-
-            Text(
-                text =
-                    "LARANJADA",
-                color =
-                    LaranjadaOrange,
-                fontSize =
-                    13.sp,
-                fontWeight =
-                    FontWeight.ExtraBold,
-                letterSpacing =
-                    1.4.sp,
-                modifier =
-                    Modifier
-                        .align(
-                            Alignment
-                                .CenterHorizontally
-                        )
-                        .padding(
-                            bottom =
-                                16.dp
-                        )
-            )
         }
     }
 }
@@ -612,11 +840,14 @@ private fun BackButton(
                 .clickable(
                     interactionSource =
                         interactionSource,
+
                     indication =
                         null,
+
                     onClick =
                         onClick
                 ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -625,10 +856,13 @@ private fun BackButton(
                 Icons.AutoMirrored
                     .Rounded
                     .ArrowBack,
+
             contentDescription =
                 "Voltar",
+
             tint =
                 Color.White,
+
             modifier =
                 Modifier.size(
                     20.dp
@@ -638,12 +872,14 @@ private fun BackButton(
 }
 
 @Composable
-private fun ProfileAvatarPreview() {
+private fun ProfileAvatarPreview(
+    size: Dp
+) {
     Box(
         modifier =
             Modifier
                 .size(
-                    112.dp
+                    size
                 )
                 .clip(
                     CircleShape
@@ -656,27 +892,40 @@ private fun ProfileAvatarPreview() {
                 .border(
                     width =
                         2.dp,
+
                     color =
                         Color.White.copy(
                             alpha =
                                 0.22f
                         ),
+
                     shape =
                         CircleShape
                 ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Icon(
             imageVector =
                 Icons.Rounded.Person,
+
             contentDescription =
                 null,
+
             tint =
                 Color.White,
+
             modifier =
                 Modifier.size(
-                    42.dp
+                    if (
+                        size >
+                        112.dp
+                    ) {
+                        48.dp
+                    } else {
+                        42.dp
+                    }
                 )
         )
     }
@@ -686,6 +935,7 @@ private fun ProfileAvatarPreview() {
 private fun PinSettingsCard(
     checked: Boolean,
     enabled: Boolean,
+    isTablet: Boolean,
     onCheckedChange:
         (Boolean) -> Unit
 ) {
@@ -695,7 +945,13 @@ private fun PinSettingsCard(
                 .fillMaxWidth()
                 .clip(
                     RoundedCornerShape(
-                        8.dp
+                        if (
+                            isTablet
+                        ) {
+                            10.dp
+                        } else {
+                            8.dp
+                        }
                     )
                 )
                 .background(
@@ -706,22 +962,44 @@ private fun PinSettingsCard(
                 .border(
                     width =
                         1.dp,
+
                     color =
                         Color.White.copy(
                             alpha =
                                 0.14f
                         ),
+
                     shape =
                         RoundedCornerShape(
-                            8.dp
+                            if (
+                                isTablet
+                            ) {
+                                10.dp
+                            } else {
+                                8.dp
+                            }
                         )
                 )
                 .padding(
                     horizontal =
-                        15.dp,
+                        if (
+                            isTablet
+                        ) {
+                            18.dp
+                        } else {
+                            15.dp
+                        },
+
                     vertical =
-                        12.dp
+                        if (
+                            isTablet
+                        ) {
+                            15.dp
+                        } else {
+                            12.dp
+                        }
                 ),
+
         verticalAlignment =
             Alignment.CenterVertically
     ) {
@@ -734,10 +1012,19 @@ private fun PinSettingsCard(
             Text(
                 text =
                     "Bloquear perfil",
+
                 color =
                     Color.White,
+
                 fontSize =
-                    16.sp,
+                    if (
+                        isTablet
+                    ) {
+                        17.sp
+                    } else {
+                        16.sp
+                    },
+
                 fontWeight =
                     FontWeight.ExtraBold
             )
@@ -752,35 +1039,50 @@ private fun PinSettingsCard(
             Text(
                 text =
                     "Exija um PIN para entrar neste perfil.",
+
                 color =
                     Color.White.copy(
                         alpha =
                             0.72f
                     ),
+
                 fontSize =
-                    12.sp
+                    if (
+                        isTablet
+                    ) {
+                        13.sp
+                    } else {
+                        12.sp
+                    }
             )
         }
 
         Switch(
             checked =
                 checked,
+
             enabled =
                 enabled,
+
             onCheckedChange =
                 onCheckedChange,
+
             colors =
                 SwitchDefaults.colors(
                     checkedThumbColor =
                         Color.White,
+
                     checkedTrackColor =
                         LaranjadaOrange,
+
                     uncheckedThumbColor =
                         Color.White,
+
                     uncheckedTrackColor =
                         Color(
                             0xFF606166
                         ),
+
                     uncheckedBorderColor =
                         Color.Transparent
                 )
@@ -794,6 +1096,7 @@ private fun PinField(
     value: String,
     placeholder: String,
     enabled: Boolean,
+    isTablet: Boolean,
     onValueChange:
         (String) -> Unit
 ) {
@@ -801,10 +1104,19 @@ private fun PinField(
         Text(
             text =
                 label,
+
             color =
                 Color.White,
+
             fontSize =
-                14.sp,
+                if (
+                    isTablet
+                ) {
+                    15.sp
+                } else {
+                    14.sp
+                },
+
             fontWeight =
                 FontWeight.ExtraBold
         )
@@ -819,69 +1131,101 @@ private fun PinField(
         OutlinedTextField(
             value =
                 value,
+
             onValueChange =
                 onValueChange,
+
             enabled =
                 enabled,
+
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .height(
-                        58.dp
+                        if (
+                            isTablet
+                        ) {
+                            62.dp
+                        } else {
+                            58.dp
+                        }
                     ),
+
             placeholder = {
                 Text(
                     text =
                         placeholder,
+
                     color =
                         Color(
                             0xFF8F929A
                         ),
+
                     fontSize =
                         15.sp
                 )
             },
+
             singleLine =
                 true,
+
             visualTransformation =
                 PasswordVisualTransformation(),
+
             keyboardOptions =
                 KeyboardOptions(
                     keyboardType =
                         KeyboardType
                             .NumberPassword
                 ),
+
             shape =
                 RoundedCornerShape(
-                    7.dp
+                    if (
+                        isTablet
+                    ) {
+                        9.dp
+                    } else {
+                        7.dp
+                    }
                 ),
+
             colors =
                 OutlinedTextFieldDefaults
                     .colors(
                         focusedTextColor =
                             Color.White,
+
                         unfocusedTextColor =
                             Color.White,
+
                         disabledTextColor =
                             Color.White,
+
                         focusedBorderColor =
                             LaranjadaOrange,
+
                         unfocusedBorderColor =
                             Color.White.copy(
                                 alpha =
                                     0.55f
                             ),
+
                         disabledBorderColor =
                             Color.White.copy(
                                 alpha =
                                     0.30f
                             ),
+
                         cursorColor =
                             LaranjadaOrange,
+
                         focusedContainerColor =
                             Color.Transparent,
+
                         unfocusedContainerColor =
                             Color.Transparent,
+
                         disabledContainerColor =
                             Color.Transparent
                     )
@@ -893,6 +1237,7 @@ private fun PinField(
 private fun PrimaryProfileButton(
     enabled: Boolean,
     isLoading: Boolean,
+    isTablet: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource =
@@ -905,11 +1250,23 @@ private fun PrimaryProfileButton(
             Modifier
                 .fillMaxWidth()
                 .height(
-                    54.dp
+                    if (
+                        isTablet
+                    ) {
+                        58.dp
+                    } else {
+                        54.dp
+                    }
                 )
                 .clip(
                     RoundedCornerShape(
-                        6.dp
+                        if (
+                            isTablet
+                        ) {
+                            8.dp
+                        } else {
+                            6.dp
+                        }
                     )
                 )
                 .background(
@@ -928,13 +1285,17 @@ private fun PrimaryProfileButton(
                 .clickable(
                     enabled =
                         enabled,
+
                     interactionSource =
                         interactionSource,
+
                     indication =
                         null,
+
                     onClick =
                         onClick
                 ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -946,8 +1307,10 @@ private fun PrimaryProfileButton(
                     Modifier.size(
                         22.dp
                     ),
+
                 color =
                     Color.Black,
+
                 strokeWidth =
                     2.dp
             )
@@ -955,10 +1318,13 @@ private fun PrimaryProfileButton(
             Text(
                 text =
                     "Concluído",
+
                 color =
                     Color.Black,
+
                 fontSize =
                     15.sp,
+
                 fontWeight =
                     FontWeight.ExtraBold
             )
@@ -969,6 +1335,7 @@ private fun PrimaryProfileButton(
 @Composable
 private fun SecondaryProfileButton(
     enabled: Boolean,
+    isTablet: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource =
@@ -981,16 +1348,29 @@ private fun SecondaryProfileButton(
             Modifier
                 .fillMaxWidth()
                 .height(
-                    54.dp
+                    if (
+                        isTablet
+                    ) {
+                        58.dp
+                    } else {
+                        54.dp
+                    }
                 )
                 .clip(
                     RoundedCornerShape(
-                        6.dp
+                        if (
+                            isTablet
+                        ) {
+                            8.dp
+                        } else {
+                            6.dp
+                        }
                     )
                 )
                 .border(
                     width =
                         1.dp,
+
                     color =
                         Color.White.copy(
                             alpha =
@@ -1002,27 +1382,39 @@ private fun SecondaryProfileButton(
                                     0.10f
                                 }
                         ),
+
                     shape =
                         RoundedCornerShape(
-                            6.dp
+                            if (
+                                isTablet
+                            ) {
+                                8.dp
+                            } else {
+                                6.dp
+                            }
                         )
                 )
                 .clickable(
                     enabled =
                         enabled,
+
                     interactionSource =
                         interactionSource,
+
                     indication =
                         null,
+
                     onClick =
                         onClick
                 ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Text(
             text =
                 "Cancelar",
+
             color =
                 Color.White.copy(
                     alpha =
@@ -1034,8 +1426,10 @@ private fun SecondaryProfileButton(
                             0.45f
                         }
                 ),
+
             fontSize =
                 15.sp,
+
             fontWeight =
                 FontWeight.ExtraBold
         )

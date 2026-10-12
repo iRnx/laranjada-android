@@ -30,6 +30,9 @@ import com.rnx.laranjada.feature.mediagrid.MediaGridScreen
 import com.rnx.laranjada.feature.player.PlayerScreen
 import com.rnx.laranjada.feature.search.SearchScreen
 import com.rnx.laranjada.feature.subscription.SubscriptionScreen
+import com.rnx.laranjada.feature.support.CreateSupportConversationScreen
+import com.rnx.laranjada.feature.support.SupportConversationScreen
+import com.rnx.laranjada.feature.support.SupportScreen
 import java.net.URLDecoder
 
 @Composable
@@ -460,6 +463,15 @@ fun LaranjadaNavGraph(
                     }
                 },
 
+                onSupportClick = {
+                    navController.navigate(
+                        AppRoutes.Support.route
+                    ) {
+                        launchSingleTop =
+                            true
+                    }
+                },
+
                 onAccountDetailsClick = {
                     navController.navigate(
                         AppRoutes.AccountDetails.route
@@ -495,6 +507,137 @@ fun LaranjadaNavGraph(
                 onBackClick = {
                     navController
                         .popBackStack()
+                },
+
+                onSessionEnded =
+                    onSessionEnded
+            )
+        }
+
+        /*
+         * CENTRAL DE ATENDIMENTO
+         */
+        composable(
+            route =
+                AppRoutes.Support.route
+        ) {
+            SupportScreen(
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+
+                onNewConversationClick = {
+                    navController.navigate(
+                        AppRoutes
+                            .SupportCreate
+                            .route
+                    )
+                },
+
+                onConversationClick = {
+                        conversationUuid ->
+
+                    navController.navigate(
+                        AppRoutes
+                            .SupportConversation
+                            .createRoute(
+                                conversationUuid
+                            )
+                    )
+                },
+
+                onSessionEnded =
+                    onSessionEnded
+            )
+        }
+
+        /*
+         * NOVO ATENDIMENTO
+         */
+        composable(
+            route =
+                AppRoutes.SupportCreate.route
+        ) {
+            CreateSupportConversationScreen(
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+
+                onConversationCreated = {
+                        conversationUuid ->
+
+                    navController.navigate(
+                        AppRoutes
+                            .SupportConversation
+                            .createRoute(
+                                conversationUuid
+                            )
+                    ) {
+                        popUpTo(
+                            AppRoutes
+                                .SupportCreate
+                                .route
+                        ) {
+                            inclusive =
+                                true
+                        }
+                    }
+                },
+
+                onSessionEnded =
+                    onSessionEnded
+            )
+        }
+
+        /*
+         * CONVERSA DE ATENDIMENTO
+         */
+        composable(
+            route =
+                AppRoutes
+                    .SupportConversation
+                    .route,
+
+            arguments =
+                listOf(
+                    navArgument(
+                        AppRoutes
+                            .SupportConversation
+                            .conversationUuidArg
+                    ) {
+                        type =
+                            NavType.StringType
+                    }
+                )
+        ) {
+                backStackEntry ->
+
+            val conversationUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes
+                            .SupportConversation
+                            .conversationUuidArg
+                    )
+                    .orEmpty()
+
+            SupportConversationScreen(
+                conversationUuid =
+                    conversationUuid,
+
+                onBackClick = {
+                    navController
+                        .popBackStack()
+                },
+
+                onNewConversationClick = {
+                    navController.navigate(
+                        AppRoutes
+                            .SupportCreate
+                            .route
+                    )
                 },
 
                 onSessionEnded =

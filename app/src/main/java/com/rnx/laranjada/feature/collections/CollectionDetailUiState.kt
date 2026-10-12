@@ -1,4 +1,3 @@
-
 package com.rnx.laranjada.feature.collections
 
 import com.rnx.laranjada.feature.home.MediaItemUi
@@ -7,20 +6,47 @@ data class CollectionDetailUiState(
     val uuid: String = "",
     val title: String = "",
     val imageUrl: String = "",
-    val movies: List<MediaItemUi> = emptyList(),
-    val series: List<MediaItemUi> = emptyList(),
+
+    /*
+     * [ALTERAÇÃO]
+     *
+     * Catálogo principal da coleção.
+     *
+     * Filme, série, anime, desenho,
+     * dorama etc. aparecem misturados
+     * na ordem devolvida pelo backend.
+     */
+    val items: List<MediaItemUi> =
+        emptyList(),
+
+    /*
+     * Mantidos por compatibilidade e
+     * para informações/resumos.
+     */
+    val movies: List<MediaItemUi> =
+        emptyList(),
+
+    val series: List<MediaItemUi> =
+        emptyList(),
+
     val hasMovies: Boolean = false,
     val hasSeries: Boolean = false,
+
     val totalMovies: Int = 0,
     val totalSeries: Int = 0,
     val totalItems: Int = 0,
-    val appliedFilters: CollectionAppliedFiltersUi =
+
+    val appliedFilters:
+    CollectionAppliedFiltersUi =
         CollectionAppliedFiltersUi(),
-    val availableFilters: CollectionAvailableFiltersUi =
+
+    val availableFilters:
+    CollectionAvailableFiltersUi =
         CollectionAvailableFiltersUi()
 ) {
     val isEmptyResult: Boolean
-        get() = movies.isEmpty() && series.isEmpty()
+        get() =
+            items.isEmpty()
 }
 
 data class CollectionAppliedFiltersUi(
@@ -33,14 +59,23 @@ data class CollectionAppliedFiltersUi(
 )
 
 data class CollectionAvailableFiltersUi(
-    val years: List<Int> = emptyList(),
-    val orders: List<CollectionFilterOptionUi> =
+    val years: List<Int> =
+        emptyList(),
+
+    val orders:
+    List<CollectionFilterOptionUi> =
         defaultOrderOptions(),
-    val ratings: List<CollectionFilterOptionUi> =
+
+    val ratings:
+    List<CollectionFilterOptionUi> =
         defaultRatingOptions(),
-    val types: List<CollectionFilterOptionUi> =
+
+    val types:
+    List<CollectionFilterOptionUi> =
         defaultTypeOptions(),
-    val specificTypes: List<CollectionFilterOptionUi> =
+
+    val specificTypes:
+    List<CollectionFilterOptionUi> =
         defaultSpecificTypeOptions()
 )
 
@@ -52,34 +87,85 @@ data class CollectionFilterOptionUi(
 
 private fun defaultOrderOptions():
         List<CollectionFilterOptionUi> {
+
     return listOf(
-        CollectionFilterOptionUi("Recentes", "created_desc"),
-        CollectionFilterOptionUi("Ano mais novo", "year_desc"),
-        CollectionFilterOptionUi("Ano mais antigo", "year_asc"),
-        CollectionFilterOptionUi("Nome A-Z", "name_asc"),
-        CollectionFilterOptionUi("Nome Z-A", "name_desc"),
-        CollectionFilterOptionUi("Nota maior", "rating_desc")
+        CollectionFilterOptionUi(
+            "Recentes",
+            "created_desc"
+        ),
+        CollectionFilterOptionUi(
+            "Ano mais novo",
+            "year_desc"
+        ),
+        CollectionFilterOptionUi(
+            "Ano mais antigo",
+            "year_asc"
+        ),
+        CollectionFilterOptionUi(
+            "Nome A-Z",
+            "name_asc"
+        ),
+        CollectionFilterOptionUi(
+            "Nome Z-A",
+            "name_desc"
+        ),
+        CollectionFilterOptionUi(
+            "Nota maior",
+            "rating_desc"
+        )
     )
 }
 
 private fun defaultRatingOptions():
         List<CollectionFilterOptionUi> {
+
     return listOf(
-        CollectionFilterOptionUi("Qualquer", ""),
-        CollectionFilterOptionUi("9+", "9"),
-        CollectionFilterOptionUi("8+", "8"),
-        CollectionFilterOptionUi("7+", "7"),
-        CollectionFilterOptionUi("6+", "6"),
-        CollectionFilterOptionUi("5+", "5"),
-        CollectionFilterOptionUi("4+", "4"),
-        CollectionFilterOptionUi("3+", "3"),
-        CollectionFilterOptionUi("2+", "2"),
-        CollectionFilterOptionUi("1+", "1")
+        CollectionFilterOptionUi(
+            "Qualquer",
+            ""
+        ),
+        CollectionFilterOptionUi(
+            "9+",
+            "9"
+        ),
+        CollectionFilterOptionUi(
+            "8+",
+            "8"
+        ),
+        CollectionFilterOptionUi(
+            "7+",
+            "7"
+        ),
+        CollectionFilterOptionUi(
+            "6+",
+            "6"
+        ),
+        CollectionFilterOptionUi(
+            "5+",
+            "5"
+        ),
+        CollectionFilterOptionUi(
+            "4+",
+            "4"
+        ),
+        CollectionFilterOptionUi(
+            "3+",
+            "3"
+        ),
+        CollectionFilterOptionUi(
+            "2+",
+            "2"
+        ),
+        CollectionFilterOptionUi(
+            "1+",
+            "1"
+        )
     )
 }
 
 private fun defaultTypeOptions():
         List<CollectionFilterOptionUi> {
+
     return listOf(
         CollectionFilterOptionUi(
             "Todos",
@@ -101,9 +187,10 @@ private fun defaultTypeOptions():
 
 private fun defaultSpecificTypeOptions():
         List<CollectionFilterOptionUi> {
+
     return listOf(
         CollectionFilterOptionUi(
-            "Filmes Humanos",
+            "Filmes",
             "movies",
             "movie"
         ),
@@ -118,7 +205,7 @@ private fun defaultSpecificTypeOptions():
             "movie"
         ),
         CollectionFilterOptionUi(
-            "Séries Humanas",
+            "Séries",
             "series",
             "series"
         ),
@@ -128,13 +215,28 @@ private fun defaultSpecificTypeOptions():
             "series"
         ),
         CollectionFilterOptionUi(
-            "Séries Doramas",
+            "Doramas",
             "doramas_series",
             "series"
         ),
         CollectionFilterOptionUi(
             "Animes Séries",
             "animes_series",
+            "series"
+        ),
+        CollectionFilterOptionUi(
+            "Documentários",
+            "documentaries_series",
+            "series"
+        ),
+        CollectionFilterOptionUi(
+            "Reality Shows",
+            "reality_show_series",
+            "series"
+        ),
+        CollectionFilterOptionUi(
+            "Novelas",
+            "soap_operas_series",
             "series"
         )
     )

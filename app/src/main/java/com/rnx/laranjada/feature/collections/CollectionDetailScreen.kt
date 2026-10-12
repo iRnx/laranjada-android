@@ -1,10 +1,10 @@
-
 package com.rnx.laranjada.feature.collections
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,15 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FilterAlt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -60,10 +59,14 @@ import com.rnx.laranjada.feature.home.MediaItemUi
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
 
 private val CollectionBackground =
-    Color(0xFF070B0F)
+    Color(
+        0xFF070B0F
+    )
 
 private val CollectionMuted =
-    Color(0xFFBFC4C8)
+    Color(
+        0xFFBFC4C8
+    )
 
 @Composable
 fun CollectionDetailScreen(
@@ -89,63 +92,59 @@ fun CollectionDetailScreen(
     val listState =
         rememberLazyListState()
 
-    var orderSheetOpen by remember {
-        mutableStateOf(false)
+    var orderSheetOpen by
+    remember {
+        mutableStateOf(
+            false
+        )
     }
 
-    var filtersSheetOpen by remember {
-        mutableStateOf(false)
+    var filtersSheetOpen by
+    remember {
+        mutableStateOf(
+            false
+        )
     }
 
-    var moviesExpanded by remember {
-        mutableStateOf(true)
-    }
-
-    var seriesExpanded by remember {
-        mutableStateOf(true)
-    }
-
-    /*
-     * Preserva o comportamento atual
-     * da bottom bar de Coleções.
-     *
-     * A integração de navegação
-     * pode ser tratada separadamente.
-     */
     val selectedBottomIndex =
         remember {
-            mutableIntStateOf(0)
+            mutableIntStateOf(
+                0
+            )
         }
 
     LaunchedEffect(
         uiState.appliedFilters
     ) {
-        listState.scrollToItem(0)
+        listState.scrollToItem(
+            0
+        )
     }
 
     val orderOptions =
-        uiState.availableFilters.orders.map {
-            CatalogFilterOption(
-                label = it.label,
-                value = it.value
-            )
-        }
+        uiState.availableFilters.orders
+            .map {
+                CatalogFilterOption(
+                    label =
+                        it.label,
+
+                    value =
+                        it.value
+                )
+            }
 
     val ratingOptions =
-        uiState.availableFilters.ratings.map {
-            CatalogFilterOption(
-                label = it.label,
-                value = it.value
-            )
-        }
+        uiState.availableFilters.ratings
+            .map {
+                CatalogFilterOption(
+                    label =
+                        it.label,
 
-    /*
-     * Coleções têm opções gerais
-     * e também tipos específicos.
-     *
-     * Não perdemos essas opções
-     * ao adotar o painel compartilhado.
-     */
+                    value =
+                        it.value
+                )
+            }
+
     val typeOptions =
         (
                 uiState.availableFilters.types +
@@ -156,292 +155,440 @@ fun CollectionDetailScreen(
             }
             .map {
                 CatalogFilterOption(
-                    label = it.label,
-                    value = it.value
+                    label =
+                        it.label,
+
+                    value =
+                        it.value
                 )
             }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                CollectionBackground
-            )
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    CollectionBackground
+                )
     ) {
-        LazyColumn(
-            state = listState,
+        val availableWidth =
+            maxWidth
 
-            modifier =
-                Modifier.fillMaxSize(),
+        val isTablet =
+            availableWidth >=
+                    600.dp
 
-            contentPadding =
-                PaddingValues(
-                    bottom = 172.dp
-                ),
+        val isExpandedTablet =
+            availableWidth >=
+                    840.dp
 
-            verticalArrangement =
-                Arrangement.spacedBy(13.dp)
-        ) {
-            item {
-                CollectionHero(
-                    title =
-                        uiState.title,
-
-                    imageUrl =
-                        uiState.imageUrl,
-
-                    totalItems =
-                        uiState.totalItems,
-
-                    onBackClick =
-                        onBackClick,
-
-                    onSearchClick = {
-                        filtersSheetOpen = true
-                    }
-                )
-            }
-
-            item {
-                CollectionToolbar(
-                    totalItems =
-                        uiState.totalItems,
-
-                    onSort = {
-                        orderSheetOpen = true
-                    },
-
-                    onFilters = {
-                        filtersSheetOpen = true
-                    }
-                )
-            }
-
+        val gridColumnCount =
             when {
-                isLoading -> {
-                    item {
-                        CollectionCenterState {
-                            CircularProgressIndicator(
-                                color =
-                                    LaranjadaOrange
-                            )
-                        }
-                    }
-                }
+                isExpandedTablet ->
+                    4
 
-                errorMessage != null -> {
-                    item {
-                        CollectionCenterState {
-                            Text(
-                                text =
-                                    errorMessage,
+                isTablet ->
+                    3
 
-                                color =
-                                    Color.White,
-
-                                textAlign =
-                                    TextAlign.Center
-                            )
-
-                            TextButton(
-                                onClick =
-                                    onRetryClick
-                            ) {
-                                Text(
-                                    "Tentar novamente"
-                                )
-                            }
-                        }
-                    }
-                }
-
-                uiState.isEmptyResult -> {
-                    item {
-                        CollectionCenterState {
-                            Text(
-                                text =
-                                    "Nenhum conteúdo encontrado nesta coleção.",
-
-                                color =
-                                    Color.White,
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
-                                textAlign =
-                                    TextAlign.Center
-                            )
-
-                            Text(
-                                text =
-                                    "Altere a letra ou os filtros para visualizar outros conteúdos.",
-
-                                color =
-                                    CollectionMuted,
-
-                                fontSize =
-                                    13.sp,
-
-                                textAlign =
-                                    TextAlign.Center
-                            )
-
-                            TextButton(
-                                onClick =
-                                    onClearFilters
-                            ) {
-                                Text(
-                                    "Limpar filtros"
-                                )
-                            }
-                        }
-                    }
-                }
-
-                else -> {
-                    /*
-                     * FILMES
-                     */
-                    if (
-                        uiState.movies.isNotEmpty()
-                    ) {
-                        item {
-                            CollectionSectionHeader(
-                                title = "Filmes",
-
-                                count =
-                                    uiState.totalMovies,
-
-                                expanded =
-                                    moviesExpanded,
-
-                                onClick = {
-                                    moviesExpanded =
-                                        !moviesExpanded
-                                }
-                            )
-                        }
-
-                        if (moviesExpanded) {
-                            items(
-                                items =
-                                    uiState.movies.chunked(2)
-                            ) { rowItems ->
-
-                                CollectionCardsRow(
-                                    items = rowItems,
-                                    onMediaClick =
-                                        onMediaClick
-                                )
-                            }
-                        }
-                    }
-
-                    /*
-                     * SÉRIES
-                     */
-                    if (
-                        uiState.series.isNotEmpty()
-                    ) {
-                        item {
-                            CollectionSectionHeader(
-                                title = "Séries",
-
-                                count =
-                                    uiState.totalSeries,
-
-                                expanded =
-                                    seriesExpanded,
-
-                                onClick = {
-                                    seriesExpanded =
-                                        !seriesExpanded
-                                }
-                            )
-                        }
-
-                        if (seriesExpanded) {
-                            items(
-                                items =
-                                    uiState.series.chunked(2)
-                            ) { rowItems ->
-
-                                CollectionCardsRow(
-                                    items = rowItems,
-                                    onMediaClick =
-                                        onMediaClick
-                                )
-                            }
-                        }
-                    }
-                }
+                else ->
+                    2
             }
-        }
+
+        val contentMaxWidth =
+            when {
+                isExpandedTablet ->
+                    availableWidth
+
+                isTablet ->
+                    820.dp
+
+                else ->
+                    availableWidth
+            }
+
+        val horizontalPadding =
+            when {
+                isExpandedTablet ->
+                    40.dp
+
+                isTablet ->
+                    28.dp
+
+                else ->
+                    14.dp
+            }
+
+        val gridHorizontalSpacing =
+            when {
+                isExpandedTablet ->
+                    18.dp
+
+                isTablet ->
+                    16.dp
+
+                else ->
+                    12.dp
+            }
 
         /*
-         * ALFABETO E NAVEGAÇÃO
+         * Landscape já aprovado.
          *
-         * A faixa fica acima da
-         * bottom bar, como em Favoritos.
+         * Não estamos alterando a lógica
+         * visual dele.
          */
-        Column(
+        val heroHeight =
+            when {
+                isExpandedTablet ->
+                    availableWidth *
+                            (
+                                    9f /
+                                            16f
+                                    )
+
+                isTablet ->
+                    330.dp
+
+                else ->
+                    260.dp
+            }
+
+        Box(
             modifier =
-                Modifier.align(
-                    Alignment.BottomCenter
-                )
+                Modifier.fillMaxSize()
         ) {
-            CatalogAlphabetBar(
-                selectedLetter =
-                    uiState.appliedFilters.letter,
+            LazyColumn(
+                state =
+                    listState,
 
-                enabled =
-                    !isLoading,
+                modifier =
+                    Modifier.fillMaxSize(),
 
-                onLetterClick =
-                    onLetterClick
-            )
+                contentPadding =
+                    PaddingValues(
+                        bottom =
+                            172.dp
+                    ),
 
-            HomeBottomBar(
-                selectedIndex =
-                    selectedBottomIndex.intValue,
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        if (
+                            isTablet
+                        ) {
+                            16.dp
+                        } else {
+                            13.dp
+                        }
+                    )
+            ) {
+                item {
+                    CollectionHero(
+                        title =
+                            uiState.title,
 
-                onItemClick = { index ->
-                    selectedBottomIndex.intValue =
-                        index
+                        imageUrl =
+                            uiState.imageUrl,
+
+                        totalItems =
+                            uiState.totalItems,
+
+                        totalMovies =
+                            uiState.totalMovies,
+
+                        totalSeries =
+                            uiState.totalSeries,
+
+                        heroHeight =
+                            heroHeight,
+
+                        isTablet =
+                            isTablet,
+
+                        isExpandedTablet =
+                            isExpandedTablet,
+
+                        onBackClick =
+                            onBackClick,
+
+                        onSearchClick = {
+                            filtersSheetOpen =
+                                true
+                        }
+                    )
                 }
-            )
+
+                item {
+                    CenteredCollectionContent(
+                        maxWidth =
+                            contentMaxWidth
+                    ) {
+                        CollectionToolbar(
+                            totalItems =
+                                uiState.totalItems,
+
+                            isTablet =
+                                isTablet,
+
+                            horizontalPadding =
+                                horizontalPadding,
+
+                            onSort = {
+                                orderSheetOpen =
+                                    true
+                            },
+
+                            onFilters = {
+                                filtersSheetOpen =
+                                    true
+                            }
+                        )
+                    }
+                }
+
+                when {
+                    isLoading -> {
+                        item {
+                            CenteredCollectionContent(
+                                maxWidth =
+                                    contentMaxWidth
+                            ) {
+                                CollectionCenterState {
+                                    CircularProgressIndicator(
+                                        color =
+                                            LaranjadaOrange
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    errorMessage !=
+                            null -> {
+
+                        item {
+                            CenteredCollectionContent(
+                                maxWidth =
+                                    contentMaxWidth
+                            ) {
+                                CollectionCenterState {
+                                    Text(
+                                        text =
+                                            errorMessage,
+
+                                        color =
+                                            Color.White,
+
+                                        textAlign =
+                                            TextAlign.Center
+                                    )
+
+                                    TextButton(
+                                        onClick =
+                                            onRetryClick
+                                    ) {
+                                        Text(
+                                            text =
+                                                "Tentar novamente"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    uiState.isEmptyResult -> {
+                        item {
+                            CenteredCollectionContent(
+                                maxWidth =
+                                    contentMaxWidth
+                            ) {
+                                CollectionCenterState {
+                                    Text(
+                                        text =
+                                            "Nenhum conteúdo encontrado nesta coleção.",
+
+                                        color =
+                                            Color.White,
+
+                                        fontWeight =
+                                            FontWeight.Bold,
+
+                                        textAlign =
+                                            TextAlign.Center
+                                    )
+
+                                    Text(
+                                        text =
+                                            "Altere a letra ou os filtros para visualizar outros conteúdos.",
+
+                                        color =
+                                            CollectionMuted,
+
+                                        fontSize =
+                                            13.sp,
+
+                                        textAlign =
+                                            TextAlign.Center
+                                    )
+
+                                    TextButton(
+                                        onClick =
+                                            onClearFilters
+                                    ) {
+                                        Text(
+                                            text =
+                                                "Limpar filtros"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        /*
+                         * [ALTERAÇÃO]
+                         *
+                         * Acabaram:
+                         *
+                         * Filmes
+                         *   expandir/recolher
+                         *
+                         * Séries
+                         *   expandir/recolher
+                         *
+                         * Agora existe exatamente
+                         * o mesmo conceito do Web:
+                         *
+                         * CONTEÚDOS DA COLEÇÃO
+                         *
+                         * [filme] [série] [anime]
+                         * [dorama] [filme] [desenho]
+                         */
+                        item {
+                            CenteredCollectionContent(
+                                maxWidth =
+                                    contentMaxWidth
+                            ) {
+                                CollectionContentHeader(
+                                    totalItems =
+                                        uiState.items.size,
+
+                                    isTablet =
+                                        isTablet,
+
+                                    horizontalPadding =
+                                        horizontalPadding
+                                )
+                            }
+                        }
+
+                        items(
+                            items =
+                                uiState.items
+                                    .chunked(
+                                        gridColumnCount
+                                    )
+                        ) {
+                                rowItems ->
+
+                            CenteredCollectionContent(
+                                maxWidth =
+                                    contentMaxWidth
+                            ) {
+                                CollectionCardsRow(
+                                    items =
+                                        rowItems,
+
+                                    columnCount =
+                                        gridColumnCount,
+
+                                    horizontalPadding =
+                                        horizontalPadding,
+
+                                    horizontalSpacing =
+                                        gridHorizontalSpacing,
+
+                                    onMediaClick =
+                                        onMediaClick
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier =
+                    Modifier.align(
+                        Alignment.BottomCenter
+                    )
+            ) {
+                CatalogAlphabetBar(
+                    selectedLetter =
+                        uiState
+                            .appliedFilters
+                            .letter,
+
+                    enabled =
+                        !isLoading,
+
+                    distributeAcrossWidth =
+                        isExpandedTablet,
+
+                    onLetterClick =
+                        onLetterClick
+                )
+
+                HomeBottomBar(
+                    selectedIndex =
+                        selectedBottomIndex
+                            .intValue,
+
+                    onItemClick = {
+                            index ->
+
+                        selectedBottomIndex
+                            .intValue =
+                            index
+                    }
+                )
+            }
         }
     }
 
-    /*
-     * PAINEL DE ORDENAÇÃO
-     */
-    if (orderSheetOpen) {
+    if (
+        orderSheetOpen
+    ) {
         CatalogOrderSheet(
             options =
                 orderOptions,
 
             selectedValue =
-                uiState.appliedFilters.order,
+                uiState
+                    .appliedFilters
+                    .order,
 
-            onSelect = { order ->
-                onOrderChange(order)
-                orderSheetOpen = false
+            onSelect = {
+                    order ->
+
+                onOrderChange(
+                    order
+                )
+
+                orderSheetOpen =
+                    false
             },
 
             onDismiss = {
-                orderSheetOpen = false
+                orderSheetOpen =
+                    false
             }
         )
     }
 
-    /*
-     * PAINEL DE FILTROS
-     *
-     * Inclui os tipos específicos
-     * disponibilizados pela API.
-     */
-    if (filtersSheetOpen) {
+    if (
+        filtersSheetOpen
+    ) {
         CatalogFiltersSheet(
             search =
                 uiState.appliedFilters.q,
@@ -450,7 +597,9 @@ fun CollectionDetailScreen(
                 uiState.appliedFilters.year,
 
             ratingMin =
-                uiState.appliedFilters.ratingMin,
+                uiState
+                    .appliedFilters
+                    .ratingMin,
 
             type =
                 uiState.appliedFilters.type,
@@ -480,18 +629,48 @@ fun CollectionDetailScreen(
                     type
                 )
 
-                filtersSheetOpen = false
+                filtersSheetOpen =
+                    false
             },
 
             onClear = {
                 onClearFilters()
-                filtersSheetOpen = false
+
+                filtersSheetOpen =
+                    false
             },
 
             onDismiss = {
-                filtersSheetOpen = false
+                filtersSheetOpen =
+                    false
             }
         )
+    }
+}
+
+@Composable
+private fun CenteredCollectionContent(
+    maxWidth: Dp,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier =
+            Modifier.fillMaxWidth(),
+
+        contentAlignment =
+            Alignment.TopCenter
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .widthIn(
+                        max =
+                            maxWidth
+                    )
+                    .fillMaxWidth()
+        ) {
+            content()
+        }
     }
 }
 
@@ -500,16 +679,24 @@ private fun CollectionHero(
     title: String,
     imageUrl: String,
     totalItems: Int,
+    totalMovies: Int,
+    totalSeries: Int,
+    heroHeight: Dp,
+    isTablet: Boolean,
+    isExpandedTablet: Boolean,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(260.dp)
-            .background(
-                CollectionBackground
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(
+                    heroHeight
+                )
+                .background(
+                    CollectionBackground
+                )
     ) {
         AsyncImage(
             model =
@@ -519,47 +706,190 @@ private fun CollectionHero(
                 title,
 
             contentScale =
-                ContentScale.Crop,
+                if (
+                    isExpandedTablet
+                ) {
+                    ContentScale.FillWidth
+                } else {
+                    ContentScale.Crop
+                },
+
+            alignment =
+                if (
+                    isExpandedTablet
+                ) {
+                    Alignment.TopCenter
+                } else {
+                    Alignment.Center
+                },
 
             modifier =
                 Modifier.matchParentSize()
         )
 
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.00f to Color.Black.copy(
-                                alpha = 0.52f
-                            ),
+        if (
+            isExpandedTablet
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0.00f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.98f
+                                                ),
 
-                            0.28f to Color.Black.copy(
-                                alpha = 0.16f
-                            ),
+                                        0.28f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.82f
+                                                ),
 
-                            0.68f to Color.Black.copy(
-                                alpha = 0.55f
-                            ),
+                                        0.62f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.38f
+                                                ),
 
-                            1.00f to CollectionBackground
+                                        1.00f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.10f
+                                                )
+                                    )
+                            )
                         )
-                    )
+            )
+
+            Box(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0.00f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.22f
+                                                ),
+
+                                        0.42f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.18f
+                                                ),
+
+                                        1.00f to
+                                                CollectionBackground
+                                    )
+                            )
+                        )
+            )
+        } else {
+            if (
+                isTablet
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colorStops =
+                                        arrayOf(
+                                            0.00f to
+                                                    Color.Black.copy(
+                                                        alpha =
+                                                            0.64f
+                                                    ),
+
+                                            0.34f to
+                                                    Color.Black.copy(
+                                                        alpha =
+                                                            0.32f
+                                                    ),
+
+                                            0.68f to
+                                                    Color.Transparent,
+
+                                            1.00f to
+                                                    Color.Transparent
+                                        )
+                                )
+                            )
                 )
-        )
+            }
+
+            Box(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0.00f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.52f
+                                                ),
+
+                                        0.28f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.16f
+                                                ),
+
+                                        0.68f to
+                                                Color.Black.copy(
+                                                    alpha =
+                                                        0.55f
+                                                ),
+
+                                        1.00f to
+                                                CollectionBackground
+                                    )
+                            )
+                        )
+            )
+        }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(
-                    WindowInsets.statusBars
-                )
-                .padding(
-                    start = 6.dp,
-                    end = 7.dp,
-                    top = 8.dp
-                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.statusBars
+                    )
+                    .padding(
+                        start =
+                            if (
+                                isTablet
+                            ) {
+                                20.dp
+                            } else {
+                                6.dp
+                            },
+
+                        end =
+                            if (
+                                isTablet
+                            ) {
+                                20.dp
+                            } else {
+                                7.dp
+                            },
+
+                        top =
+                            8.dp
+                    ),
 
             verticalAlignment =
                 Alignment.CenterVertically
@@ -570,13 +900,26 @@ private fun CollectionHero(
             ) {
                 Icon(
                     imageVector =
-                        Icons.AutoMirrored.Rounded.ArrowBack,
+                        Icons.AutoMirrored
+                            .Rounded
+                            .ArrowBack,
 
                     contentDescription =
                         "Voltar",
 
                     tint =
-                        Color.White
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            if (
+                                isTablet
+                            ) {
+                                26.dp
+                            } else {
+                                24.dp
+                            }
+                        )
                 )
             }
 
@@ -590,7 +933,13 @@ private fun CollectionHero(
                     Color.White,
 
                 fontSize =
-                    17.sp,
+                    if (
+                        isTablet
+                    ) {
+                        19.sp
+                    } else {
+                        17.sp
+                    },
 
                 fontWeight =
                     FontWeight.Bold,
@@ -602,7 +951,9 @@ private fun CollectionHero(
                     TextOverflow.Ellipsis,
 
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
 
             IconButton(
@@ -617,24 +968,100 @@ private fun CollectionHero(
                         "Buscar na coleção",
 
                     tint =
-                        Color.White
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            if (
+                                isTablet
+                            ) {
+                                26.dp
+                            } else {
+                                24.dp
+                            }
+                        )
                 )
             }
         }
 
         Column(
-            modifier = Modifier
-                .align(
-                    Alignment.BottomStart
-                )
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 18.dp
-                )
-                .padding(
-                    bottom = 22.dp
-                )
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.BottomStart
+                    )
+                    .widthIn(
+                        max =
+                            if (
+                                isExpandedTablet
+                            ) {
+                                720.dp
+                            } else if (
+                                isTablet
+                            ) {
+                                600.dp
+                            } else {
+                                520.dp
+                            }
+                    )
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal =
+                            if (
+                                isExpandedTablet
+                            ) {
+                                40.dp
+                            } else if (
+                                isTablet
+                            ) {
+                                28.dp
+                            } else {
+                                18.dp
+                            }
+                    )
+                    .padding(
+                        bottom =
+                            if (
+                                isExpandedTablet
+                            ) {
+                                48.dp
+                            } else if (
+                                isTablet
+                            ) {
+                                28.dp
+                            } else {
+                                22.dp
+                            }
+                    )
         ) {
+            if (
+                isExpandedTablet
+            ) {
+                Text(
+                    text =
+                        "COLEÇÃO",
+
+                    color =
+                        LaranjadaOrange,
+
+                    fontSize =
+                        13.sp,
+
+                    fontWeight =
+                        FontWeight.ExtraBold,
+
+                    letterSpacing =
+                        1.2.sp
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
+                )
+            }
+
             Text(
                 text =
                     title.ifBlank {
@@ -645,10 +1072,28 @@ private fun CollectionHero(
                     Color.White,
 
                 fontSize =
-                    30.sp,
+                    when {
+                        isExpandedTablet ->
+                            40.sp
+
+                        isTablet ->
+                            34.sp
+
+                        else ->
+                            30.sp
+                    },
 
                 lineHeight =
-                    34.sp,
+                    when {
+                        isExpandedTablet ->
+                            44.sp
+
+                        isTablet ->
+                            38.sp
+
+                        else ->
+                            34.sp
+                    },
 
                 fontWeight =
                     FontWeight.ExtraBold,
@@ -660,23 +1105,173 @@ private fun CollectionHero(
                     TextOverflow.Ellipsis
             )
 
-            if (totalItems > 0) {
-                Text(
-                    text =
-                        "$totalItems conteúdos",
-
-                    color =
-                        CollectionMuted,
-
-                    fontSize =
-                        14.sp,
-
+            if (
+                totalItems >
+                0
+            ) {
+                Spacer(
                     modifier =
-                        Modifier.padding(
-                            top = 6.dp
+                        Modifier.height(
+                            9.dp
                         )
                 )
+
+                if (
+                    isExpandedTablet
+                ) {
+                    CollectionHeroMeta(
+                        totalItems =
+                            totalItems,
+
+                        totalMovies =
+                            totalMovies,
+
+                        totalSeries =
+                            totalSeries
+                    )
+                } else {
+                    Text(
+                        text =
+                            "$totalItems conteúdos",
+
+                        color =
+                            CollectionMuted,
+
+                        fontSize =
+                            if (
+                                isTablet
+                            ) {
+                                15.sp
+                            } else {
+                                14.sp
+                            }
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun CollectionHeroMeta(
+    totalItems: Int,
+    totalMovies: Int,
+    totalSeries: Int
+) {
+    Row(
+        verticalAlignment =
+            Alignment.CenterVertically,
+
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                8.dp
+            )
+    ) {
+        Text(
+            text =
+                "$totalItems " +
+                        if (
+                            totalItems ==
+                            1
+                        ) {
+                            "conteúdo"
+                        } else {
+                            "conteúdos"
+                        },
+
+            color =
+                Color.White.copy(
+                    alpha =
+                        0.84f
+                ),
+
+            fontSize =
+                14.sp,
+
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        if (
+            totalMovies >
+            0
+        ) {
+            Text(
+                text =
+                    "•",
+
+                color =
+                    Color.White.copy(
+                        alpha =
+                            0.58f
+                    )
+            )
+
+            Text(
+                text =
+                    "$totalMovies " +
+                            if (
+                                totalMovies ==
+                                1
+                            ) {
+                                "filme"
+                            } else {
+                                "filmes"
+                            },
+
+                color =
+                    Color.White.copy(
+                        alpha =
+                            0.84f
+                    ),
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold
+            )
+        }
+
+        if (
+            totalSeries >
+            0
+        ) {
+            Text(
+                text =
+                    "•",
+
+                color =
+                    Color.White.copy(
+                        alpha =
+                            0.58f
+                    )
+            )
+
+            Text(
+                text =
+                    "$totalSeries " +
+                            if (
+                                totalSeries ==
+                                1
+                            ) {
+                                "série"
+                            } else {
+                                "séries"
+                            },
+
+                color =
+                    Color.White.copy(
+                        alpha =
+                            0.84f
+                    ),
+
+                fontSize =
+                    14.sp,
+
+                fontWeight =
+                    FontWeight.Bold
+            )
         }
     }
 }
@@ -684,23 +1279,28 @@ private fun CollectionHero(
 @Composable
 private fun CollectionToolbar(
     totalItems: Int,
+    isTablet: Boolean,
+    horizontalPadding: Dp,
     onSort: () -> Unit,
     onFilters: () -> Unit
 ) {
-    /*
-     * Coleções não são paginadas.
-     * Por isso não exibimos setas
-     * que não teriam ação real.
-     *
-     * Mantemos o mesmo A-Z e funil.
-     */
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 14.dp,
-                vertical = 3.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        horizontalPadding,
+
+                    vertical =
+                        if (
+                            isTablet
+                        ) {
+                            6.dp
+                        } else {
+                            3.dp
+                        }
+                ),
 
         horizontalArrangement =
             Arrangement.Center,
@@ -710,7 +1310,10 @@ private fun CollectionToolbar(
     ) {
         Text(
             text =
-                if (totalItems == 0) {
+                if (
+                    totalItems ==
+                    0
+                ) {
                     "0 de 0"
                 } else {
                     "1–$totalItems de $totalItems"
@@ -720,7 +1323,13 @@ private fun CollectionToolbar(
                 Color.White,
 
             fontSize =
-                12.sp,
+                if (
+                    isTablet
+                ) {
+                    13.sp
+                } else {
+                    12.sp
+                },
 
             fontWeight =
                 FontWeight.Bold
@@ -728,24 +1337,45 @@ private fun CollectionToolbar(
 
         Spacer(
             modifier =
-                Modifier.size(17.dp)
+                Modifier.size(
+                    if (
+                        isTablet
+                    ) {
+                        22.dp
+                    } else {
+                        17.dp
+                    }
+                )
         )
 
         Text(
-            text = "A-Z",
+            text =
+                "A-Z",
 
-            color = Color.White,
+            color =
+                Color.White,
 
-            fontSize = 14.sp,
+            fontSize =
+                if (
+                    isTablet
+                ) {
+                    15.sp
+                } else {
+                    14.sp
+                },
 
             fontWeight =
                 FontWeight.ExtraBold,
 
-            modifier = Modifier
-                .clickable(
-                    onClick = onSort
-                )
-                .padding(10.dp)
+            modifier =
+                Modifier
+                    .clickable(
+                        onClick =
+                            onSort
+                    )
+                    .padding(
+                        10.dp
+                    )
         )
 
         IconButton(
@@ -753,7 +1383,15 @@ private fun CollectionToolbar(
                 onFilters,
 
             modifier =
-                Modifier.size(38.dp)
+                Modifier.size(
+                    if (
+                        isTablet
+                    ) {
+                        42.dp
+                    } else {
+                        38.dp
+                    }
+                )
         ) {
             Icon(
                 imageVector =
@@ -766,126 +1404,159 @@ private fun CollectionToolbar(
                     Color.White,
 
                 modifier =
-                    Modifier.size(21.dp)
+                    Modifier.size(
+                        if (
+                            isTablet
+                        ) {
+                            23.dp
+                        } else {
+                            21.dp
+                        }
+                    )
             )
         }
     }
 }
 
 @Composable
-private fun CollectionSectionHeader(
-    title: String,
-    count: Int,
-    expanded: Boolean,
-    onClick: () -> Unit
+private fun CollectionContentHeader(
+    totalItems: Int,
+    isTablet: Boolean,
+    horizontalPadding: Dp
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = onClick
-            )
-            .padding(
-                start = 15.dp,
-                end = 15.dp,
-                top = 12.dp,
-                bottom = 5.dp
-            ),
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        horizontalPadding
+                )
+                .padding(
+                    top =
+                        if (
+                            isTablet
+                        ) {
+                            12.dp
+                        } else {
+                            8.dp
+                        },
 
-        horizontalArrangement =
-            Arrangement.SpaceBetween,
+                    bottom =
+                        if (
+                            isTablet
+                        ) {
+                            12.dp
+                        } else {
+                            8.dp
+                        }
+                ),
 
-        verticalAlignment =
-            Alignment.CenterVertically
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier =
-                Modifier.weight(1f)
+        Text(
+            text =
+                "Conteúdos da coleção",
+
+            color =
+                Color.White,
+
+            fontSize =
+                if (
+                    isTablet
+                ) {
+                    26.sp
+                } else {
+                    21.sp
+                },
+
+            fontWeight =
+                FontWeight.ExtraBold,
+
+            textAlign =
+                TextAlign.Center
+        )
+
+        if (
+            totalItems >
+            0
         ) {
             Text(
                 text =
-                    title,
-
-                color =
-                    Color.White,
-
-                fontSize =
-                    19.sp,
-
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-
-            Text(
-                text =
-                    "$count conteúdos",
+                    "$totalItems " +
+                            if (
+                                totalItems ==
+                                1
+                            ) {
+                                "resultado"
+                            } else {
+                                "resultados"
+                            },
 
                 color =
                     CollectionMuted,
 
                 fontSize =
-                    12.sp,
+                    if (
+                        isTablet
+                    ) {
+                        13.sp
+                    } else {
+                        12.sp
+                    },
 
                 modifier =
                     Modifier.padding(
-                        top = 2.dp
+                        top =
+                            4.dp
                     )
             )
         }
-
-        Icon(
-            imageVector =
-                if (expanded) {
-                    Icons.Rounded.ExpandLess
-                } else {
-                    Icons.Rounded.ExpandMore
-                },
-
-            contentDescription =
-                if (expanded) {
-                    "Recolher $title"
-                } else {
-                    "Expandir $title"
-                },
-
-            tint =
-                Color.White,
-
-            modifier =
-                Modifier.size(27.dp)
-        )
     }
 }
 
 @Composable
 private fun CollectionCardsRow(
     items: List<MediaItemUi>,
+    columnCount: Int,
+    horizontalPadding: Dp,
+    horizontalSpacing: Dp,
     onMediaClick: (
         contentType: String,
         uuid: String
     ) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 14.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        horizontalPadding
+                ),
 
         horizontalArrangement =
-            Arrangement.spacedBy(12.dp),
+            Arrangement.spacedBy(
+                horizontalSpacing
+            ),
 
         verticalAlignment =
             Alignment.Top
     ) {
-        items.forEach { item ->
+        items.forEach {
+                item ->
+
             CatalogMediaCard(
-                item = item,
+                item =
+                    item,
 
                 onClick = {
                     if (
-                        item.uuid.isNotBlank() &&
-                        item.contentType.isNotBlank()
+                        item.uuid
+                            .isNotBlank() &&
+                        item.contentType
+                            .isNotBlank()
                     ) {
                         onMediaClick(
                             item.contentType,
@@ -895,14 +1566,21 @@ private fun CollectionCardsRow(
                 },
 
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
         }
 
-        if (items.size == 1) {
+        repeat(
+            columnCount -
+                    items.size
+        ) {
             Spacer(
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(
+                        1f
+                    )
             )
         }
     }
@@ -913,18 +1591,24 @@ private fun CollectionCenterState(
     content: @Composable () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 24.dp,
-                vertical = 48.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        24.dp,
+
+                    vertical =
+                        48.dp
+                ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally,
 
         verticalArrangement =
-            Arrangement.spacedBy(12.dp)
+            Arrangement.spacedBy(
+                12.dp
+            )
     ) {
         content()
     }

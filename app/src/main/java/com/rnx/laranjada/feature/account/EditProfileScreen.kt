@@ -3,8 +3,8 @@ package com.rnx.laranjada.feature.account
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -77,17 +80,6 @@ fun EditProfileScreen(
         )
     }
 
-    /*
-     * Estado final desejado para o PIN.
-     *
-     * Perfil que já possui PIN:
-     * true = manter/alterar
-     * false = remover
-     *
-     * Perfil sem PIN:
-     * false = continuar sem PIN
-     * true = criar PIN
-     */
     var usePin by rememberSaveable(
         profileUuid,
         initialHasPin
@@ -97,12 +89,6 @@ fun EditProfileScreen(
         )
     }
 
-    /*
-     * Só fica true quando um perfil que já
-     * possui PIN escolhe explicitamente:
-     *
-     * "Alterar PIN"
-     */
     var isChangingExistingPin by rememberSaveable(
         profileUuid,
         initialHasPin
@@ -140,15 +126,6 @@ fun EditProfileScreen(
         localErrorMessage
             ?: errorMessage
 
-    /*
-     * Perfil sem PIN:
-     * mostra os campos quando o switch
-     * "Bloquear perfil" estiver ligado.
-     *
-     * Perfil com PIN:
-     * mostra somente quando o usuário
-     * clicar em "Alterar PIN".
-     */
     val shouldShowPinFields =
         if (
             initialHasPin
@@ -158,549 +135,808 @@ fun EditProfileScreen(
             usePin
         }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(
-                            0xFF160800
-                        ),
-                        Color.Black,
-                        Color.Black
-                    )
-                )
-            )
-    ) {
-        Column(
-            modifier = Modifier
+    BoxWithConstraints(
+        modifier =
+            Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(
-                    WindowInsets.statusBars
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    Color(
+                                        0xFF160800
+                                    ),
+                                    Color.Black,
+                                    Color.Black
+                                )
+                        )
                 )
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    horizontal = 18.dp,
-                    vertical = 18.dp
-                )
-        ) {
-            Text(
-                text = "LARANJADA",
-                color = LaranjadaOrange,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.2.sp,
-                modifier = Modifier.align(
-                    Alignment.CenterHorizontally
-                )
-            )
+    ) {
+        /*
+         * [ALTERAÇÃO]
+         *
+         * No celular a tela continua ocupando
+         * a largura disponível.
+         *
+         * No tablet limitamos o formulário,
+         * impedindo campos e cards gigantes.
+         */
+        val isTablet =
+            maxWidth >=
+                    600.dp
 
-            Spacer(
-                modifier = Modifier.height(
-                    28.dp
-                )
-            )
+        val isExpanded =
+            maxWidth >=
+                    840.dp
 
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                CircularBackButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.align(
-                        Alignment.CenterStart
-                    )
-                )
+        val contentMaxWidth =
+            when {
+                isExpanded ->
+                    520.dp
 
-                Text(
-                    text = "Editar perfil",
-                    color = Color.White,
-                    fontSize = 27.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.align(
-                        Alignment.Center
-                    )
-                )
+                isTablet ->
+                    500.dp
+
+                else ->
+                    maxWidth
             }
 
-            Spacer(
-                modifier = Modifier.height(
-                    28.dp
-                )
-            )
-
-            EditableAvatar(
-                name = profileName,
-                avatarUrl = avatarUrl,
-                enabled = !isSubmitting,
-                onClick = onAvatarClick
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    12.dp
-                )
-            )
-
-            Text(
-                text = "Escolher avatar",
-                color = LaranjadaOrange,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier
-                    .align(
-                        Alignment.CenterHorizontally
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(
+                        WindowInsets.statusBars
                     )
-                    .clickable(
-                        enabled = !isSubmitting,
-                        onClick = onAvatarClick
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars
                     )
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    30.dp
-                )
-            )
-
-            Text(
-                text = "Nome do perfil",
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    9.dp
-                )
-            )
-
-            OutlinedTextField(
-                value = profileName,
-                onValueChange = { value ->
-                    if (
-                        value.length <= 40
-                    ) {
-                        profileName = value
-
-                        localErrorMessage =
-                            null
-                    }
-                },
-                enabled = !isSubmitting,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(
-                        58.dp
+                    .imePadding()
+                    .verticalScroll(
+                        rememberScrollState()
                     ),
-                singleLine = true,
-                shape = RoundedCornerShape(
-                    7.dp
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor =
-                        Color.White,
-                    unfocusedTextColor =
-                        Color.White,
-                    disabledTextColor =
-                        Color.White,
-                    focusedBorderColor =
-                        Color.White,
-                    unfocusedBorderColor =
-                        Color.White.copy(
-                            alpha = 0.72f
-                        ),
-                    disabledBorderColor =
-                        Color.White.copy(
-                            alpha = 0.35f
-                        ),
-                    cursorColor =
+
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .widthIn(
+                            max =
+                                contentMaxWidth
+                        )
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal =
+                                if (
+                                    isTablet
+                                ) {
+                                    28.dp
+                                } else {
+                                    18.dp
+                                },
+
+                            vertical =
+                                if (
+                                    isTablet
+                                ) {
+                                    26.dp
+                                } else {
+                                    18.dp
+                                }
+                        )
+            ) {
+                Text(
+                    text =
+                        "LARANJADA",
+
+                    color =
                         LaranjadaOrange,
-                    focusedContainerColor =
-                        Color.Transparent,
-                    unfocusedContainerColor =
-                        Color.Transparent,
-                    disabledContainerColor =
-                        Color.Transparent
-                )
-            )
 
-            Spacer(
-                modifier = Modifier.height(
-                    24.dp
-                )
-            )
-
-            Text(
-                text = "Segurança do perfil",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    12.dp
-                )
-            )
-
-            if (
-                initialHasPin
-            ) {
-                ExistingPinSecurityCard(
-                    pinWillBeRemoved =
-                        !usePin,
-                    isChangingPin =
-                        isChangingExistingPin,
-                    enabled =
-                        !isSubmitting,
-                    onChangePinClick = {
-                        usePin =
-                            true
-
-                        isChangingExistingPin =
-                            true
-
-                        pin =
-                            ""
-
-                        confirmPin =
-                            ""
-
-                        localErrorMessage =
-                            null
-                    },
-                    onCancelChangeClick = {
-                        usePin =
-                            true
-
-                        isChangingExistingPin =
-                            false
-
-                        pin =
-                            ""
-
-                        confirmPin =
-                            ""
-
-                        localErrorMessage =
-                            null
-                    },
-                    onRemovePinClick = {
-                        usePin =
-                            false
-
-                        isChangingExistingPin =
-                            false
-
-                        pin =
-                            ""
-
-                        confirmPin =
-                            ""
-
-                        localErrorMessage =
-                            null
-                    },
-                    onKeepPinClick = {
-                        usePin =
-                            true
-
-                        isChangingExistingPin =
-                            false
-
-                        pin =
-                            ""
-
-                        confirmPin =
-                            ""
-
-                        localErrorMessage =
-                            null
-                    }
-                )
-            } else {
-                EnablePinCard(
-                    checked =
-                        usePin,
-                    enabled =
-                        !isSubmitting,
-                    onCheckedChange = {
-                            checked ->
-
-                        usePin =
-                            checked
-
-                        localErrorMessage =
-                            null
-
+                    fontSize =
                         if (
-                            !checked
+                            isTablet
                         ) {
-                            pin =
-                                ""
-
-                            confirmPin =
-                                ""
-                        }
-                    }
-                )
-            }
-
-            if (
-                shouldShowPinFields
-            ) {
-                Spacer(
-                    modifier = Modifier.height(
-                        16.dp
-                    )
-                )
-
-                EditProfilePinField(
-                    label =
-                        if (
-                            initialHasPin
-                        ) {
-                            "Novo PIN"
+                            29.sp
                         } else {
-                            "PIN"
+                            25.sp
                         },
-                    value =
-                        pin,
-                    placeholder =
-                        "PIN de 4 a 6 números",
-                    enabled =
-                        !isSubmitting,
-                    onValueChange = {
-                            value ->
 
-                        if (
-                            value.length <= 6 &&
-                            value.all {
-                                    character ->
+                    fontWeight =
+                        FontWeight.ExtraBold,
 
-                                character.isDigit()
+                    letterSpacing =
+                        1.2.sp,
+
+                    modifier =
+                        Modifier.align(
+                            Alignment.CenterHorizontally
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                34.dp
+                            } else {
+                                28.dp
                             }
-                        ) {
-                            pin =
-                                value
-
-                            localErrorMessage =
-                                null
-                        }
-                    }
+                        )
                 )
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+                    CircularBackButton(
+                        onClick =
+                            onBackClick,
+
+                        modifier =
+                            Modifier.align(
+                                Alignment.CenterStart
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "Editar perfil",
+
+                        color =
+                            Color.White,
+
+                        fontSize =
+                            if (
+                                isTablet
+                            ) {
+                                30.sp
+                            } else {
+                                27.sp
+                            },
+
+                        fontWeight =
+                            FontWeight.ExtraBold,
+
+                        modifier =
+                            Modifier.align(
+                                Alignment.Center
+                            )
+                    )
+                }
 
                 Spacer(
-                    modifier = Modifier.height(
-                        14.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                32.dp
+                            } else {
+                                28.dp
+                            }
+                        )
                 )
 
-                EditProfilePinField(
-                    label =
-                        if (
-                            initialHasPin
-                        ) {
-                            "Confirmar novo PIN"
-                        } else {
-                            "Confirmar PIN"
-                        },
-                    value =
-                        confirmPin,
-                    placeholder =
-                        if (
-                            initialHasPin
-                        ) {
-                            "Confirme o novo PIN"
-                        } else {
-                            "Confirme o PIN"
-                        },
+                EditableAvatar(
+                    name =
+                        profileName,
+
+                    avatarUrl =
+                        avatarUrl,
+
                     enabled =
                         !isSubmitting,
-                    onValueChange = {
-                            value ->
 
-                        if (
-                            value.length <= 6 &&
-                            value.all {
-                                    character ->
+                    isTablet =
+                        isTablet,
 
-                                character.isDigit()
-                            }
-                        ) {
-                            confirmPin =
-                                value
-
-                            localErrorMessage =
-                                null
-                        }
-                    }
+                    onClick =
+                        onAvatarClick
                 )
-            }
 
-            if (
-                !displayedError
-                    .isNullOrBlank()
-            ) {
                 Spacer(
-                    modifier = Modifier.height(
-                        16.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            12.dp
+                        )
                 )
 
                 Text(
                     text =
-                        displayedError,
+                        "Escolher avatar",
+
                     color =
-                        Color(
-                            0xFFFF8E8E
-                        ),
+                        LaranjadaOrange,
+
                     fontSize =
-                        13.sp,
-                    lineHeight =
-                        18.sp
+                        if (
+                            isTablet
+                        ) {
+                            15.sp
+                        } else {
+                            14.sp
+                        },
+
+                    fontWeight =
+                        FontWeight.ExtraBold,
+
+                    modifier =
+                        Modifier
+                            .align(
+                                Alignment.CenterHorizontally
+                            )
+                            .clickable(
+                                enabled =
+                                    !isSubmitting,
+
+                                onClick =
+                                    onAvatarClick
+                            )
                 )
-            }
 
-            Spacer(
-                modifier = Modifier.height(
-                    26.dp
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                34.dp
+                            } else {
+                                30.dp
+                            }
+                        )
                 )
-            )
 
-            SaveProfileButton(
-                enabled =
-                    !isSubmitting,
-                isLoading =
-                    isSubmitting,
-                onClick = {
-                    val name =
-                        profileName
-                            .trim()
+                Text(
+                    text =
+                        "Nome do perfil",
 
-                    when {
-                        name.isBlank() -> {
+                    color =
+                        Color.White,
+
+                    fontSize =
+                        if (
+                            isTablet
+                        ) {
+                            16.sp
+                        } else {
+                            15.sp
+                        },
+
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            9.dp
+                        )
+                )
+
+                OutlinedTextField(
+                    value =
+                        profileName,
+
+                    onValueChange = {
+                            value ->
+
+                        if (
+                            value.length <=
+                            40
+                        ) {
+                            profileName =
+                                value
+
                             localErrorMessage =
-                                "Informe o nome do perfil."
+                                null
                         }
+                    },
 
-                        /*
-                         * Perfil sem PIN e usuário
-                         * acabou de ativar o bloqueio.
-                         */
-                        !initialHasPin &&
-                                usePin &&
-                                pin.isBlank() -> {
+                    enabled =
+                        !isSubmitting,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(
+                                if (
+                                    isTablet
+                                ) {
+                                    62.dp
+                                } else {
+                                    58.dp
+                                }
+                            ),
+
+                    singleLine =
+                        true,
+
+                    shape =
+                        RoundedCornerShape(
+                            if (
+                                isTablet
+                            ) {
+                                9.dp
+                            } else {
+                                7.dp
+                            }
+                        ),
+
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedTextColor =
+                                Color.White,
+
+                            unfocusedTextColor =
+                                Color.White,
+
+                            disabledTextColor =
+                                Color.White,
+
+                            focusedBorderColor =
+                                Color.White,
+
+                            unfocusedBorderColor =
+                                Color.White.copy(
+                                    alpha = 0.72f
+                                ),
+
+                            disabledBorderColor =
+                                Color.White.copy(
+                                    alpha = 0.35f
+                                ),
+
+                            cursorColor =
+                                LaranjadaOrange,
+
+                            focusedContainerColor =
+                                Color.Transparent,
+
+                            unfocusedContainerColor =
+                                Color.Transparent,
+
+                            disabledContainerColor =
+                                Color.Transparent
+                        )
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                28.dp
+                            } else {
+                                24.dp
+                            }
+                        )
+                )
+
+                Text(
+                    text =
+                        "Segurança do perfil",
+
+                    color =
+                        Color.White,
+
+                    fontSize =
+                        if (
+                            isTablet
+                        ) {
+                            15.sp
+                        } else {
+                            14.sp
+                        },
+
+                    fontWeight =
+                        FontWeight.ExtraBold
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            12.dp
+                        )
+                )
+
+                if (
+                    initialHasPin
+                ) {
+                    ExistingPinSecurityCard(
+                        pinWillBeRemoved =
+                            !usePin,
+
+                        isChangingPin =
+                            isChangingExistingPin,
+
+                        enabled =
+                            !isSubmitting,
+
+                        onChangePinClick = {
+                            usePin =
+                                true
+
+                            isChangingExistingPin =
+                                true
+
+                            pin =
+                                ""
+
+                            confirmPin =
+                                ""
+
                             localErrorMessage =
-                                "Informe um PIN para bloquear o perfil."
-                        }
+                                null
+                        },
 
-                        /*
-                         * Perfil já possuía PIN
-                         * e o usuário escolheu
-                         * Alterar PIN.
-                         */
-                        initialHasPin &&
-                                isChangingExistingPin &&
-                                pin.isBlank() -> {
+                        onCancelChangeClick = {
+                            usePin =
+                                true
+
+                            isChangingExistingPin =
+                                false
+
+                            pin =
+                                ""
+
+                            confirmPin =
+                                ""
+
                             localErrorMessage =
-                                "Informe o novo PIN."
-                        }
+                                null
+                        },
 
-                        shouldShowPinFields &&
-                                pin.length !in 4..6 -> {
+                        onRemovePinClick = {
+                            usePin =
+                                false
+
+                            isChangingExistingPin =
+                                false
+
+                            pin =
+                                ""
+
+                            confirmPin =
+                                ""
+
                             localErrorMessage =
-                                "O PIN deve ter entre 4 e 6 números."
-                        }
+                                null
+                        },
 
-                        shouldShowPinFields &&
-                                pin != confirmPin -> {
+                        onKeepPinClick = {
+                            usePin =
+                                true
+
+                            isChangingExistingPin =
+                                false
+
+                            pin =
+                                ""
+
+                            confirmPin =
+                                ""
+
                             localErrorMessage =
-                                "Os PINs não coincidem."
+                                null
                         }
+                    )
+                } else {
+                    EnablePinCard(
+                        checked =
+                            usePin,
 
-                        else -> {
+                        enabled =
+                            !isSubmitting,
+
+                        onCheckedChange = {
+                                checked ->
+
+                            usePin =
+                                checked
+
                             localErrorMessage =
                                 null
 
-                            /*
-                             * Quando o PIN não está
-                             * sendo criado/trocado,
-                             * mandamos String vazia.
-                             *
-                             * O NavGraph transforma
-                             * isso em pin = null no
-                             * PATCH.
-                             */
-                            val pinForRequest =
-                                if (
-                                    shouldShowPinFields
-                                ) {
-                                    pin
-                                } else {
+                            if (
+                                !checked
+                            ) {
+                                pin =
                                     ""
-                                }
 
-                            onSaveClick(
-                                name,
-                                usePin,
-                                pinForRequest
+                                confirmPin =
+                                    ""
+                            }
+                        }
+                    )
+                }
+
+                if (
+                    shouldShowPinFields
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
                             )
+                    )
+
+                    EditProfilePinField(
+                        label =
+                            if (
+                                initialHasPin
+                            ) {
+                                "Novo PIN"
+                            } else {
+                                "PIN"
+                            },
+
+                        value =
+                            pin,
+
+                        placeholder =
+                            "PIN de 4 a 6 números",
+
+                        enabled =
+                            !isSubmitting,
+
+                        onValueChange = {
+                                value ->
+
+                            if (
+                                value.length <=
+                                6 &&
+                                value.all {
+                                        character ->
+
+                                    character.isDigit()
+                                }
+                            ) {
+                                pin =
+                                    value
+
+                                localErrorMessage =
+                                    null
+                            }
+                        }
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                14.dp
+                            )
+                    )
+
+                    EditProfilePinField(
+                        label =
+                            if (
+                                initialHasPin
+                            ) {
+                                "Confirmar novo PIN"
+                            } else {
+                                "Confirmar PIN"
+                            },
+
+                        value =
+                            confirmPin,
+
+                        placeholder =
+                            if (
+                                initialHasPin
+                            ) {
+                                "Confirme o novo PIN"
+                            } else {
+                                "Confirme o PIN"
+                            },
+
+                        enabled =
+                            !isSubmitting,
+
+                        onValueChange = {
+                                value ->
+
+                            if (
+                                value.length <=
+                                6 &&
+                                value.all {
+                                        character ->
+
+                                    character.isDigit()
+                                }
+                            ) {
+                                confirmPin =
+                                    value
+
+                                localErrorMessage =
+                                    null
+                            }
+                        }
+                    )
+                }
+
+                if (
+                    !displayedError
+                        .isNullOrBlank()
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                16.dp
+                            )
+                    )
+
+                    Text(
+                        text =
+                            displayedError,
+
+                        color =
+                            Color(
+                                0xFFFF8E8E
+                            ),
+
+                        fontSize =
+                            13.sp,
+
+                        lineHeight =
+                            18.sp
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            26.dp
+                        )
+                )
+
+                SaveProfileButton(
+                    enabled =
+                        !isSubmitting,
+
+                    isLoading =
+                        isSubmitting,
+
+                    onClick = {
+                        val name =
+                            profileName.trim()
+
+                        when {
+                            name.isBlank() -> {
+                                localErrorMessage =
+                                    "Informe o nome do perfil."
+                            }
+
+                            !initialHasPin &&
+                                    usePin &&
+                                    pin.isBlank() -> {
+
+                                localErrorMessage =
+                                    "Informe um PIN para bloquear o perfil."
+                            }
+
+                            initialHasPin &&
+                                    isChangingExistingPin &&
+                                    pin.isBlank() -> {
+
+                                localErrorMessage =
+                                    "Informe o novo PIN."
+                            }
+
+                            shouldShowPinFields &&
+                                    pin.length !in
+                                    4..6 -> {
+
+                                localErrorMessage =
+                                    "O PIN deve ter entre 4 e 6 números."
+                            }
+
+                            shouldShowPinFields &&
+                                    pin !=
+                                    confirmPin -> {
+
+                                localErrorMessage =
+                                    "Os PINs não coincidem."
+                            }
+
+                            else -> {
+                                localErrorMessage =
+                                    null
+
+                                val pinForRequest =
+                                    if (
+                                        shouldShowPinFields
+                                    ) {
+                                        pin
+                                    } else {
+                                        ""
+                                    }
+
+                                onSaveClick(
+                                    name,
+                                    usePin,
+                                    pinForRequest
+                                )
+                            }
                         }
                     }
-                }
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    12.dp
                 )
-            )
 
-            CancelProfileButton(
-                enabled =
-                    !isSubmitting,
-                onClick =
-                    onCancelClick
-            )
-
-            Spacer(
-                modifier = Modifier.height(
-                    34.dp
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            12.dp
+                        )
                 )
-            )
 
-            DeleteProfileCard(
-                enabled =
-                    !isSubmitting,
-                onDeleteClick =
-                    onDeleteClick
-            )
+                CancelProfileButton(
+                    enabled =
+                        !isSubmitting,
 
-            Spacer(
-                modifier = Modifier.height(
-                    54.dp
+                    onClick =
+                        onCancelClick
                 )
-            )
 
-            Text(
-                text = "LARANJADA",
-                color = LaranjadaOrange,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.4.sp,
-                modifier = Modifier
-                    .align(
-                        Alignment.CenterHorizontally
-                    )
-                    .padding(
-                        bottom = 16.dp
-                    )
-            )
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            34.dp
+                        )
+                )
+
+                DeleteProfileCard(
+                    enabled =
+                        !isSubmitting,
+
+                    onDeleteClick =
+                        onDeleteClick
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                44.dp
+                            } else {
+                                54.dp
+                            }
+                        )
+                )
+
+                Text(
+                    text =
+                        "LARANJADA",
+
+                    color =
+                        LaranjadaOrange,
+
+                    fontSize =
+                        13.sp,
+
+                    fontWeight =
+                        FontWeight.ExtraBold,
+
+                    letterSpacing =
+                        1.4.sp,
+
+                    modifier =
+                        Modifier
+                            .align(
+                                Alignment.CenterHorizontally
+                            )
+                            .padding(
+                                bottom = 16.dp
+                            )
+                )
+            }
         }
     }
 }
@@ -712,21 +948,24 @@ private fun CircularBackButton(
         Modifier
 ) {
     Box(
-        modifier = modifier
-            .size(
-                42.dp
-            )
-            .clip(
-                CircleShape
-            )
-            .background(
-                Color.White.copy(
-                    alpha = 0.09f
+        modifier =
+            modifier
+                .size(
+                    42.dp
                 )
-            )
-            .clickable(
-                onClick = onClick
-            ),
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color.White.copy(
+                        alpha = 0.09f
+                    )
+                )
+                .clickable(
+                    onClick =
+                        onClick
+                ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -735,10 +974,13 @@ private fun CircularBackButton(
                 Icons.AutoMirrored
                     .Rounded
                     .ArrowBack,
+
             contentDescription =
                 "Voltar",
+
             tint =
                 Color.White,
+
             modifier =
                 Modifier.size(
                     20.dp
@@ -752,62 +994,79 @@ private fun EditableAvatar(
     name: String,
     avatarUrl: String?,
     enabled: Boolean,
+    isTablet: Boolean,
     onClick: () -> Unit
 ) {
     Box(
         modifier =
             Modifier.fillMaxWidth(),
+
         contentAlignment =
             Alignment.Center
     ) {
         Box(
-            modifier = Modifier.clickable(
-                enabled =
-                    enabled,
-                onClick =
-                    onClick
-            )
+            modifier =
+                Modifier.clickable(
+                    enabled =
+                        enabled,
+
+                    onClick =
+                        onClick
+                )
         ) {
             Box(
-                modifier = Modifier
-                    .size(
-                        112.dp
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .background(
-                        Color(
-                            0xFF292A2F
+                modifier =
+                    Modifier
+                        .size(
+                            if (
+                                isTablet
+                            ) {
+                                126.dp
+                            } else {
+                                112.dp
+                            }
                         )
-                    )
-                    .border(
-                        width = 3.dp,
-                        color =
-                            Color.White.copy(
-                                alpha = 0.26f
-                            ),
-                        shape =
+                        .clip(
                             CircleShape
-                    ),
+                        )
+                        .background(
+                            Color(
+                                0xFF292A2F
+                            )
+                        )
+                        .border(
+                            width =
+                                3.dp,
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.26f
+                                ),
+
+                            shape =
+                                CircleShape
+                        ),
+
                 contentAlignment =
                     Alignment.Center
             ) {
                 if (
-                    !avatarUrl
-                        .isNullOrBlank()
+                    !avatarUrl.isNullOrBlank()
                 ) {
                     AsyncImage(
                         model =
                             avatarUrl,
+
                         contentDescription =
                             name,
+
                         modifier =
                             Modifier
                                 .fillMaxSize()
                                 .clip(
                                     CircleShape
                                 ),
+
                         contentScale =
                             ContentScale.Crop
                     )
@@ -823,10 +1082,19 @@ private fun EditableAvatar(
                                 .ifBlank {
                                     "?"
                                 },
+
                         color =
                             Color.White,
+
                         fontSize =
-                            36.sp,
+                            if (
+                                isTablet
+                            ) {
+                                40.sp
+                            } else {
+                                36.sp
+                            },
+
                         fontWeight =
                             FontWeight.ExtraBold
                     )
@@ -834,32 +1102,49 @@ private fun EditableAvatar(
             }
 
             Box(
-                modifier = Modifier
-                    .align(
-                        Alignment.BottomEnd
-                    )
-                    .size(
-                        34.dp
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .background(
-                        Color.White
-                    ),
+                modifier =
+                    Modifier
+                        .align(
+                            Alignment.BottomEnd
+                        )
+                        .size(
+                            if (
+                                isTablet
+                            ) {
+                                38.dp
+                            } else {
+                                34.dp
+                            }
+                        )
+                        .clip(
+                            CircleShape
+                        )
+                        .background(
+                            Color.White
+                        ),
+
                 contentAlignment =
                     Alignment.Center
             ) {
                 Icon(
                     imageVector =
                         Icons.Rounded.Edit,
+
                     contentDescription =
                         "Escolher avatar",
+
                     tint =
                         Color.Black,
+
                     modifier =
                         Modifier.size(
-                            17.dp
+                            if (
+                                isTablet
+                            ) {
+                                19.dp
+                            } else {
+                                17.dp
+                            }
                         )
                 )
             }
@@ -871,87 +1156,114 @@ private fun EditableAvatar(
 private fun EnablePinCard(
     checked: Boolean,
     enabled: Boolean,
-    onCheckedChange:
-        (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(
-                    8.dp
-                )
-            )
-            .background(
-                Color(
-                    0xFF131313
-                )
-            )
-            .border(
-                width = 1.dp,
-                color =
-                    Color.White.copy(
-                        alpha = 0.14f
-                    ),
-                shape =
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(
                     RoundedCornerShape(
                         8.dp
                     )
-            )
-            .padding(
-                horizontal = 15.dp,
-                vertical = 12.dp
-            ),
+                )
+                .background(
+                    Color(
+                        0xFF131313
+                    )
+                )
+                .border(
+                    width =
+                        1.dp,
+
+                    color =
+                        Color.White.copy(
+                            alpha = 0.14f
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            8.dp
+                        )
+                )
+                .padding(
+                    horizontal =
+                        15.dp,
+
+                    vertical =
+                        12.dp
+                ),
+
         verticalAlignment =
             Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.weight(
-                1f
-            )
+            modifier =
+                Modifier.weight(
+                    1f
+                )
         ) {
             Text(
-                text = "Bloquear perfil",
-                color = Color.White,
-                fontSize = 16.sp,
+                text =
+                    "Bloquear perfil",
+
+                color =
+                    Color.White,
+
+                fontSize =
+                    16.sp,
+
                 fontWeight =
                     FontWeight.ExtraBold
             )
 
             Spacer(
-                modifier = Modifier.height(
-                    4.dp
-                )
+                modifier =
+                    Modifier.height(
+                        4.dp
+                    )
             )
 
             Text(
                 text =
                     "Exija um PIN para entrar neste perfil.",
+
                 color =
                     Color.White.copy(
                         alpha = 0.72f
                     ),
-                fontSize = 12.sp
+
+                fontSize =
+                    12.sp
             )
         }
 
         Switch(
-            checked = checked,
-            enabled = enabled,
+            checked =
+                checked,
+
+            enabled =
+                enabled,
+
             onCheckedChange =
                 onCheckedChange,
+
             colors =
                 SwitchDefaults.colors(
                     checkedThumbColor =
                         Color.White,
+
                     checkedTrackColor =
                         LaranjadaOrange,
+
                     uncheckedThumbColor =
                         Color.White,
+
                     uncheckedTrackColor =
                         Color(
                             0xFF606166
                         ),
+
                     uncheckedBorderColor =
                         Color.Transparent
                 )
@@ -970,66 +1282,74 @@ private fun ExistingPinSecurityCard(
     onKeepPinClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(
-                    8.dp
-                )
-            )
-            .background(
-                Color(
-                    0xFF131313
-                )
-            )
-            .border(
-                width = 1.dp,
-                color =
-                    Color.White.copy(
-                        alpha = 0.14f
-                    ),
-                shape =
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(
                     RoundedCornerShape(
                         8.dp
                     )
-            )
-            .padding(
-                16.dp
-            )
+                )
+                .background(
+                    Color(
+                        0xFF131313
+                    )
+                )
+                .border(
+                    width =
+                        1.dp,
+
+                    color =
+                        Color.White.copy(
+                            alpha = 0.14f
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            8.dp
+                        )
+                )
+                .padding(
+                    16.dp
+                )
     ) {
         Row(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(
-                        38.dp
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .background(
-                        if (
-                            pinWillBeRemoved
-                        ) {
-                            Color(
-                                0xFF391414
-                            )
-                        } else {
-                            Color(
-                                0xFF202A20
-                            )
-                        }
-                    ),
+                modifier =
+                    Modifier
+                        .size(
+                            38.dp
+                        )
+                        .clip(
+                            CircleShape
+                        )
+                        .background(
+                            if (
+                                pinWillBeRemoved
+                            ) {
+                                Color(
+                                    0xFF391414
+                                )
+                            } else {
+                                Color(
+                                    0xFF202A20
+                                )
+                            }
+                        ),
+
                 contentAlignment =
                     Alignment.Center
             ) {
                 Icon(
                     imageVector =
                         Icons.Rounded.Lock,
+
                     contentDescription =
                         null,
+
                     tint =
                         if (
                             pinWillBeRemoved
@@ -1042,6 +1362,7 @@ private fun ExistingPinSecurityCard(
                                 0xFF8BD58B
                             )
                         },
+
                     modifier =
                         Modifier.size(
                             19.dp
@@ -1050,15 +1371,17 @@ private fun ExistingPinSecurityCard(
             }
 
             Spacer(
-                modifier = Modifier.size(
-                    12.dp
-                )
+                modifier =
+                    Modifier.size(
+                        12.dp
+                    )
             )
 
             Column(
-                modifier = Modifier.weight(
-                    1f
-                )
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
             ) {
                 Text(
                     text =
@@ -1069,41 +1392,45 @@ private fun ExistingPinSecurityCard(
                         } else {
                             "PIN ativo"
                         },
+
                     color =
                         Color.White,
+
                     fontSize =
                         16.sp,
+
                     fontWeight =
                         FontWeight.ExtraBold
                 )
 
                 Spacer(
-                    modifier = Modifier.height(
-                        3.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            3.dp
+                        )
                 )
 
                 Text(
                     text =
                         when {
-                            pinWillBeRemoved -> {
+                            pinWillBeRemoved ->
                                 "O perfil ficará sem bloqueio após salvar."
-                            }
 
-                            isChangingPin -> {
+                            isChangingPin ->
                                 "Digite o novo PIN nos campos abaixo."
-                            }
 
-                            else -> {
+                            else ->
                                 "Este perfil está protegido por PIN."
-                            }
                         },
+
                     color =
                         Color.White.copy(
                             alpha = 0.68f
                         ),
+
                     fontSize =
                         12.sp,
+
                     lineHeight =
                         17.sp
                 )
@@ -1111,62 +1438,100 @@ private fun ExistingPinSecurityCard(
         }
 
         Spacer(
-            modifier = Modifier.height(
-                16.dp
-            )
+            modifier =
+                Modifier.height(
+                    16.dp
+                )
         )
 
         when {
             pinWillBeRemoved -> {
                 SecurityActionButton(
-                    text = "Manter PIN",
-                    enabled = enabled,
-                    destructive = false,
-                    onClick = onKeepPinClick
+                    text =
+                        "Manter PIN",
+
+                    enabled =
+                        enabled,
+
+                    destructive =
+                        false,
+
+                    onClick =
+                        onKeepPinClick
                 )
             }
 
             isChangingPin -> {
                 SecurityActionButton(
-                    text = "Cancelar alteração do PIN",
-                    enabled = enabled,
-                    destructive = false,
-                    onClick = onCancelChangeClick
+                    text =
+                        "Cancelar alteração do PIN",
+
+                    enabled =
+                        enabled,
+
+                    destructive =
+                        false,
+
+                    onClick =
+                        onCancelChangeClick
                 )
 
                 Spacer(
-                    modifier = Modifier.height(
-                        10.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
                 )
 
                 SecurityActionButton(
-                    text = "Remover PIN",
-                    enabled = enabled,
-                    destructive = true,
-                    onClick = onRemovePinClick
+                    text =
+                        "Remover PIN",
+
+                    enabled =
+                        enabled,
+
+                    destructive =
+                        true,
+
+                    onClick =
+                        onRemovePinClick
                 )
             }
 
             else -> {
                 SecurityActionButton(
-                    text = "Alterar PIN",
-                    enabled = enabled,
-                    destructive = false,
-                    onClick = onChangePinClick
+                    text =
+                        "Alterar PIN",
+
+                    enabled =
+                        enabled,
+
+                    destructive =
+                        false,
+
+                    onClick =
+                        onChangePinClick
                 )
 
                 Spacer(
-                    modifier = Modifier.height(
-                        10.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
                 )
 
                 SecurityActionButton(
-                    text = "Remover PIN",
-                    enabled = enabled,
-                    destructive = true,
-                    onClick = onRemovePinClick
+                    text =
+                        "Remover PIN",
+
+                    enabled =
+                        enabled,
+
+                    destructive =
+                        true,
+
+                    onClick =
+                        onRemovePinClick
                 )
             }
         }
@@ -1205,46 +1570,53 @@ private fun SecurityActionButton(
         }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(
-                46.dp
-            )
-            .clip(
-                RoundedCornerShape(
-                    6.dp
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(
+                    46.dp
                 )
-            )
-            .border(
-                width = 1.dp,
-                color =
-                    borderColor.copy(
-                        alpha =
-                            if (
-                                enabled
-                            ) {
-                                1f
-                            } else {
-                                0.35f
-                            }
-                    ),
-                shape =
+                .clip(
                     RoundedCornerShape(
                         6.dp
                     )
-            )
-            .clickable(
-                enabled =
-                    enabled,
-                onClick =
-                    onClick
-            ),
+                )
+                .border(
+                    width =
+                        1.dp,
+
+                    color =
+                        borderColor.copy(
+                            alpha =
+                                if (
+                                    enabled
+                                ) {
+                                    1f
+                                } else {
+                                    0.35f
+                                }
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            6.dp
+                        )
+                )
+                .clickable(
+                    enabled =
+                        enabled,
+
+                    onClick =
+                        onClick
+                ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Text(
             text =
                 text,
+
             color =
                 textColor.copy(
                     alpha =
@@ -1256,8 +1628,10 @@ private fun SecurityActionButton(
                             0.45f
                         }
                 ),
+
             fontSize =
                 14.sp,
+
             fontWeight =
                 FontWeight.ExtraBold
         )
@@ -1270,93 +1644,115 @@ private fun EditProfilePinField(
     value: String,
     placeholder: String,
     enabled: Boolean,
-    onValueChange:
-        (String) -> Unit
+    onValueChange: (String) -> Unit
 ) {
     Column {
         Text(
             text =
                 label,
+
             color =
                 Color.White,
+
             fontSize =
                 14.sp,
+
             fontWeight =
                 FontWeight.ExtraBold
         )
 
         Spacer(
-            modifier = Modifier.height(
-                8.dp
-            )
+            modifier =
+                Modifier.height(
+                    8.dp
+                )
         )
 
         OutlinedTextField(
             value =
                 value,
+
             onValueChange =
                 onValueChange,
+
             enabled =
                 enabled,
+
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .height(
                         58.dp
                     ),
+
             placeholder = {
                 Text(
                     text =
                         placeholder,
+
                     color =
                         Color(
                             0xFF8F929A
                         ),
+
                     fontSize =
                         15.sp
                 )
             },
+
             singleLine =
                 true,
+
             visualTransformation =
                 PasswordVisualTransformation(),
+
             keyboardOptions =
                 KeyboardOptions(
                     keyboardType =
                         KeyboardType.NumberPassword
                 ),
+
             shape =
                 RoundedCornerShape(
                     7.dp
                 ),
+
             colors =
-                OutlinedTextFieldDefaults
-                    .colors(
-                        focusedTextColor =
-                            Color.White,
-                        unfocusedTextColor =
-                            Color.White,
-                        disabledTextColor =
-                            Color.White,
-                        focusedBorderColor =
-                            LaranjadaOrange,
-                        unfocusedBorderColor =
-                            Color.White.copy(
-                                alpha = 0.55f
-                            ),
-                        disabledBorderColor =
-                            Color.White.copy(
-                                alpha = 0.30f
-                            ),
-                        cursorColor =
-                            LaranjadaOrange,
-                        focusedContainerColor =
-                            Color.Transparent,
-                        unfocusedContainerColor =
-                            Color.Transparent,
-                        disabledContainerColor =
-                            Color.Transparent
-                    )
+                OutlinedTextFieldDefaults.colors(
+                    focusedTextColor =
+                        Color.White,
+
+                    unfocusedTextColor =
+                        Color.White,
+
+                    disabledTextColor =
+                        Color.White,
+
+                    focusedBorderColor =
+                        LaranjadaOrange,
+
+                    unfocusedBorderColor =
+                        Color.White.copy(
+                            alpha = 0.55f
+                        ),
+
+                    disabledBorderColor =
+                        Color.White.copy(
+                            alpha = 0.30f
+                        ),
+
+                    cursorColor =
+                        LaranjadaOrange,
+
+                    focusedContainerColor =
+                        Color.Transparent,
+
+                    unfocusedContainerColor =
+                        Color.Transparent,
+
+                    disabledContainerColor =
+                        Color.Transparent
+                )
         )
     }
 }
@@ -1368,35 +1764,38 @@ private fun SaveProfileButton(
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(
-                54.dp
-            )
-            .clip(
-                RoundedCornerShape(
-                    6.dp
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(
+                    54.dp
                 )
-            )
-            .background(
-                if (
-                    enabled
-                ) {
-                    Color(
-                        0xFFF4F4F4
+                .clip(
+                    RoundedCornerShape(
+                        6.dp
                     )
-                } else {
-                    Color(
-                        0xFF909090
-                    )
-                }
-            )
-            .clickable(
-                enabled =
-                    enabled,
-                onClick =
-                    onClick
-            ),
+                )
+                .background(
+                    if (
+                        enabled
+                    ) {
+                        Color(
+                            0xFFF4F4F4
+                        )
+                    } else {
+                        Color(
+                            0xFF909090
+                        )
+                    }
+                )
+                .clickable(
+                    enabled =
+                        enabled,
+
+                    onClick =
+                        onClick
+                ),
+
         contentAlignment =
             Alignment.Center
     ) {
@@ -1404,11 +1803,14 @@ private fun SaveProfileButton(
             isLoading
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(
-                    22.dp
-                ),
+                modifier =
+                    Modifier.size(
+                        22.dp
+                    ),
+
                 color =
                     Color.Black,
+
                 strokeWidth =
                     2.dp
             )
@@ -1416,10 +1818,13 @@ private fun SaveProfileButton(
             Text(
                 text =
                     "Salvar alterações",
+
                 color =
                     Color.Black,
+
                 fontSize =
                     15.sp,
+
                 fontWeight =
                     FontWeight.ExtraBold
             )
@@ -1433,47 +1838,53 @@ private fun CancelProfileButton(
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(
-                54.dp
-            )
-            .clip(
-                RoundedCornerShape(
-                    6.dp
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(
+                    54.dp
                 )
-            )
-            .border(
-                width =
-                    1.dp,
-                color =
-                    Color.White.copy(
-                        alpha =
-                            if (
-                                enabled
-                            ) {
-                                0.22f
-                            } else {
-                                0.10f
-                            }
-                    ),
-                shape =
+                .clip(
                     RoundedCornerShape(
                         6.dp
                     )
-            )
-            .clickable(
-                enabled =
-                    enabled,
-                onClick =
-                    onClick
-            ),
+                )
+                .border(
+                    width =
+                        1.dp,
+
+                    color =
+                        Color.White.copy(
+                            alpha =
+                                if (
+                                    enabled
+                                ) {
+                                    0.22f
+                                } else {
+                                    0.10f
+                                }
+                        ),
+
+                    shape =
+                        RoundedCornerShape(
+                            6.dp
+                        )
+                )
+                .clickable(
+                    enabled =
+                        enabled,
+
+                    onClick =
+                        onClick
+                ),
+
         contentAlignment =
             Alignment.Center
     ) {
         Text(
             text =
                 "Cancelar",
+
             color =
                 Color.White.copy(
                     alpha =
@@ -1485,8 +1896,10 @@ private fun CancelProfileButton(
                             0.45f
                         }
                 ),
+
             fontSize =
                 15.sp,
+
             fontWeight =
                 FontWeight.ExtraBold
         )
@@ -1499,108 +1912,124 @@ private fun DeleteProfileCard(
     onDeleteClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(
-                    8.dp
-                )
-            )
-            .background(
-                Color(
-                    0xFF0E0E0E
-                )
-            )
-            .border(
-                width =
-                    1.dp,
-                color =
-                    Color.White.copy(
-                        alpha = 0.12f
-                    ),
-                shape =
-                    RoundedCornerShape(
-                        8.dp
-                    )
-            )
-            .padding(
-                16.dp
-            )
-    ) {
-        Text(
-            text =
-                "Excluir perfil",
-            color =
-                Color.White,
-            fontSize =
-                16.sp,
-            fontWeight =
-                FontWeight.ExtraBold
-        )
-
-        Spacer(
-            modifier = Modifier.height(
-                5.dp
-            )
-        )
-
-        Text(
-            text =
-                "Remove permanentemente este perfil e os dados ligados a ele.",
-            color =
-                Color.White.copy(
-                    alpha = 0.68f
-                ),
-            fontSize =
-                12.sp
-        )
-
-        Spacer(
-            modifier = Modifier.height(
-                18.dp
-            )
-        )
-
-        Box(
-            modifier = Modifier
+        modifier =
+            Modifier
                 .fillMaxWidth()
-                .height(
-                    48.dp
-                )
                 .clip(
                     RoundedCornerShape(
-                        6.dp
+                        8.dp
                     )
                 )
                 .background(
                     Color(
-                        0xFF310B0B
+                        0xFF0E0E0E
                     )
                 )
                 .border(
                     width =
                         1.dp,
+
                     color =
-                        Color(
-                            0xFFE43131
+                        Color.White.copy(
+                            alpha = 0.12f
                         ),
+
                     shape =
+                        RoundedCornerShape(
+                            8.dp
+                        )
+                )
+                .padding(
+                    16.dp
+                )
+    ) {
+        Text(
+            text =
+                "Excluir perfil",
+
+            color =
+                Color.White,
+
+            fontSize =
+                16.sp,
+
+            fontWeight =
+                FontWeight.ExtraBold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    5.dp
+                )
+        )
+
+        Text(
+            text =
+                "Remove permanentemente este perfil e os dados ligados a ele.",
+
+            color =
+                Color.White.copy(
+                    alpha = 0.68f
+                ),
+
+            fontSize =
+                12.sp
+        )
+
+        Spacer(
+            modifier =
+                Modifier.height(
+                    18.dp
+                )
+        )
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(
+                        48.dp
+                    )
+                    .clip(
                         RoundedCornerShape(
                             6.dp
                         )
-                )
-                .clickable(
-                    enabled =
-                        enabled,
-                    onClick =
-                        onDeleteClick
-                ),
+                    )
+                    .background(
+                        Color(
+                            0xFF310B0B
+                        )
+                    )
+                    .border(
+                        width =
+                            1.dp,
+
+                        color =
+                            Color(
+                                0xFFE43131
+                            ),
+
+                        shape =
+                            RoundedCornerShape(
+                                6.dp
+                            )
+                    )
+                    .clickable(
+                        enabled =
+                            enabled,
+
+                        onClick =
+                            onDeleteClick
+                    ),
+
             contentAlignment =
                 Alignment.Center
         ) {
             Text(
                 text =
                     "Excluir perfil",
+
                 color =
                     Color(
                         0xFFFF6868
@@ -1614,8 +2043,10 @@ private fun DeleteProfileCard(
                                 0.45f
                             }
                     ),
+
                 fontSize =
                     14.sp,
+
                 fontWeight =
                     FontWeight.ExtraBold
             )

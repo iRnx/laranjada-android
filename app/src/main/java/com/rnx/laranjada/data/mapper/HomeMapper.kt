@@ -72,12 +72,14 @@ object HomeMapper {
 
         return buildList {
             for (
-            index in 0 until array.length()
+            index in
+            0 until array.length()
             ) {
                 val item =
                     array.optJSONObject(
                         index
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 val contentUuid =
                     item.optNullableString(
@@ -96,14 +98,53 @@ object HomeMapper {
                     continue
                 }
 
-                val mobileImageUrl =
+                /*
+                 * [ALTERAÇÃO]
+                 *
+                 * Preservamos as três versões
+                 * do banner.
+                 */
+                val mobileImageRaw =
                     item.optNullableString(
                         "image_mobile_url"
                     )
 
-                val defaultImageUrl =
+                val desktopImageRaw =
                     item.optNullableString(
                         "image_url"
+                    )
+
+                val tvImageRaw =
+                    item.optNullableString(
+                        "image_tv_url"
+                    )
+
+                /*
+                 * Cada versão possui fallback.
+                 *
+                 * Assim um banner antigo que ainda
+                 * não tenha todas as três imagens
+                 * continua funcionando.
+                 */
+                val mobileImageUrl =
+                    MediaUrlResolver.resolve(
+                        mobileImageRaw
+                            ?: desktopImageRaw
+                            ?: tvImageRaw
+                    )
+
+                val desktopImageUrl =
+                    MediaUrlResolver.resolve(
+                        desktopImageRaw
+                            ?: mobileImageRaw
+                            ?: tvImageRaw
+                    )
+
+                val tvImageUrl =
+                    MediaUrlResolver.resolve(
+                        tvImageRaw
+                            ?: desktopImageRaw
+                            ?: mobileImageRaw
                     )
 
                 add(
@@ -147,11 +188,22 @@ object HomeMapper {
                             )
                                 ?: "",
 
+                        /*
+                         * Mantemos imageUrl usando
+                         * a versão mobile para não
+                         * alterar outros fluxos.
+                         */
                         imageUrl =
-                            MediaUrlResolver.resolve(
-                                mobileImageUrl
-                                    ?: defaultImageUrl
-                            ),
+                            mobileImageUrl,
+
+                        mobileImageUrl =
+                            mobileImageUrl,
+
+                        desktopImageUrl =
+                            desktopImageUrl,
+
+                        tvImageUrl =
+                            tvImageUrl,
 
                         gradientColors =
                             defaultGradient(
@@ -187,12 +239,14 @@ object HomeMapper {
 
         return buildList {
             for (
-            index in 0 until array.length()
+            index in
+            0 until array.length()
             ) {
                 val item =
                     array.optJSONObject(
                         index
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 add(
                     CategoryUi(
@@ -246,7 +300,8 @@ object HomeMapper {
                 val section =
                     array.optJSONObject(
                         sectionIndex
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 val contentType =
                     section.optNullableString(
@@ -314,17 +369,20 @@ object HomeMapper {
 
         return buildList {
             for (
-            index in 0 until array.length()
+            index in
+            0 until array.length()
             ) {
                 val item =
                     array.optJSONObject(
                         index
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 val uuid =
                     item.optNullableString(
                         "uuid"
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 val year =
                     item.optNullableString(
@@ -416,17 +474,20 @@ object HomeMapper {
 
         return buildList {
             for (
-            index in 0 until array.length()
+            index in
+            0 until array.length()
             ) {
                 val item =
                     array.optJSONObject(
                         index
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 val uuid =
                     item.optNullableString(
                         "uuid"
-                    ) ?: continue
+                    )
+                        ?: continue
 
                 add(
                     CollectionUi(
@@ -466,7 +527,8 @@ object HomeMapper {
 
         return buildList {
             for (
-            index in 0 until array.length()
+            index in
+            0 until array.length()
             ) {
                 val value =
                     array.opt(
@@ -531,8 +593,7 @@ object HomeMapper {
         }
     }
 
-    private fun JSONObject
-            .optNullableString(
+    private fun JSONObject.optNullableString(
         name: String
     ): String? {
         if (
@@ -546,7 +607,8 @@ object HomeMapper {
         val value =
             optString(
                 name
-            ).trim()
+            )
+                .trim()
 
         return value.ifBlank {
             null

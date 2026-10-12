@@ -20,7 +20,26 @@ data class HeroBannerUi(
     val duration: String,
     val quality: String,
     val synopsis: String,
+
+    /*
+     * Mantido por compatibilidade com
+     * os pontos atuais da Home.
+     *
+     * Continua representando a imagem
+     * preferencial de mobile.
+     */
     val imageUrl: String,
+
+    /*
+     * [ALTERAÇÃO]
+     *
+     * Agora preservamos as três artes
+     * disponibilizadas pelo backend.
+     */
+    val mobileImageUrl: String = "",
+    val desktopImageUrl: String = "",
+    val tvImageUrl: String = "",
+
     val gradientColors: List<Color>,
     val uuid: String,
     val contentType: String,

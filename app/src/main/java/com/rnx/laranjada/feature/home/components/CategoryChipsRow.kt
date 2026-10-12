@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rnx.laranjada.R
 import com.rnx.laranjada.feature.home.CategoryUi
@@ -27,33 +28,74 @@ import com.rnx.laranjada.feature.home.CategoryUi
 fun CategoryChipsRow(
     categories: List<CategoryUi>,
     modifier: Modifier = Modifier,
+
+    /*
+     * [ALTERAÇÃO]
+     *
+     * Valores padrões continuam sendo
+     * exatamente os usados no celular.
+     *
+     * A Home fornece dimensões maiores
+     * apenas quando estiver em tablet.
+     */
+    cardWidth: Dp = 180.dp,
+    cardHeight: Dp = 90.dp,
+    itemSpacing: Dp = 10.dp,
+    endPadding: Dp = 18.dp,
+
     onCategoryClick: (CategoryUi) -> Unit = {}
 ) {
-    val visualCategories = remember(categories) {
-        categories.filter { category ->
-            categoryImageResource(
-                category.slug
-            ) != null
+    val visualCategories =
+        remember(
+            categories
+        ) {
+            categories.filter {
+                    category ->
+
+                categoryImageResource(
+                    category.slug
+                ) !=
+                        null
+            }
         }
-    }
 
     LazyRow(
-        modifier = modifier,
-        contentPadding = PaddingValues(
-            end = 18.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(
-            10.dp
-        )
+        modifier =
+            modifier,
+
+        contentPadding =
+            PaddingValues(
+                end =
+                    endPadding
+            ),
+
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                itemSpacing
+            )
     ) {
         items(
-            items = visualCategories,
-            key = { category ->
+            items =
+                visualCategories,
+
+            key = {
+                    category ->
+
                 category.slug
             }
-        ) { category ->
+        ) {
+                category ->
+
             CategoryImageCard(
-                category = category,
+                category =
+                    category,
+
+                cardWidth =
+                    cardWidth,
+
+                cardHeight =
+                    cardHeight,
+
                 onClick = {
                     onCategoryClick(
                         category
@@ -67,12 +109,15 @@ fun CategoryChipsRow(
 @Composable
 private fun CategoryImageCard(
     category: CategoryUi,
+    cardWidth: Dp,
+    cardHeight: Dp,
     onClick: () -> Unit
 ) {
     val imageResource =
         categoryImageResource(
             category.slug
-        ) ?: return
+        )
+            ?: return
 
     val interactionSource =
         remember {
@@ -80,29 +125,50 @@ private fun CategoryImageCard(
         }
 
     Box(
-        modifier = Modifier
-            .width(180.dp)
-            .height(90.dp)
-            .clip(
-                RoundedCornerShape(
-                    8.dp
+        modifier =
+            Modifier
+                .width(
+                    cardWidth
                 )
-            )
-            .clickable(
-                interactionSource =
-                    interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+                .height(
+                    cardHeight
+                )
+                .clip(
+                    RoundedCornerShape(
+                        if (
+                            cardWidth >
+                            180.dp
+                        ) {
+                            10.dp
+                        } else {
+                            8.dp
+                        }
+                    )
+                )
+                .clickable(
+                    interactionSource =
+                        interactionSource,
+
+                    indication =
+                        null,
+
+                    onClick =
+                        onClick
+                )
     ) {
         Image(
-            painter = painterResource(
-                id = imageResource
-            ),
+            painter =
+                painterResource(
+                    id =
+                        imageResource
+                ),
+
             contentDescription =
                 category.name,
-            modifier = Modifier
-                .fillMaxSize(),
+
+            modifier =
+                Modifier.fillMaxSize(),
+
             contentScale =
                 ContentScale.Crop
         )
@@ -114,7 +180,8 @@ private fun categoryImageResource(
     slug: String
 ): Int? {
     return when (
-        slug.trim()
+        slug
+            .trim()
             .lowercase()
     ) {
         "movies" ->

@@ -1,9 +1,9 @@
-
 package com.rnx.laranjada.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,7 +37,9 @@ import com.rnx.laranjada.feature.home.components.LandscapeMediaCard
 import com.rnx.laranjada.feature.home.components.SectionHeader
 
 private val LaranjadaDarkBackground =
-    Color(0xFF070B0F)
+    Color(
+        0xFF070B0F
+    )
 
 @Composable
 fun HomeScreen(
@@ -63,11 +66,6 @@ fun HomeScreen(
         title: String
     ) -> Unit = { _, _ -> },
 
-    /*
-     * NOVO CALLBACK
-     *
-     * Abre a rota de Favoritos.
-     */
     onFavoritesClick: () -> Unit = {},
 
     onAccountClick: () -> Unit = {},
@@ -78,23 +76,32 @@ fun HomeScreen(
 
     viewModel: HomeViewModel = viewModel()
 ) {
-    val uiState = viewModel.uiState
+    val uiState =
+        viewModel.uiState
 
-    val selectedBottomIndex = remember {
-        mutableIntStateOf(0)
-    }
+    val selectedBottomIndex =
+        remember {
+            mutableIntStateOf(
+                0
+            )
+        }
 
     val continueWatchingListState =
         rememberLazyListState()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshContinueWatching()
+    LaunchedEffect(
+        Unit
+    ) {
+        viewModel
+            .refreshContinueWatching()
     }
 
     val firstContinueWatchingMarker =
         uiState.continueWatching
             .firstOrNull()
-            ?.let { item ->
+            ?.let {
+                    item ->
+
                 "${item.contentType}:" +
                         "${item.contentUuid}:" +
                         "${item.positionSeconds}:" +
@@ -102,353 +109,736 @@ fun HomeScreen(
             }
             .orEmpty()
 
-    LaunchedEffect(firstContinueWatchingMarker) {
+    LaunchedEffect(
+        firstContinueWatchingMarker
+    ) {
         if (
-            firstContinueWatchingMarker.isNotBlank() &&
-            uiState.continueWatching.isNotEmpty()
+            firstContinueWatchingMarker
+                .isNotBlank() &&
+            uiState.continueWatching
+                .isNotEmpty()
         ) {
-            continueWatchingListState.scrollToItem(0)
+            continueWatchingListState
+                .scrollToItem(
+                    0
+                )
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LaranjadaDarkBackground)
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaDarkBackground
+                )
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+        val isTablet =
+            maxWidth >=
+                    600.dp
 
-            contentPadding = PaddingValues(
-                bottom = 118.dp
-            ),
+        val isExpandedTablet =
+            maxWidth >=
+                    840.dp
 
-            verticalArrangement = Arrangement.spacedBy(
+        /*
+         * Cards das seções de conteúdo.
+         */
+        val mediaCardWidth =
+            when {
+                isExpandedTablet ->
+                    240.dp
+
+                isTablet ->
+                    220.dp
+
+                else ->
+                    150.dp
+            }
+
+        val sectionHorizontalPadding =
+            if (
+                isTablet
+            ) {
+                28.dp
+            } else {
                 18.dp
-            )
+            }
+
+        /*
+         * [ALTERAÇÃO]
+         *
+         * Categorias acompanham melhor
+         * a escala visual da Home.
+         */
+        val categoryCardWidth =
+            when {
+                isExpandedTablet ->
+                    240.dp
+
+                isTablet ->
+                    220.dp
+
+                else ->
+                    180.dp
+            }
+
+        val categoryCardHeight =
+            when {
+                isExpandedTablet ->
+                    120.dp
+
+                isTablet ->
+                    110.dp
+
+                else ->
+                    90.dp
+            }
+
+        val categorySpacing =
+            when {
+                isExpandedTablet ->
+                    14.dp
+
+                isTablet ->
+                    12.dp
+
+                else ->
+                    10.dp
+            }
+
+        /*
+         * Como as categorias ficam parcialmente
+         * sobre o final do Hero, o deslocamento
+         * também precisa crescer junto.
+         */
+        val categoryOffsetY =
+            when {
+                isExpandedTablet ->
+                    (-52).dp
+
+                isTablet ->
+                    (-48).dp
+
+                else ->
+                    (-42).dp
+            }
+
+        /*
+         * Reserva o espaço necessário dentro
+         * da LazyColumn.
+         *
+         * Sem isso, cards maiores poderiam
+         * encostar na próxima seção.
+         */
+        val categoryContainerHeight =
+            when {
+                isExpandedTablet ->
+                    122.dp
+
+                isTablet ->
+                    116.dp
+
+                else ->
+                    96.dp
+            }
+
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
         ) {
-            /*
-             * HERO
-             */
-            item {
-                HeroSection(
-                    banners = uiState.heroBanners,
+            LazyColumn(
+                modifier =
+                    Modifier.fillMaxSize(),
 
-                    continueWatching =
-                        uiState.continueWatching,
+                contentPadding =
+                    PaddingValues(
+                        bottom =
+                            118.dp
+                    ),
 
-                    onBannerClick = { banner ->
-                        if (
-                            banner.uuid.isNotBlank() &&
-                            banner.contentType.isNotBlank()
-                        ) {
-                            onMediaClick(
-                                banner.contentType,
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        18.dp
+                    )
+            ) {
+                /*
+                 * HERO
+                 */
+                item {
+                    HeroSection(
+                        banners =
+                            uiState.heroBanners,
+
+                        continueWatching =
+                            uiState.continueWatching,
+
+                        onBannerClick = {
+                                banner ->
+
+                            if (
                                 banner.uuid
-                            )
-                        }
-                    },
-
-                    onWatchClick = { banner, continueItem ->
-                        when {
-                            continueItem != null -> {
-                                onContinueWatchingClick(
-                                    continueItem
+                                    .isNotBlank() &&
+                                banner.contentType
+                                    .isNotBlank()
+                            ) {
+                                onMediaClick(
+                                    banner.contentType,
+                                    banner.uuid
                                 )
                             }
+                        },
 
-                            banner.isSeriesBanner() -> {
-                                if (
-                                    banner.uuid.isNotBlank() &&
-                                    banner.contentType.isNotBlank()
-                                ) {
-                                    onMediaClick(
-                                        banner.contentType,
+                        onWatchClick = {
+                                banner,
+                                continueItem ->
+
+                            when {
+                                continueItem !=
+                                        null -> {
+
+                                    onContinueWatchingClick(
+                                        continueItem
+                                    )
+                                }
+
+                                banner
+                                    .isSeriesBanner() -> {
+
+                                    if (
                                         banner.uuid
+                                            .isNotBlank() &&
+                                        banner.contentType
+                                            .isNotBlank()
+                                    ) {
+                                        onMediaClick(
+                                            banner.contentType,
+                                            banner.uuid
+                                        )
+                                    }
+                                }
+
+                                banner.uuid
+                                    .isNotBlank() &&
+                                        banner.contentType
+                                            .isNotBlank() -> {
+
+                                    onContinueWatchingClick(
+                                        banner
+                                            .toFreshPlaybackRequest()
                                     )
                                 }
                             }
+                        },
 
-                            banner.uuid.isNotBlank() &&
-                                    banner.contentType.isNotBlank() -> {
-                                onContinueWatchingClick(
-                                    banner.toFreshPlaybackRequest()
+                        onRestartClick = {
+                                continueItem ->
+
+                            viewModel
+                                .restartContinueWatching(
+                                    item =
+                                        continueItem,
+
+                                    onSuccess = {
+                                        onContinueWatchingClick(
+                                            continueItem.copy(
+                                                positionSeconds =
+                                                    0L,
+
+                                                progress =
+                                                    0f
+                                            )
+                                        )
+                                    }
                                 )
-                            }
                         }
-                    },
+                    )
+                }
 
-                    onRestartClick = { continueItem ->
-                        viewModel.restartContinueWatching(
-                            item = continueItem,
-
-                            onSuccess = {
-                                onContinueWatchingClick(
-                                    continueItem.copy(
-                                        positionSeconds = 0L,
-                                        progress = 0f
-                                    )
+                /*
+                 * CATEGORIAS
+                 */
+                item {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(
+                                    categoryContainerHeight
                                 )
+                    ) {
+                        CategoryChipsRow(
+                            categories =
+                                uiState.categories,
+
+                            cardWidth =
+                                categoryCardWidth,
+
+                            cardHeight =
+                                categoryCardHeight,
+
+                            itemSpacing =
+                                categorySpacing,
+
+                            endPadding =
+                                sectionHorizontalPadding,
+
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .offset(
+                                        y =
+                                            categoryOffsetY
+                                    )
+                                    .zIndex(
+                                        2f
+                                    )
+                                    .padding(
+                                        start =
+                                            sectionHorizontalPadding
+                                    ),
+
+                            onCategoryClick = {
+                                    category ->
+
+                                val sectionSlug =
+                                    categoryToSectionSlug(
+                                        category.slug
+                                    )
+
+                                if (
+                                    sectionSlug
+                                        .isNotBlank()
+                                ) {
+                                    onCategoryGridClick(
+                                        sectionSlug,
+                                        category.name
+                                    )
+                                }
                             }
                         )
                     }
-                )
-            }
-
-            /*
-             * CATEGORIAS
-             */
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp)
-                ) {
-                    CategoryChipsRow(
-                        categories = uiState.categories,
-
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(y = (-42).dp)
-                            .zIndex(2f)
-                            .padding(start = 18.dp),
-
-                        onCategoryClick = { category ->
-                            val sectionSlug =
-                                categoryToSectionSlug(
-                                    category.slug
-                                )
-
-                            if (sectionSlug.isNotBlank()) {
-                                onCategoryGridClick(
-                                    sectionSlug,
-                                    category.name
-                                )
-                            }
-                        }
-                    )
                 }
-            }
 
-            /*
-             * CONTINUE ASSISTINDO
-             */
-            if (uiState.continueWatching.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = "Continue assistindo",
+                /*
+                 * CONTINUE ASSISTINDO
+                 *
+                 * Mantido sem alteração.
+                 * A proporção atual já está boa
+                 * no tablet.
+                 */
+                if (
+                    uiState.continueWatching
+                        .isNotEmpty()
+                ) {
+                    item {
+                        SectionHeader(
+                            title =
+                                "Continue assistindo",
 
-                        modifier = Modifier.padding(
-                            horizontal = 18.dp
-                        ),
+                            modifier =
+                                Modifier.padding(
+                                    horizontal =
+                                        sectionHorizontalPadding
+                                ),
 
-                        showSeeAll = false
-                    )
+                            showSeeAll =
+                                false
+                        )
 
-                    Spacer(
-                        modifier = Modifier.height(6.dp)
-                    )
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    6.dp
+                                )
+                        )
 
-                    LazyRow(
-                        state = continueWatchingListState,
+                        LazyRow(
+                            state =
+                                continueWatchingListState,
 
-                        contentPadding = PaddingValues(
-                            horizontal = 18.dp
-                        ),
+                            contentPadding =
+                                PaddingValues(
+                                    horizontal =
+                                        sectionHorizontalPadding
+                                ),
 
-                        horizontalArrangement =
-                            Arrangement.spacedBy(14.dp)
-                    ) {
-                        items(
-                            uiState.continueWatching,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    14.dp
+                                )
+                        ) {
+                            items(
+                                items =
+                                    uiState.continueWatching,
 
-                            key = { item ->
-                                "${item.contentType}:${item.contentUuid}"
-                            }
-                        ) { item ->
-                            ContinueWatchingCard(
-                                item = item,
+                                key = {
+                                        item ->
 
-                                onClick = {
-                                    if (
-                                        item.contentType.isNotBlank() &&
-                                        item.contentUuid.isNotBlank()
-                                    ) {
-                                        onContinueWatchingClick(item)
-                                    }
+                                    "${item.contentType}:${item.contentUuid}"
                                 }
-                            )
+                            ) {
+                                    item ->
+
+                                ContinueWatchingCard(
+                                    item =
+                                        item,
+
+                                    onClick = {
+                                        if (
+                                            item.contentType
+                                                .isNotBlank() &&
+                                            item.contentUuid
+                                                .isNotBlank()
+                                        ) {
+                                            onContinueWatchingClick(
+                                                item
+                                            )
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            /*
-             * SEÇÕES
-             */
-            items(uiState.contentSections) { section ->
-                SectionHeader(
-                    title = section.title,
+                /*
+                 * SEÇÕES
+                 */
+                items(
+                    items =
+                        uiState.contentSections
+                ) {
+                        section ->
 
-                    modifier = Modifier.padding(
-                        horizontal = 18.dp
-                    ),
+                    SectionHeader(
+                        title =
+                            section.title,
 
-                    showSeeAll = true,
+                        modifier =
+                            Modifier.padding(
+                                horizontal =
+                                    sectionHorizontalPadding
+                            ),
 
-                    onSeeAllClick = {
-                        val sectionSlug =
-                            section.slug.ifBlank {
-                                sectionTitleToSlug(
+                        showSeeAll =
+                            true,
+
+                        onSeeAllClick = {
+                            val sectionSlug =
+                                section.slug
+                                    .ifBlank {
+                                        sectionTitleToSlug(
+                                            section.title
+                                        )
+                                    }
+
+                            if (
+                                sectionSlug
+                                    .isNotBlank()
+                            ) {
+                                onSeeAllClick(
+                                    sectionSlug,
                                     section.title
                                 )
                             }
+                        }
+                    )
 
-                        if (sectionSlug.isNotBlank()) {
-                            onSeeAllClick(
-                                sectionSlug,
-                                section.title
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                6.dp
                             )
+                    )
+
+                    ResponsiveMediaCarousel(
+                        items =
+                            section.items,
+
+                        isTablet =
+                            isTablet,
+
+                        cardWidth =
+                            mediaCardWidth,
+
+                        horizontalPadding =
+                            sectionHorizontalPadding,
+
+                        onMediaClick =
+                            onMediaClick
+                    )
+                }
+
+                /*
+                 * COLEÇÕES
+                 */
+                if (
+                    uiState.collections
+                        .isNotEmpty()
+                ) {
+                    item {
+                        CollectionsSection(
+                            collections =
+                                uiState.collections,
+
+                            onCollectionClick =
+                                onCollectionClick
+                        )
+                    }
+                }
+
+                /*
+                 * FOOTER
+                 */
+                item {
+                    HomeFooter(
+                        modifier =
+                            Modifier.padding(
+                                start =
+                                    24.dp,
+
+                                end =
+                                    24.dp,
+
+                                top =
+                                    28.dp,
+
+                                bottom =
+                                    20.dp
+                            )
+                    )
+                }
+            }
+
+            HomeBottomBar(
+                selectedIndex =
+                    selectedBottomIndex
+                        .intValue,
+
+                profileName =
+                    profileName,
+
+                profileAvatarUrl =
+                    profileAvatarUrl,
+
+                onItemClick = {
+                        index ->
+
+                    when (
+                        index
+                    ) {
+                        2 ->
+                            onFavoritesClick()
+
+                        3 ->
+                            onAccountClick()
+
+                        else -> {
+                            selectedBottomIndex
+                                .intValue =
+                                index
                         }
                     }
-                )
+                },
 
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
-
-                TwoRowsMediaCarousel(
-                    items = section.items,
-                    onMediaClick = onMediaClick
-                )
-            }
-
-            /*
-             * COLEÇÕES
-             */
-            if (uiState.collections.isNotEmpty()) {
-                item {
-                    CollectionsSection(
-                        collections = uiState.collections,
-
-                        onCollectionClick =
-                            onCollectionClick
+                modifier =
+                    Modifier.align(
+                        Alignment.BottomCenter
                     )
-                }
-            }
-
-            /*
-             * FOOTER
-             */
-            item {
-                HomeFooter(
-                    modifier = Modifier.padding(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = 28.dp,
-                        bottom = 20.dp
-                    )
-                )
-            }
-        }
-
-        /*
-         * BOTTOM BAR
-         *
-         * 0 = Home
-         * 1 = Pesquisar (etapa futura)
-         * 2 = Favoritos
-         * 3 = Perfil
-         */
-        HomeBottomBar(
-            selectedIndex =
-                selectedBottomIndex.intValue,
-
-            profileName = profileName,
-
-            profileAvatarUrl =
-                profileAvatarUrl,
-
-            onItemClick = { index ->
-                when (index) {
-                    2 -> onFavoritesClick()
-
-                    3 -> onAccountClick()
-
-                    else -> {
-                        selectedBottomIndex.intValue =
-                            index
-                    }
-                }
-            },
-
-            modifier = Modifier.align(
-                Alignment.BottomCenter
             )
-        )
+        }
     }
 }
 
-private fun HeroBannerUi.toFreshPlaybackRequest():
+private fun HeroBannerUi
+        .toFreshPlaybackRequest():
         ContinueWatchingUi {
 
     return ContinueWatchingUi(
-        title = title,
-        episodeInfo = "",
-        remainingTime = "",
-        progress = 0f,
-        imageUrl = imageUrl,
-        gradientColors = gradientColors,
-        contentType = contentType,
-        contentUuid = uuid,
-        seriesUuid = null,
-        positionSeconds = 0L,
-        durationSeconds = 0L,
-        seasonNumber = null,
-        episodeNumber = null,
-        lastWatchedAt = ""
+        title =
+            title,
+
+        episodeInfo =
+            "",
+
+        remainingTime =
+            "",
+
+        progress =
+            0f,
+
+        imageUrl =
+            imageUrl,
+
+        gradientColors =
+            gradientColors,
+
+        contentType =
+            contentType,
+
+        contentUuid =
+            uuid,
+
+        seriesUuid =
+            null,
+
+        positionSeconds =
+            0L,
+
+        durationSeconds =
+            0L,
+
+        seasonNumber =
+            null,
+
+        episodeNumber =
+            null,
+
+        lastWatchedAt =
+            ""
     )
 }
 
-private fun HeroBannerUi.isSeriesBanner(): Boolean {
-    return contentType.trim().lowercase() in
-            setOf("series", "serie")
+private fun HeroBannerUi
+        .isSeriesBanner():
+        Boolean {
+
+    return contentType
+        .trim()
+        .lowercase() in
+            setOf(
+                "series",
+                "serie"
+            )
 }
 
 @Composable
-private fun TwoRowsMediaCarousel(
+private fun ResponsiveMediaCarousel(
     items: List<MediaItemUi>,
+    isTablet: Boolean,
+    cardWidth: Dp,
+    horizontalPadding: Dp,
 
     onMediaClick: (
         contentType: String,
         uuid: String
     ) -> Unit
 ) {
-    val columns = remember(items) {
-        items.chunked(2)
+    /*
+     * TABLET
+     *
+     * Uma única linha horizontal.
+     */
+    if (
+        isTablet
+    ) {
+        LazyRow(
+            contentPadding =
+                PaddingValues(
+                    horizontal =
+                        horizontalPadding
+                ),
+
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    14.dp
+                )
+        ) {
+            items(
+                items =
+                    items,
+
+                key = {
+                        item ->
+
+                    "${item.contentType}:${item.uuid}"
+                }
+            ) {
+                    item ->
+
+                LandscapeMediaCard(
+                    item =
+                        item,
+
+                    cardWidth =
+                        cardWidth,
+
+                    onClick = {
+                        if (
+                            item.uuid
+                                .isNotBlank() &&
+                            item.contentType
+                                .isNotBlank()
+                        ) {
+                            onMediaClick(
+                                item.contentType,
+                                item.uuid
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        return
     }
 
+    /*
+     * CELULAR
+     *
+     * Mantém dois cards empilhados
+     * por coluna.
+     */
+    val columns =
+        remember(
+            items
+        ) {
+            items.chunked(
+                2
+            )
+        }
+
     LazyRow(
-        contentPadding = PaddingValues(
-            horizontal = 18.dp
-        ),
+        contentPadding =
+            PaddingValues(
+                horizontal =
+                    horizontalPadding
+            ),
 
         horizontalArrangement =
-            Arrangement.spacedBy(10.dp)
+            Arrangement.spacedBy(
+                10.dp
+            )
     ) {
-        items(columns) { columnItems ->
+        items(
+            items =
+                columns
+        ) {
+                columnItems ->
+
             Column(
                 verticalArrangement =
-                    Arrangement.spacedBy(10.dp)
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
             ) {
-                columnItems.forEach { item ->
+                columnItems.forEach {
+                        item ->
+
                     LandscapeMediaCard(
-                        item = item,
+                        item =
+                            item,
+
+                        cardWidth =
+                            cardWidth,
 
                         onClick = {
                             if (
-                                item.uuid.isNotBlank() &&
-                                item.contentType.isNotBlank()
+                                item.uuid
+                                    .isNotBlank() &&
+                                item.contentType
+                                    .isNotBlank()
                             ) {
                                 onMediaClick(
                                     item.contentType,
@@ -467,17 +857,36 @@ private fun categoryToSectionSlug(
     categorySlug: String
 ): String {
     return when (
-        categorySlug.trim().lowercase()
+        categorySlug
+            .trim()
+            .lowercase()
     ) {
-        "movies" -> "movies"
-        "series" -> "series"
-        "cartoons" -> "all-cartoons"
-        "animes" -> "all-animes"
-        "doramas" -> "doramas"
-        "documentaries" -> "documentaries"
-        "reality-shows" -> "reality-shows"
-        "soap-operas" -> "soap-operas"
-        else -> ""
+        "movies" ->
+            "movies"
+
+        "series" ->
+            "series"
+
+        "cartoons" ->
+            "all-cartoons"
+
+        "animes" ->
+            "all-animes"
+
+        "doramas" ->
+            "doramas"
+
+        "documentaries" ->
+            "documentaries"
+
+        "reality-shows" ->
+            "reality-shows"
+
+        "soap-operas" ->
+            "soap-operas"
+
+        else ->
+            ""
     }
 }
 
@@ -485,7 +894,9 @@ private fun sectionTitleToSlug(
     title: String
 ): String {
     return when (
-        title.trim().lowercase()
+        title
+            .trim()
+            .lowercase()
     ) {
         "novos filmes" ->
             "recent-movies"
@@ -541,6 +952,7 @@ private fun sectionTitleToSlug(
         "animes" ->
             "all-animes"
 
-        else -> ""
+        else ->
+            ""
     }
 }

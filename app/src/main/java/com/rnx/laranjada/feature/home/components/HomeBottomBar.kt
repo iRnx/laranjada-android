@@ -1,4 +1,3 @@
-
 package com.rnx.laranjada.feature.home.components
 
 import androidx.compose.foundation.BorderStroke
@@ -8,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -45,15 +46,10 @@ import com.rnx.laranjada.core.design.theme.LaranjadaSurfaceLight
 import com.rnx.laranjada.core.design.theme.LaranjadaText
 
 private val BottomBarBackground =
-    Color(0xFF101417)
+    Color(
+        0xFF101417
+    )
 
-/*
- * Contexto global da navegação.
- *
- * A MainActivity define o destino
- * selecionado e controla a troca
- * entre as telas principais.
- */
 data class BottomBarNavigationContext(
     val selectedIndex: Int,
     val profileName: String,
@@ -63,7 +59,9 @@ data class BottomBarNavigationContext(
 )
 
 val LocalBottomBarNavigation =
-    compositionLocalOf<BottomBarNavigationContext?> {
+    compositionLocalOf<
+            BottomBarNavigationContext?
+            > {
         null
     }
 
@@ -79,18 +77,6 @@ private data class BottomNavItemUi(
         BottomNavItemType.Icon
 )
 
-/*
- * Componente único da bottom bar.
- *
- * isHostBar = true:
- * a MainActivity desenha a barra.
- *
- * isHostBar = false:
- * barras antigas das telas não são
- * desenhadas quando há navegação global.
- *
- * Assim evitamos duas barras na tela.
- */
 @Composable
 fun HomeBottomBar(
     selectedIndex: Int = 0,
@@ -103,15 +89,6 @@ fun HomeBottomBar(
     val navigationContext =
         LocalBottomBarNavigation.current
 
-    /*
-     * Impede barras duplicadas.
-     *
-     * Home, Detail, Favoritos e Coleções
-     * ainda possuem chamadas antigas.
-     *
-     * Não precisamos reescrever
-     * essas telas agora.
-     */
     if (
         navigationContext != null &&
         !isHostBar
@@ -120,100 +97,185 @@ fun HomeBottomBar(
     }
 
     val effectiveSelectedIndex =
-        navigationContext?.selectedIndex
+        navigationContext
+            ?.selectedIndex
             ?: selectedIndex
 
     val effectiveProfileName =
-        navigationContext?.profileName
-            ?.takeIf { it.isNotBlank() }
+        navigationContext
+            ?.profileName
+            ?.takeIf {
+                it.isNotBlank()
+            }
             ?: profileName
 
     val effectiveAvatarUrl =
-        navigationContext?.profileAvatarUrl
+        navigationContext
+            ?.profileAvatarUrl
             ?: profileAvatarUrl
 
     val searchEnabled =
-        navigationContext?.searchEnabled
+        navigationContext
+            ?.searchEnabled
             ?: true
 
-    val items = remember {
-        listOf(
-            BottomNavItemUi(
-                label = "Início",
-                icon = Icons.Rounded.Home
-            ),
-            BottomNavItemUi(
-                label = "Pesquisar",
-                icon = Icons.Rounded.Search
-            ),
-            BottomNavItemUi(
-                label = "Favoritos",
-                icon = Icons.Rounded.FavoriteBorder
-            ),
-            BottomNavItemUi(
-                label = "Perfil",
-                type = BottomNavItemType.Avatar
+    val items =
+        remember {
+            listOf(
+                BottomNavItemUi(
+                    label =
+                        "Início",
+
+                    icon =
+                        Icons.Rounded.Home
+                ),
+
+                BottomNavItemUi(
+                    label =
+                        "Pesquisar",
+
+                    icon =
+                        Icons.Rounded.Search
+                ),
+
+                BottomNavItemUi(
+                    label =
+                        "Favoritos",
+
+                    icon =
+                        Icons.Rounded.FavoriteBorder
+                ),
+
+                BottomNavItemUi(
+                    label =
+                        "Perfil",
+
+                    type =
+                        BottomNavItemType.Avatar
+                )
             )
-        )
-    }
+        }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                WindowInsets.navigationBars
-            ),
-        shape = RectangleShape,
-        color = BottomBarBackground.copy(
-            alpha = 0.96f
-        ),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Row(
-            modifier = Modifier
+        modifier =
+            modifier
                 .fillMaxWidth()
-                .border(
-                    BorderStroke(
-                        width = 1.dp,
-                        color = Color.White.copy(
-                            alpha = 0.05f
-                        )
-                    )
-                )
-                .padding(
-                    horizontal = 34.dp,
-                    vertical = 12.dp
+                .windowInsetsPadding(
+                    WindowInsets.navigationBars
                 ),
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-            verticalAlignment =
-                Alignment.CenterVertically
+
+        shape =
+            RectangleShape,
+
+        color =
+            BottomBarBackground.copy(
+                alpha = 0.96f
+            ),
+
+        tonalElevation =
+            0.dp,
+
+        shadowElevation =
+            0.dp
+    ) {
+        BoxWithConstraints(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .border(
+                        BorderStroke(
+                            width =
+                                1.dp,
+
+                            color =
+                                Color.White.copy(
+                                    alpha = 0.05f
+                                )
+                        )
+                    ),
+
+            contentAlignment =
+                Alignment.Center
         ) {
-            items.forEachIndexed { index, item ->
+            val isTablet =
+                maxWidth >=
+                        600.dp
 
-                val enabled =
-                    index != 1 || searchEnabled
-
-                BottomNavItem(
-                    item = item,
-                    selected =
-                        index == effectiveSelectedIndex,
-                    enabled = enabled,
-                    profileName =
-                        effectiveProfileName,
-                    profileAvatarUrl =
-                        effectiveAvatarUrl,
-                    onClick = {
-                        if (navigationContext != null) {
-                            navigationContext.onNavigate(
-                                index
+            Row(
+                modifier =
+                    if (
+                        isTablet
+                    ) {
+                        Modifier
+                            .fillMaxWidth()
+                            .widthIn(
+                                max = 560.dp
                             )
-                        } else {
-                            onItemClick(index)
+                            .padding(
+                                horizontal = 28.dp,
+                                vertical = 12.dp
+                            )
+                    } else {
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 34.dp,
+                                vertical = 12.dp
+                            )
+                    },
+
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                items.forEachIndexed {
+                        index,
+                        item ->
+
+                    val enabled =
+                        index !=
+                                1 ||
+                                searchEnabled
+
+                    BottomNavItem(
+                        item =
+                            item,
+
+                        selected =
+                            index ==
+                                    effectiveSelectedIndex,
+
+                        enabled =
+                            enabled,
+
+                        profileName =
+                            effectiveProfileName,
+
+                        profileAvatarUrl =
+                            effectiveAvatarUrl,
+
+                        tablet =
+                            isTablet,
+
+                        onClick = {
+                            if (
+                                navigationContext !=
+                                null
+                            ) {
+                                navigationContext
+                                    .onNavigate(
+                                        index
+                                    )
+                            } else {
+                                onItemClick(
+                                    index
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -226,57 +288,106 @@ private fun BottomNavItem(
     enabled: Boolean,
     profileName: String,
     profileAvatarUrl: String?,
+    tablet: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember {
-        MutableInteractionSource()
-    }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .size(
+                    if (
+                        tablet
+                    ) {
+                        48.dp
+                    } else {
+                        44.dp
+                    }
+                )
+                .clip(
+                    CircleShape
+                )
+                .clickable(
+                    enabled =
+                        enabled,
+
+                    interactionSource =
+                        interactionSource,
+
+                    indication =
+                        null,
+
+                    onClick =
+                        onClick
+                ),
+
+        contentAlignment =
+            Alignment.Center
     ) {
-        when (item.type) {
+        when (
+            item.type
+        ) {
             BottomNavItemType.Icon -> {
                 Icon(
                     imageVector =
-                        requireNotNull(item.icon),
+                        requireNotNull(
+                            item.icon
+                        ),
 
                     contentDescription =
                         item.label,
 
-                    tint = when {
-                        !enabled ->
-                            LaranjadaMutedText.copy(
-                                alpha = 0.45f
-                            )
+                    tint =
+                        when {
+                            !enabled ->
+                                LaranjadaMutedText.copy(
+                                    alpha = 0.45f
+                                )
 
-                        selected ->
-                            LaranjadaOrange
+                            selected ->
+                                LaranjadaOrange
 
-                        else ->
-                            LaranjadaMutedText
-                    },
+                            else ->
+                                LaranjadaMutedText
+                        },
 
-                    modifier = Modifier.size(
-                        if (selected) 28.dp else 26.dp
-                    )
+                    modifier =
+                        Modifier.size(
+                            when {
+                                tablet &&
+                                        selected ->
+                                    30.dp
+
+                                tablet ->
+                                    28.dp
+
+                                selected ->
+                                    28.dp
+
+                                else ->
+                                    26.dp
+                            }
+                        )
                 )
             }
 
             BottomNavItemType.Avatar -> {
                 ProfileAvatar(
-                    selected = selected,
-                    profileName = profileName,
-                    avatarUrl = profileAvatarUrl
+                    selected =
+                        selected,
+
+                    profileName =
+                        profileName,
+
+                    avatarUrl =
+                        profileAvatarUrl,
+
+                    tablet =
+                        tablet
                 )
             }
         }
@@ -287,63 +398,125 @@ private fun BottomNavItem(
 private fun ProfileAvatar(
     selected: Boolean,
     profileName: String,
-    avatarUrl: String?
+    avatarUrl: String?,
+    tablet: Boolean
 ) {
     Box(
-        modifier = Modifier
-            .requiredSize(32.dp)
-            .clip(CircleShape)
-            .background(
-                LaranjadaSurfaceLight.copy(
-                    alpha = 0.82f
+        modifier =
+            Modifier
+                .requiredSize(
+                    if (
+                        tablet
+                    ) {
+                        35.dp
+                    } else {
+                        32.dp
+                    }
                 )
-            )
-            .border(
-                border = BorderStroke(
-                    width =
-                        if (selected) 2.dp else 1.dp,
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    LaranjadaSurfaceLight.copy(
+                        alpha = 0.82f
+                    )
+                )
+                .border(
+                    border =
+                        BorderStroke(
+                            width =
+                                if (
+                                    selected
+                                ) {
+                                    2.dp
+                                } else {
+                                    1.dp
+                                },
 
-                    color =
-                        if (selected) {
-                            LaranjadaOrange
-                        } else {
-                            LaranjadaMutedText.copy(
-                                alpha = 0.80f
-                            )
-                        }
+                            color =
+                                if (
+                                    selected
+                                ) {
+                                    LaranjadaOrange
+                                } else {
+                                    LaranjadaMutedText.copy(
+                                        alpha = 0.80f
+                                    )
+                                }
+                        ),
+
+                    shape =
+                        CircleShape
                 ),
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
+
+        contentAlignment =
+            Alignment.Center
     ) {
-        if (!avatarUrl.isNullOrBlank()) {
+        if (
+            !avatarUrl
+                .isNullOrBlank()
+        ) {
             AsyncImage(
-                model = avatarUrl,
+                model =
+                    avatarUrl,
+
                 contentDescription =
                     profileName.ifBlank {
                         "Perfil"
                     },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
+
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(
+                            CircleShape
+                        ),
+
+                contentScale =
+                    ContentScale.Crop
             )
         } else {
             Text(
-                text = profileName
-                    .trim()
-                    .take(1)
-                    .uppercase()
-                    .ifBlank { "?" },
+                text =
+                    profileName
+                        .trim()
+                        .take(
+                            1
+                        )
+                        .uppercase()
+                        .ifBlank {
+                            "?"
+                        },
+
                 color =
-                    if (selected) {
+                    if (
+                        selected
+                    ) {
                         LaranjadaOrange
                     } else {
                         LaranjadaText
                     },
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 11.sp
+
+                fontSize =
+                    if (
+                        tablet
+                    ) {
+                        12.sp
+                    } else {
+                        11.sp
+                    },
+
+                fontWeight =
+                    FontWeight.Bold,
+
+                lineHeight =
+                    if (
+                        tablet
+                    ) {
+                        12.sp
+                    } else {
+                        11.sp
+                    }
             )
         }
     }

@@ -1,4 +1,3 @@
-
 package com.rnx.laranjada.feature.mediagrid
 
 import androidx.compose.foundation.background
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -54,10 +52,14 @@ import com.rnx.laranjada.feature.catalog.components.CatalogMediaCard
 import com.rnx.laranjada.feature.catalog.components.CatalogOrderSheet
 
 private val MediaGridBackground =
-    Color(0xFF070B0F)
+    Color(
+        0xFF070B0F
+    )
 
 private val MediaGridMuted =
-    Color(0xFFBFC4C8)
+    Color(
+        0xFFBFC4C8
+    )
 
 @Composable
 fun MediaGridScreen(
@@ -82,29 +84,53 @@ fun MediaGridScreen(
     val gridState =
         rememberLazyGridState()
 
-    var orderSheetOpen by remember {
-        mutableStateOf(false)
+    var orderSheetOpen by
+    remember {
+        mutableStateOf(
+            false
+        )
     }
 
-    var filtersSheetOpen by remember {
-        mutableStateOf(false)
+    var filtersSheetOpen by
+    remember {
+        mutableStateOf(
+            false
+        )
     }
 
     /*
-     * Conserva o tamanho aprovado:
+     * Mantém o grid já aprovado:
      *
-     * Celulares: 2 colunas.
-     * Tablets médios: 3.
-     * Tablets maiores: 4.
+     * celular:
+     * 2 colunas.
+     *
+     * tablet portrait:
+     * 3 colunas.
+     *
+     * tablet landscape / expandido:
+     * 4 colunas.
      */
     val screenWidth =
-        LocalConfiguration.current.screenWidthDp
+        LocalConfiguration
+            .current
+            .screenWidthDp
+
+    val isTablet =
+        screenWidth >=
+                600
 
     val columnCount =
         when {
-            screenWidth >= 840 -> 4
-            screenWidth >= 600 -> 3
-            else -> 2
+            screenWidth >=
+                    840 ->
+                4
+
+            screenWidth >=
+                    600 ->
+                3
+
+            else ->
+                2
         }
 
     LaunchedEffect(
@@ -112,31 +138,41 @@ fun MediaGridScreen(
         title
     ) {
         viewModel.start(
-            sectionSlug = sectionSlug,
-            title = title
+            sectionSlug =
+                sectionSlug,
+
+            title =
+                title
         )
     }
 
     /*
-     * Volta ao topo quando mudam
-     * página ou filtros aplicados.
+     * Retorna para o topo quando
+     * página ou filtros mudarem.
      */
     LaunchedEffect(
         state.currentPage,
         state.appliedFilters
     ) {
-        gridState.scrollToItem(0)
+        gridState.scrollToItem(
+            0
+        )
     }
 
     val rangeLabel =
         if (
-            state.totalCount <= 0
+            state.totalCount <=
+            0
         ) {
             "0 de 0"
         } else {
             val first =
-                (state.currentPage - 1) *
-                        state.pageSize + 1
+                (
+                        state.currentPage -
+                                1
+                        ) *
+                        state.pageSize +
+                        1
 
             val last =
                 minOf(
@@ -150,318 +186,425 @@ fun MediaGridScreen(
         }
 
     val orderOptions =
-        state.availableFilters.orders.map {
-            CatalogFilterOption(
-                label = it.label,
-                value = it.value
-            )
-        }
+        state.availableFilters.orders
+            .map {
+                CatalogFilterOption(
+                    label =
+                        it.label,
 
-    val ratingOptions =
-        state.availableFilters.ratings.map {
-            CatalogFilterOption(
-                label = it.label,
-                value = it.value
-            )
-        }
-
-    val kindOptions =
-        state.availableFilters.kinds.map {
-            CatalogFilterOption(
-                label = it.label,
-                value = it.value
-            )
-        }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MediaGridBackground
-            )
-    ) {
-        LazyVerticalGrid(
-            columns =
-                GridCells.Fixed(
-                    columnCount
-                ),
-
-            state =
-                gridState,
-
-            modifier =
-                Modifier.fillMaxSize(),
-
-            contentPadding =
-                PaddingValues(
-                    start = 14.dp,
-                    end = 14.dp,
-                    top = 8.dp,
-                    bottom = 105.dp
-                ),
-
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
-                ),
-
-            verticalArrangement =
-                Arrangement.spacedBy(
-                    22.dp
+                    value =
+                        it.value
                 )
-        ) {
-            item(
-                span = {
-                    GridItemSpan(
-                        maxLineSpan
-                    )
-                }
-            ) {
-                Column(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                ) {
-                    MediaGridHeader(
-                        title =
-                            state.title.ifBlank {
-                                title.ifBlank {
-                                    "Ver tudo"
-                                }
-                            },
-
-                        onBackClick =
-                            onBackClick,
-
-                        onSearchClick = {
-                            filtersSheetOpen = true
-                        }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(13.dp)
-                    )
-
-                    CatalogFilterToolbar(
-                        rangeLabel =
-                            rangeLabel,
-
-                        canPrevious =
-                            !isLoading &&
-                                    state.hasPreviousPage,
-
-                        canNext =
-                            !isLoading &&
-                                    state.hasNextPage,
-
-                        onPrevious =
-                            viewModel::previousPage,
-
-                        onNext =
-                            viewModel::nextPage,
-
-                        onSort = {
-                            orderSheetOpen = true
-                        },
-
-                        onFilters = {
-                            filtersSheetOpen = true
-                        }
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(15.dp)
-                    )
-                }
             }
 
-            when {
-                isLoading -> {
-                    item(
-                        span = {
-                            GridItemSpan(
-                                maxLineSpan
-                            )
-                        }
+    val ratingOptions =
+        state.availableFilters.ratings
+            .map {
+                CatalogFilterOption(
+                    label =
+                        it.label,
+
+                    value =
+                        it.value
+                )
+            }
+
+    val kindOptions =
+        state.availableFilters.kinds
+            .map {
+                CatalogFilterOption(
+                    label =
+                        it.label,
+
+                    value =
+                        it.value
+                )
+            }
+
+    /*
+     * [ALTERAÇÃO]
+     *
+     * Antes:
+     *
+     * Box
+     * ├── grid
+     * └── A-Z sobreposto ao grid
+     *
+     * Agora:
+     *
+     * Column
+     * ├── Box com grid
+     * └── A-Z
+     *
+     * Portanto a faixa A-Z ocupa espaço
+     * próprio e nenhum card fica atrás dela.
+     *
+     * A bottom bar global da MainActivity
+     * continua logo abaixo desta tela.
+     */
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    MediaGridBackground
+                )
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .weight(
+                        1f
+                    )
+                    .fillMaxWidth()
+        ) {
+            LazyVerticalGrid(
+                columns =
+                    GridCells.Fixed(
+                        columnCount
+                    ),
+
+                state =
+                    gridState,
+
+                modifier =
+                    Modifier.fillMaxSize(),
+
+                /*
+                 * Como o A-Z não é mais
+                 * desenhado por cima da grade,
+                 * não precisamos reservar
+                 * mais de 100dp no final.
+                 *
+                 * A própria Column já separa
+                 * fisicamente as duas regiões.
+                 */
+                contentPadding =
+                    PaddingValues(
+                        start =
+                            14.dp,
+
+                        end =
+                            14.dp,
+
+                        top =
+                            8.dp,
+
+                        bottom =
+                            24.dp
+                    ),
+
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        12.dp
+                    ),
+
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        22.dp
+                    )
+            ) {
+                item(
+                    span = {
+                        GridItemSpan(
+                            maxLineSpan
+                        )
+                    }
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.fillMaxWidth()
                     ) {
-                        GridCenterState {
-                            CircularProgressIndicator(
-                                color =
-                                    LaranjadaOrange
-                            )
-                        }
+                        MediaGridHeader(
+                            title =
+                                state.title
+                                    .ifBlank {
+                                        title.ifBlank {
+                                            "Ver tudo"
+                                        }
+                                    },
+
+                            onBackClick =
+                                onBackClick,
+
+                            onSearchClick = {
+                                filtersSheetOpen =
+                                    true
+                            }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    13.dp
+                                )
+                        )
+
+                        CatalogFilterToolbar(
+                            rangeLabel =
+                                rangeLabel,
+
+                            canPrevious =
+                                !isLoading &&
+                                        state.hasPreviousPage,
+
+                            canNext =
+                                !isLoading &&
+                                        state.hasNextPage,
+
+                            onPrevious =
+                                viewModel::previousPage,
+
+                            onNext =
+                                viewModel::nextPage,
+
+                            onSort = {
+                                orderSheetOpen =
+                                    true
+                            },
+
+                            onFilters = {
+                                filtersSheetOpen =
+                                    true
+                            }
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    15.dp
+                                )
+                        )
                     }
                 }
 
-                error != null -> {
-                    item(
-                        span = {
-                            GridItemSpan(
-                                maxLineSpan
-                            )
-                        }
-                    ) {
-                        GridCenterState {
-                            Text(
-                                text = error,
-
-                                color =
-                                    Color.White,
-
-                                textAlign =
-                                    TextAlign.Center
-                            )
-
-                            TextButton(
-                                onClick =
-                                    viewModel::reload
-                            ) {
-                                Text(
-                                    "Tentar novamente"
+                when {
+                    isLoading -> {
+                        item(
+                            span = {
+                                GridItemSpan(
+                                    maxLineSpan
+                                )
+                            }
+                        ) {
+                            GridCenterState {
+                                CircularProgressIndicator(
+                                    color =
+                                        LaranjadaOrange
                                 )
                             }
                         }
                     }
-                }
 
-                state.items.isEmpty() -> {
-                    item(
-                        span = {
-                            GridItemSpan(
-                                maxLineSpan
-                            )
-                        }
-                    ) {
-                        GridCenterState {
-                            Text(
-                                text =
-                                    "Nenhum conteúdo encontrado.",
+                    error !=
+                            null -> {
 
-                                color =
-                                    Color.White,
-
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
-
-                            Text(
-                                text =
-                                    "Altere a letra ou os filtros para encontrar outros conteúdos.",
-
-                                color =
-                                    MediaGridMuted,
-
-                                fontSize =
-                                    13.sp,
-
-                                textAlign =
-                                    TextAlign.Center
-                            )
-
-                            TextButton(
-                                onClick =
-                                    viewModel::clearFilters
-                            ) {
-                                Text(
-                                    "Limpar filtros"
+                        item(
+                            span = {
+                                GridItemSpan(
+                                    maxLineSpan
                                 )
                             }
-                        }
-                    }
-                }
+                        ) {
+                            GridCenterState {
+                                Text(
+                                    text =
+                                        error,
 
-                else -> {
-                    items(
-                        items =
-                            state.items,
+                                    color =
+                                        Color.White,
 
-                        key = { item ->
-                            "${item.contentType}:${item.uuid}"
-                        }
-                    ) { item ->
+                                    textAlign =
+                                        TextAlign.Center
+                                )
 
-                        CatalogMediaCard(
-                            item = item,
-
-                            onClick = {
-                                if (
-                                    item.uuid.isNotBlank() &&
-                                    item.contentType.isNotBlank()
+                                TextButton(
+                                    onClick =
+                                        viewModel::reload
                                 ) {
-                                    onMediaClick(
-                                        item.contentType,
-                                        item.uuid
+                                    Text(
+                                        text =
+                                            "Tentar novamente"
                                     )
                                 }
                             }
-                        )
+                        }
+                    }
+
+                    state.items
+                        .isEmpty() -> {
+
+                        item(
+                            span = {
+                                GridItemSpan(
+                                    maxLineSpan
+                                )
+                            }
+                        ) {
+                            GridCenterState {
+                                Text(
+                                    text =
+                                        "Nenhum conteúdo encontrado.",
+
+                                    color =
+                                        Color.White,
+
+                                    fontWeight =
+                                        FontWeight.Bold
+                                )
+
+                                Text(
+                                    text =
+                                        "Altere a letra ou os filtros para encontrar outros conteúdos.",
+
+                                    color =
+                                        MediaGridMuted,
+
+                                    fontSize =
+                                        13.sp,
+
+                                    textAlign =
+                                        TextAlign.Center
+                                )
+
+                                TextButton(
+                                    onClick =
+                                        viewModel::clearFilters
+                                ) {
+                                    Text(
+                                        text =
+                                            "Limpar filtros"
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        items(
+                            items =
+                                state.items,
+
+                            key = {
+                                    item ->
+
+                                "${item.contentType}:${item.uuid}"
+                            }
+                        ) {
+                                item ->
+
+                            CatalogMediaCard(
+                                item =
+                                    item,
+
+                                onClick = {
+                                    if (
+                                        item.uuid
+                                            .isNotBlank() &&
+                                        item.contentType
+                                            .isNotBlank()
+                                    ) {
+                                        onMediaClick(
+                                            item.contentType,
+                                            item.uuid
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
 
         /*
-         * Barra fixa inferior.
+         * [ALTERAÇÃO]
          *
-         * Considera a área de
-         * navegação do Android.
+         * Agora esta faixa está realmente
+         * FORA da grade.
+         *
+         * Ela ocupa a região imediatamente
+         * acima da bottom bar global.
+         *
+         * Tablet:
+         * todas as letras distribuídas.
+         *
+         * Celular:
+         * mantém a rolagem horizontal.
          */
         CatalogAlphabetBar(
             selectedLetter =
-                state.appliedFilters.letter,
+                state
+                    .appliedFilters
+                    .letter,
 
             enabled =
                 !isLoading,
 
+            distributeAcrossWidth =
+                isTablet,
+
             onLetterClick =
                 viewModel::selectLetter,
 
-            modifier = Modifier
-                .align(
-                    Alignment.BottomCenter
-                )
-                .windowInsetsPadding(
-                    WindowInsets.navigationBars
-                )
+            modifier =
+                Modifier.fillMaxWidth()
         )
     }
 
-    if (orderSheetOpen) {
+    if (
+        orderSheetOpen
+    ) {
         CatalogOrderSheet(
             options =
                 orderOptions,
 
             selectedValue =
-                viewModel.draftFilters.order,
+                viewModel
+                    .draftFilters
+                    .order,
 
-            onSelect = { selectedOrder ->
+            onSelect = {
+                    selectedOrder ->
+
                 viewModel.applyOrder(
                     selectedOrder
                 )
 
-                orderSheetOpen = false
+                orderSheetOpen =
+                    false
             },
 
             onDismiss = {
-                orderSheetOpen = false
+                orderSheetOpen =
+                    false
             }
         )
     }
 
-    if (filtersSheetOpen) {
+    if (
+        filtersSheetOpen
+    ) {
         CatalogFiltersSheet(
             search =
-                viewModel.draftFilters.q,
+                viewModel
+                    .draftFilters
+                    .q,
 
             year =
-                viewModel.draftFilters.year,
+                viewModel
+                    .draftFilters
+                    .year,
 
             ratingMin =
-                viewModel.draftFilters.ratingMin,
+                viewModel
+                    .draftFilters
+                    .ratingMin,
 
             type =
-                viewModel.draftFilters.kind,
+                viewModel
+                    .draftFilters
+                    .kind,
 
             years =
                 state.availableFilters.years,
@@ -482,22 +625,33 @@ fun MediaGridScreen(
                     kind ->
 
                 viewModel.applyFilters(
-                    search = search,
-                    year = year,
-                    ratingMin = rating,
-                    kind = kind
+                    search =
+                        search,
+
+                    year =
+                        year,
+
+                    ratingMin =
+                        rating,
+
+                    kind =
+                        kind
                 )
 
-                filtersSheetOpen = false
+                filtersSheetOpen =
+                    false
             },
 
             onClear = {
                 viewModel.clearFilters()
-                filtersSheetOpen = false
+
+                filtersSheetOpen =
+                    false
             },
 
             onDismiss = {
-                filtersSheetOpen = false
+                filtersSheetOpen =
+                    false
             }
         )
     }
@@ -510,12 +664,16 @@ private fun MediaGridHeader(
     onSearchClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                WindowInsets.statusBars
-            )
-            .padding(top = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.statusBars
+                )
+                .padding(
+                    top =
+                        8.dp
+                ),
 
         horizontalArrangement =
             Arrangement.SpaceBetween,
@@ -529,7 +687,9 @@ private fun MediaGridHeader(
         ) {
             Icon(
                 imageVector =
-                    Icons.AutoMirrored.Rounded.ArrowBack,
+                    Icons.AutoMirrored
+                        .Rounded
+                        .ArrowBack,
 
                 contentDescription =
                     "Voltar",
@@ -565,7 +725,9 @@ private fun MediaGridHeader(
                 TextOverflow.Ellipsis,
 
             modifier =
-                Modifier.weight(1f)
+                Modifier.weight(
+                    1f
+                )
         )
 
         IconButton(
@@ -591,18 +753,24 @@ private fun GridCenterState(
     content: @Composable () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = 20.dp,
-                vertical = 52.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal =
+                        20.dp,
+
+                    vertical =
+                        52.dp
+                ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally,
 
         verticalArrangement =
-            Arrangement.spacedBy(12.dp)
+            Arrangement.spacedBy(
+                12.dp
+            )
     ) {
         content()
     }

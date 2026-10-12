@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.rnx.laranjada.feature.home.MediaItemUi
@@ -21,40 +22,86 @@ import com.rnx.laranjada.feature.home.MediaItemUi
 fun LandscapeMediaCard(
     item: MediaItemUi,
     modifier: Modifier = Modifier,
+
+    /*
+     * [ALTERAÇÃO]
+     *
+     * No celular o valor padrão continua
+     * exatamente em 150dp.
+     *
+     * A Home passa um valor maior somente
+     * quando estiver em largura de tablet.
+     */
+    cardWidth: Dp = 150.dp,
+
     onClick: () -> Unit = {}
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource =
+        remember {
+            MutableInteractionSource()
+        }
 
     Box(
-        modifier = modifier
-            .width(150.dp)
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Brush.linearGradient(item.gradientColors))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+        modifier =
+            modifier
+                .width(
+                    cardWidth
+                )
+                .aspectRatio(
+                    16f / 9f
+                )
+                .clip(
+                    RoundedCornerShape(
+                        10.dp
+                    )
+                )
+                .background(
+                    Brush.linearGradient(
+                        item.gradientColors
+                    )
+                )
+                .clickable(
+                    interactionSource =
+                        interactionSource,
+
+                    indication =
+                        null,
+
+                    onClick =
+                        onClick
+                )
     ) {
         AsyncImage(
-            model = item.imageUrl,
-            contentDescription = item.title,
-            modifier = Modifier.matchParentSize(),
-            contentScale = ContentScale.Crop
+            model =
+                item.imageUrl,
+
+            contentDescription =
+                item.title,
+
+            modifier =
+                Modifier.matchParentSize(),
+
+            contentScale =
+                ContentScale.Crop
         )
 
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            androidx.compose.ui.graphics.Color.Transparent,
-                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.10f)
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    androidx.compose.ui.graphics.Color.Transparent,
+
+                                    androidx.compose.ui.graphics.Color.Black.copy(
+                                        alpha =
+                                            0.10f
+                                    )
+                                )
                         )
                     )
-                )
         )
     }
 }

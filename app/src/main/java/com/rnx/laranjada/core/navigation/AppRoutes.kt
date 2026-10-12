@@ -34,6 +34,33 @@ object AppRoutes {
             "account/subscription"
     }
 
+    object Support {
+        const val route =
+            "account/support"
+    }
+
+    object SupportCreate {
+        const val route =
+            "account/support/new"
+    }
+
+    object SupportConversation {
+        const val conversationUuidArg =
+            "conversationUuid"
+
+        const val route =
+            "account/support/conversations/{$conversationUuidArg}"
+
+        fun createRoute(
+            conversationUuid: String
+        ): String {
+            return "account/support/conversations/" +
+                    Uri.encode(
+                        conversationUuid
+                    )
+        }
+    }
+
     object CreateProfile {
         const val route =
             "profile/create"
