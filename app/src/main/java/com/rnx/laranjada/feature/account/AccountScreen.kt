@@ -79,6 +79,7 @@ fun AccountScreen(
     onSubscriptionClick: () -> Unit = {},
     onSupportClick: () -> Unit = {},
     onAccountDetailsClick: () -> Unit = {},
+    onCheckUpdatesClick: () -> Unit = {},
     onSearchClick: () -> Unit = {}
 ) {
     BoxWithConstraints(
@@ -211,6 +212,12 @@ fun AccountScreen(
                     title = "Conta",
                     isTablet = isTablet,
                     onClick = onAccountDetailsClick
+                )
+
+                AccountMenuItem(
+                    title = "Verificar atualizações",
+                    isTablet = isTablet,
+                    onClick = onCheckUpdatesClick
                 )
 
                 AccountMenuItem(
