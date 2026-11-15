@@ -49,6 +49,9 @@ import com.rnx.laranjada.feature.auth.LoginScreen
 import com.rnx.laranjada.feature.home.components.BottomBarNavigationContext
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
 import com.rnx.laranjada.feature.home.components.LocalBottomBarNavigation
+import com.rnx.laranjada.feature.update.AppUpdateCoordinator
+import com.rnx.laranjada.feature.update.MobileUpdateDialog
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,12 +59,20 @@ class MainActivity : ComponentActivity() {
 
         ApiHttpClient.initialize(applicationContext)
         DomainRecoveryCoordinator.initialize(applicationContext)
+        AppUpdateCoordinator.initialize(applicationContext)
 
         setContent {
             LaranjadaTheme {
                 val domainChange by DomainRecoveryCoordinator.domainChange.collectAsState()
                 val recoveryStatus by DomainRecoveryCoordinator.status.collectAsState()
                 val restoredSequence by DomainRecoveryCoordinator.connectionRestored.collectAsState()
+                val updateState by AppUpdateCoordinator.state.collectAsState()
+
+                LaunchedEffect(domainChange) {
+                    if (domainChange > 0L) AppUpdateCoordinator.onDomainChanged()
+                    delay(4_000L)
+                    AppUpdateCoordinator.checkOnStartup()
+                }
 
                 // Novos cookies/dominio precisam de um estado de sessao independente.
                 val sessionViewModel: AppSessionViewModel =
@@ -99,6 +110,9 @@ class MainActivity : ComponentActivity() {
                             message = sessionState.message,
                             onRetryClick = sessionViewModel::checkSession
                         )
+                    }
+                    if (updateState.dialogVisible) {
+                        MobileUpdateDialog(state = updateState)
                     }
                 }
             }

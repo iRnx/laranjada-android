@@ -13,6 +13,7 @@ import com.rnx.laranjada.domain.model.AuthenticatedUser
 import com.rnx.laranjada.domain.model.ViewerProfile
 import com.rnx.laranjada.feature.account.AccountDetailsScreen
 import com.rnx.laranjada.feature.account.AccountScreen
+import com.rnx.laranjada.feature.update.AppUpdateCoordinator
 import com.rnx.laranjada.feature.account.AvatarOptionUi
 import com.rnx.laranjada.feature.account.AvatarPickerScreen
 import com.rnx.laranjada.feature.account.CreateProfileScreen
@@ -470,6 +471,10 @@ fun LaranjadaNavGraph(
                         launchSingleTop =
                             true
                     }
+                },
+
+                onCheckUpdatesClick = {
+                    AppUpdateCoordinator.check(manual = true)
                 },
 
                 onAccountDetailsClick = {
