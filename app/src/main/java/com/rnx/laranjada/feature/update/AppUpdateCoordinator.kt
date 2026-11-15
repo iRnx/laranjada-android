@@ -59,7 +59,8 @@ object AppUpdateCoordinator {
                         release == null -> MobileUpdateState(
                             phase = MobileUpdatePhase.NO_RELEASE,
                             installedBuild = installed,
-                            message = "Nenhuma versao foi publicada ainda."
+                            message = "Nenhuma versão foi publicada ainda.",
+                            dialogVisible = manual
                         )
                         // Nas builds de teste, mostra o modal real como PREVIA.
                         // Nunca habilita download ou instalacao.
@@ -73,7 +74,8 @@ object AppUpdateCoordinator {
                         release.buildNumber <= installed -> MobileUpdateState(
                             phase = MobileUpdatePhase.UP_TO_DATE,
                             installedBuild = installed,
-                            message = "A Laranjada ja esta atualizada."
+                            message = "O Laranjada já está atualizado.",
+                            dialogVisible = manual
                         )
                         else -> MobileUpdateState(
                             phase = MobileUpdatePhase.AVAILABLE,
@@ -90,7 +92,8 @@ object AppUpdateCoordinator {
                     _state.value = MobileUpdateState(
                         phase = MobileUpdatePhase.ERROR,
                         installedBuild = installed,
-                        message = "Nao foi possivel verificar atualizacoes. Tente novamente."
+                        message = "Não foi possível verificar atualizações. Tente novamente.",
+                        dialogVisible = manual
                     )
                 }
             }
@@ -158,7 +161,7 @@ object AppUpdateCoordinator {
                         message = if (opened) {
                             "Siga as instrucoes do Android para concluir a instalacao."
                         } else {
-                            "Autorize a instalacao por esta fonte e volte para a TV. Depois, selecione Instalar."
+                            "Autorize a instalacao por esta fonte e volte para o aplicativo. Depois, selecione Instalar."
                         }
                     )
                 } catch (cancelled: CancellationException) {
