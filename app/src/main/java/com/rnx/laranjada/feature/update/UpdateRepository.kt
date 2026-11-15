@@ -21,9 +21,9 @@ import kotlin.coroutines.coroutineContext
  *
  * Utiliza os endpoints ja existentes no Django:
  *
- * GET /api/v1/downloads/android-tv/latest/
+ * GET /api/v1/downloads/android/latest/
  *
- * GET /downloads/android-tv/<versao>/
+ * GET /downloads/android/<versao>/
  *
  * Nao envia sessionid, csrftoken ou cookies.
  *
