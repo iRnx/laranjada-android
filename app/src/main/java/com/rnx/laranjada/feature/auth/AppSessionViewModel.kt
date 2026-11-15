@@ -19,6 +19,9 @@ sealed interface AppSessionState {
     data object Unauthenticated :
         AppSessionState
 
+    data object Disconnected :
+        AppSessionState
+
     data class Authenticated(
         val user:
         AuthenticatedUser
@@ -56,11 +59,14 @@ class AppSessionViewModel(
     )
         private set
 
+    private var sessionGeneration = 0L
+
     init {
         checkSession()
     }
 
     fun checkSession() {
+        val generation = ++sessionGeneration
         viewModelScope.launch {
             sessionState =
                 AppSessionState.Checking
@@ -69,6 +75,8 @@ class AppSessionViewModel(
                 val user =
                     repository
                         .getCurrentUser()
+
+                if (generation != sessionGeneration) return@launch
 
                 sessionState =
                     if (
@@ -88,6 +96,7 @@ class AppSessionViewModel(
                 exception:
                 Exception
             ) {
+                if (generation != sessionGeneration) return@launch
                 sessionState =
                     AppSessionState
                         .Unavailable(
@@ -99,10 +108,25 @@ class AppSessionViewModel(
         }
     }
 
+    fun handleRemoteDisconnection() {
+        ++sessionGeneration
+        ApiHttpClient.clearAuthenticationCookies()
+        isLoggingOut = false
+        logoutErrorMessage = null
+        sessionState = AppSessionState.Disconnected
+    }
+
+    fun continueAfterRemoteDisconnection() {
+        if (sessionState != AppSessionState.Disconnected) return
+        ++sessionGeneration
+        sessionState = AppSessionState.Unauthenticated
+    }
+
     fun onLoginSuccess(
         user:
         AuthenticatedUser
     ) {
+        ++sessionGeneration
         logoutErrorMessage =
             null
 
@@ -115,6 +139,7 @@ class AppSessionViewModel(
     }
 
     fun onSessionEnded() {
+        ++sessionGeneration
         ApiHttpClient
             .clearAuthenticationCookies()
 
@@ -146,6 +171,7 @@ class AppSessionViewModel(
             try {
                 repository.logout()
 
+                ++sessionGeneration
                 sessionState =
                     AppSessionState
                         .Unauthenticated
