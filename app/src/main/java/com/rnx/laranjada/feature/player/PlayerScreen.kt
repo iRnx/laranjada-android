@@ -586,6 +586,9 @@ private fun HlsPlayer(
         )
     }
 
+    var nextEpisodeDismissedUuid by remember { mutableStateOf<String?>(null) }
+    var nextEpisodeTransitioning by remember { mutableStateOf(false) }
+
     val episodesUiState =
         playerViewModel
             .episodesUiState
@@ -597,6 +600,16 @@ private fun HlsPlayer(
     val episodesErrorMessage =
         playerViewModel
             .episodesErrorMessage
+
+    val sortedEpisodes = episodesUiState?.seasons
+        ?.sortedBy { it.number }
+        ?.flatMap { season -> season.episodes.sortedBy { it.episodeNumber } }
+        .orEmpty()
+    val activeEpisodeIndex = sortedEpisodes.indexOfFirst { it.uuid == activeContentUuid }
+    val nextEpisode = if (activeContentType == "episode" && seriesUuid.isNotBlank()) {
+        sortedEpisodes.getOrNull(activeEpisodeIndex + 1)
+            ?.takeIf { activeEpisodeIndex >= 0 && it.hasVideo }
+    } else null
 
     var controlsVisible by remember {
         mutableStateOf(
@@ -899,6 +912,44 @@ private fun HlsPlayer(
             )
     }
 
+    // Avança manualmente sem marcar o episódio atual como finalizado.
+    // A próxima reserva só começa depois de salvar progresso e fechar a sessão.
+    fun playNextEpisodeNow(episodeUuid: String) {
+        if (endInProgress || exitInProgress ||
+            nextEpisodeTransitioning || isSwitchingPlayback ||
+            episodeUuid.isBlank() || episodeUuid == activeContentUuid
+        ) return
+
+        nextEpisodeTransitioning = true
+        exoPlayer.pause()
+        val position = exoPlayer.currentPosition.coerceAtLeast(0L)
+        val duration = exoPlayer.safeDuration()
+        val hasKnownProgress = knownProgressContentUuid == activeContentUuid
+
+        watchingProgressViewModel.saveExitProgress(
+            contentType = activeContentType,
+            contentUuid = activeContentUuid,
+            positionMs = position,
+            durationMs = duration,
+            hasKnownProgress = hasKnownProgress,
+            lastPersistedPositionSeconds =
+                if (hasKnownProgress) lastPersistedPositionSeconds else null,
+            onComplete = {
+                playerViewModel.stopPlayback(
+                    status = "stopped",
+                    clearLocalAfter = false,
+                    onComplete = {
+                        playerViewModel.startPlayback(
+                            contentType = "episode",
+                            contentUuid = episodeUuid
+                        )
+                        nextEpisodeTransitioning = false
+                    }
+                )
+            }
+        )
+    }
+
     /*
      * FINAL NATURAL
      *
@@ -992,6 +1043,17 @@ private fun HlsPlayer(
 
                                 controlsVisible =
                                     true
+
+                                if (
+                                    nextEpisode != null &&
+                                    nextEpisodeDismissedUuid != activeContentUuid &&
+                                    !nextEpisodeTransitioning
+                                ) {
+                                    playerViewModel.startPlayback(
+                                        contentType = "episode",
+                                        contentUuid = nextEpisode.uuid
+                                    )
+                                }
                             }
                         )
                 }
@@ -1496,6 +1558,9 @@ private fun HlsPlayer(
 
         currentEpisodeUuid =
             activeContentUuid
+
+        nextEpisodeDismissedUuid = null
+        nextEpisodeTransitioning = false
 
         currentPositionMs =
             0L
@@ -2457,6 +2522,27 @@ private fun HlsPlayer(
 
             null ->
                 Unit
+        }
+
+        val remainingForNextMs = (durationMs - currentPositionMs).coerceAtLeast(0L)
+        if (
+            nextEpisode != null &&
+            nextEpisodeDismissedUuid != activeContentUuid &&
+            !nextEpisodeTransitioning &&
+            !endInProgress && !exitInProgress &&
+            !isSwitchingPlayback && !isStoppingPlayback &&
+            fatalAuthorizationError.isNullOrBlank() &&
+            playerErrorMessage.isNullOrBlank() &&
+            openedMenu == null &&
+            durationMs > 0L &&
+            remainingForNextMs in 1L..30_000L
+        ) {
+            NextEpisodePrompt(
+                episode = nextEpisode,
+                secondsRemaining = ((remainingForNextMs + 999L) / 1_000L).toInt(),
+                onPlayNow = { playNextEpisodeNow(nextEpisode.uuid) },
+                onCancel = { nextEpisodeDismissedUuid = activeContentUuid }
+            )
         }
 
         if (
