@@ -205,11 +205,6 @@ fun DetailScreen(
                 Modifier.fillMaxSize()
         ) {
             when {
-                /*
-                 * TABLET LANDSCAPE
-                 *
-                 * Mantido exatamente como aprovado.
-                 */
                 useLandscapeLayout -> {
                     LandscapeDetail(
                         uiState =
@@ -269,9 +264,6 @@ fun DetailScreen(
                     )
                 }
 
-                /*
-                 * TABLET PORTRAIT
-                 */
                 useTabletPortraitLayout -> {
                     TabletPortraitDetail(
                         uiState =
@@ -325,9 +317,6 @@ fun DetailScreen(
                     )
                 }
 
-                /*
-                 * CELULAR
-                 */
                 else -> {
                     LazyColumn(
                         modifier =
@@ -563,12 +552,6 @@ fun DetailScreen(
     }
 }
 
-/*
- * ==========================================================
- * TABLET PORTRAIT
- * ==========================================================
- */
-
 @Composable
 private fun TabletPortraitDetail(
     uiState: DetailUiState,
@@ -728,23 +711,6 @@ private fun TabletPortraitBackdrop(
     onTabSelected: (DetailTab) -> Unit,
     onSeasonSelected: (Int) -> Unit
 ) {
-    /*
-     * [ALTERAÇÃO]
-     *
-     * Antes:
-     *
-     * .heightIn(min = 720/760dp)
-     *
-     * Isso obrigava a imagem a continuar
-     * mesmo depois do seletor de temporada,
-     * criando o buraco enorme antes dos
-     * episódios.
-     *
-     * Agora não existe altura fixa nem mínima.
-     *
-     * A própria Column abaixo determina a altura.
-     * A imagem acompanha exatamente o conteúdo.
-     */
     Box(
         modifier =
             Modifier
@@ -954,7 +920,7 @@ private fun TabletPortraitHeroContent(
                 ),
 
         horizontalAlignment =
-            Alignment.CenterHorizontally
+            Alignment.Start
     ) {
         Text(
             text =
@@ -964,16 +930,16 @@ private fun TabletPortraitHeroContent(
                 LaranjadaText,
 
             fontSize =
-                34.sp,
+                36.sp,
 
             lineHeight =
-                38.sp,
+                41.sp,
 
             fontWeight =
                 FontWeight.ExtraBold,
 
             textAlign =
-                TextAlign.Center,
+                TextAlign.Start,
 
             maxLines =
                 2,
@@ -982,39 +948,46 @@ private fun TabletPortraitHeroContent(
                 TextOverflow.Ellipsis,
 
             modifier =
-                Modifier.widthIn(
-                    max =
-                        620.dp
-                )
+                Modifier
+                    .widthIn(
+                        max =
+                            680.dp
+                    )
+                    .fillMaxWidth()
         )
 
         Spacer(
             modifier =
                 Modifier.height(
-                    11.dp
+                    10.dp
                 )
         )
 
         Box(
             modifier =
-                Modifier.widthIn(
-                    max =
-                        620.dp
-                )
+                Modifier
+                    .widthIn(
+                        max =
+                            680.dp
+                    )
+                    .fillMaxWidth(),
+
+            contentAlignment =
+                Alignment.CenterStart
         ) {
             MetadataLine(
                 uiState =
                     uiState,
 
                 alignStart =
-                    false
+                    true
             )
         }
 
         Spacer(
             modifier =
                 Modifier.height(
-                    18.dp
+                    15.dp
                 )
         )
 
@@ -1032,7 +1005,7 @@ private fun TabletPortraitHeroContent(
             Spacer(
                 modifier =
                     Modifier.height(
-                        17.dp
+                        19.dp
                     )
             )
 
@@ -1060,11 +1033,11 @@ private fun TabletPortraitHeroContent(
                 Modifier
                     .widthIn(
                         max =
-                            540.dp
+                            620.dp
                     )
                     .fillMaxWidth()
                     .height(
-                        58.dp
+                        60.dp
                     ),
 
             shape =
@@ -1103,7 +1076,7 @@ private fun TabletPortraitHeroContent(
 
                 modifier =
                     Modifier.size(
-                        30.dp
+                        31.dp
                     )
             )
 
@@ -1138,28 +1111,41 @@ private fun TabletPortraitHeroContent(
         Spacer(
             modifier =
                 Modifier.height(
-                    13.dp
+                    12.dp
                 )
         )
 
-        DetailFavoriteActionsRow(
-            contentType =
-                uiState.contentTypeForApi,
+        Box(
+            modifier =
+                Modifier
+                    .widthIn(
+                        max =
+                            620.dp
+                    )
+                    .fillMaxWidth(),
 
-            contentUuid =
-                uiState.uuid,
+            contentAlignment =
+                Alignment.CenterStart
+        ) {
+            DetailFavoriteActionsRow(
+                contentType =
+                    uiState.contentTypeForApi,
 
-            hasWatchProgress =
-                uiState.hasWatchProgress,
+                contentUuid =
+                    uiState.uuid,
 
-            onRestartClick =
-                onRestartClick
-        )
+                hasWatchProgress =
+                    uiState.hasWatchProgress,
+
+                onRestartClick =
+                    onRestartClick
+            )
+        }
 
         Spacer(
             modifier =
                 Modifier.height(
-                    22.dp
+                    20.dp
                 )
         )
 
@@ -1175,10 +1161,10 @@ private fun TabletPortraitHeroContent(
                     LaranjadaText,
 
                 fontSize =
-                    16.sp,
+                    17.sp,
 
                 lineHeight =
-                    24.sp,
+                    25.sp,
 
                 fontWeight =
                     FontWeight.Normal,
@@ -1190,7 +1176,7 @@ private fun TabletPortraitHeroContent(
                     Modifier
                         .widthIn(
                             max =
-                                620.dp
+                                700.dp
                         )
                         .fillMaxWidth()
             )
@@ -1211,7 +1197,7 @@ private fun TabletPortraitProgressPanel(
             Modifier
                 .widthIn(
                     max =
-                        520.dp
+                        620.dp
                 )
                 .fillMaxWidth(),
 
@@ -1262,10 +1248,10 @@ private fun TabletPortraitProgressPanel(
                 LaranjadaText,
 
             fontSize =
-                20.sp,
+                21.sp,
 
             lineHeight =
-                24.sp,
+                26.sp,
 
             fontWeight =
                 FontWeight.ExtraBold,
@@ -1280,7 +1266,7 @@ private fun TabletPortraitProgressPanel(
         Spacer(
             modifier =
                 Modifier.height(
-                    10.dp
+                    11.dp
                 )
         )
 
@@ -1307,7 +1293,7 @@ private fun TabletPortraitEpisodeCard(
     val hasVideo =
         episode.hasVideo
 
-    Column(
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -1329,190 +1315,104 @@ private fun TabletPortraitEpisodeCard(
                         28.dp,
 
                     vertical =
-                        14.dp
-                )
-    ) {
-        Row(
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(
-                            176.dp
-                        )
-                        .aspectRatio(
-                            16f /
-                                    9f
-                        )
-                        .clip(
-                            RoundedCornerShape(
-                                9.dp
-                            )
-                        )
-                        .background(
-                            LaranjadaSurfaceLight
-                        )
-            ) {
-                AsyncImage(
-                    model =
-                        episode.imageUrl,
-
-                    contentDescription =
-                        episode.title,
-
-                    modifier =
-                        Modifier.matchParentSize(),
-
-                    contentScale =
-                        ContentScale.Crop
-                )
-
-                Surface(
-                    modifier =
-                        Modifier
-                            .size(
-                                42.dp
-                            )
-                            .align(
-                                Alignment.Center
-                            ),
-
-                    shape =
-                        CircleShape,
-
-                    color =
-                        if (
-                            hasVideo
-                        ) {
-                            Color.White
-                        } else {
-                            Color.White.copy(
-                                alpha =
-                                    0.35f
-                            )
-                        }
-                ) {
-                    Icon(
-                        imageVector =
-                            Icons.Rounded.PlayArrow,
-
-                        contentDescription =
-                            "Assistir episódio",
-
-                        tint =
-                            Color.Black,
-
-                        modifier =
-                            Modifier.padding(
-                                9.dp
-                            )
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.width(
                         16.dp
+                ),
+
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .width(
+                        250.dp
                     )
+                    .aspectRatio(
+                        16f /
+                                9f
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            12.dp
+                        )
+                    )
+                    .background(
+                        LaranjadaSurfaceLight
+                    )
+        ) {
+            AsyncImage(
+                model =
+                    episode.imageUrl,
+
+                contentDescription =
+                    episode.title,
+
+                modifier =
+                    Modifier.matchParentSize(),
+
+                contentScale =
+                    ContentScale.Crop
             )
 
-            Column(
+            Surface(
                 modifier =
-                    Modifier.weight(
-                        1f
-                    )
-            ) {
-                Text(
-                    text =
-                        "${episode.number}. ${episode.title}",
-
-                    color =
-                        if (
-                            hasVideo
-                        ) {
-                            LaranjadaText
-                        } else {
-                            LaranjadaMutedText
-                        },
-
-                    fontSize =
-                        17.sp,
-
-                    lineHeight =
-                        21.sp,
-
-                    fontWeight =
-                        FontWeight.ExtraBold,
-
-                    maxLines =
-                        2,
-
-                    overflow =
-                        TextOverflow.Ellipsis
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            8.dp
+                    Modifier
+                        .size(
+                            50.dp
                         )
-                )
+                        .align(
+                            Alignment.Center
+                        ),
 
-                Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
+                shape =
+                    CircleShape,
+
+                color =
                     if (
-                        episode.runtime
-                            .isNotBlank()
+                        hasVideo
                     ) {
-                        Text(
-                            text =
-                                episode.runtime,
-
-                            color =
-                                LaranjadaMutedText,
-
-                            fontSize =
-                                13.sp,
-
-                            fontWeight =
-                                FontWeight.Medium
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    9.dp
-                                )
+                        Color.White
+                    } else {
+                        Color.White.copy(
+                            alpha =
+                                0.35f
                         )
                     }
+            ) {
+                Icon(
+                    imageVector =
+                        Icons.Rounded.PlayArrow,
 
-                    RatingBadge(
-                        text =
-                            episode.rating
-                    )
-                }
+                    contentDescription =
+                        "Assistir episódio",
+
+                    tint =
+                        Color.Black,
+
+                    modifier =
+                        Modifier.padding(
+                            11.dp
+                        )
+                )
             }
         }
 
-        if (
-            episode.synopsis
-                .isNotBlank()
-        ) {
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        10.dp
-                    )
-            )
+        Spacer(
+            modifier =
+                Modifier.width(
+                    20.dp
+                )
+        )
 
+        Column(
+            modifier =
+                Modifier.weight(
+                    1f
+                )
+        ) {
             Text(
                 text =
-                    episode.synopsis,
+                    "${episode.number}. ${episode.title}",
 
                 color =
                     if (
@@ -1524,17 +1424,104 @@ private fun TabletPortraitEpisodeCard(
                     },
 
                 fontSize =
-                    14.sp,
+                    19.sp,
 
                 lineHeight =
-                    21.sp,
+                    24.sp,
+
+                fontWeight =
+                    FontWeight.ExtraBold,
 
                 maxLines =
-                    3,
+                    2,
 
                 overflow =
                     TextOverflow.Ellipsis
             )
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        8.dp
+                    )
+            )
+
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                if (
+                    episode.runtime
+                        .isNotBlank()
+                ) {
+                    Text(
+                        text =
+                            episode.runtime,
+
+                        color =
+                            LaranjadaMutedText,
+
+                        fontSize =
+                            14.sp,
+
+                        fontWeight =
+                            FontWeight.Medium
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                10.dp
+                            )
+                    )
+                }
+
+                RatingBadge(
+                    text =
+                        episode.rating
+                )
+            }
+
+            if (
+                episode.synopsis
+                    .isNotBlank()
+            ) {
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            10.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        episode.synopsis,
+
+                    color =
+                        if (
+                            hasVideo
+                        ) {
+                            LaranjadaText.copy(
+                                alpha =
+                                    0.88f
+                            )
+                        } else {
+                            LaranjadaMutedText
+                        },
+
+                    fontSize =
+                        14.sp,
+
+                    lineHeight =
+                        21.sp,
+
+                    maxLines =
+                        4,
+
+                    overflow =
+                        TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -1936,12 +1923,6 @@ private fun TabletPortraitRelatedCard(
         }
     }
 }
-
-/*
- * ==========================================================
- * TABLET LANDSCAPE
- * ==========================================================
- */
 
 @Composable
 private fun LandscapeDetail(

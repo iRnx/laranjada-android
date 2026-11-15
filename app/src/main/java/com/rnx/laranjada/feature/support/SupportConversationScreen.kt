@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -54,9 +55,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -77,9 +80,7 @@ fun SupportConversationScreen(
     onBackClick: () -> Unit,
     onNewConversationClick: () -> Unit,
     onSessionEnded: () -> Unit,
-    viewModel:
-    SupportConversationViewModel =
-        viewModel()
+    viewModel: SupportConversationViewModel = viewModel()
 ) {
     val state =
         viewModel.uiState
@@ -94,16 +95,12 @@ fun SupportConversationScreen(
     rememberSaveable(
         conversationUuid
     ) {
-        mutableStateOf(
-            ""
-        )
+        mutableStateOf("")
     }
 
     var resumedOnce by
     remember {
-        mutableStateOf(
-            false
-        )
+        mutableStateOf(false)
     }
 
     LaunchedEffect(
@@ -112,7 +109,6 @@ fun SupportConversationScreen(
         viewModel.start(
             conversationUuid =
                 conversationUuid,
-
             onSessionEnded =
                 onSessionEnded
         )
@@ -137,7 +133,6 @@ fun SupportConversationScreen(
                         viewModel.refresh(
                             conversationUuid =
                                 conversationUuid,
-
                             onSessionEnded =
                                 onSessionEnded
                         )
@@ -149,34 +144,17 @@ fun SupportConversationScreen(
             }
 
         lifecycleOwner.lifecycle
-            .addObserver(
-                observer
-            )
+            .addObserver(observer)
 
         onDispose {
             lifecycleOwner.lifecycle
-                .removeObserver(
-                    observer
-                )
+                .removeObserver(observer)
         }
     }
 
     val detail =
         state.detail
 
-    /*
-     * [ALTERAÇÃO]
-     *
-     * O detalhe é nullable.
-     *
-     * Criamos uma referência local não nula
-     * antes de acessar contentRequest.
-     *
-     * Isso resolve:
-     *
-     * Only safe (?.) or non-null asserted (!!.)
-     * calls are allowed on a nullable receiver
-     */
     LaunchedEffect(
         detail?.messages?.size
     ) {
@@ -185,9 +163,7 @@ fun SupportConversationScreen(
                 ?: return@LaunchedEffect
 
         val messageCount =
-            currentDetail
-                .messages
-                .size
+            currentDetail.messages.size
 
         if (
             messageCount >
@@ -205,145 +181,146 @@ fun SupportConversationScreen(
         }
     }
 
-    Scaffold(
-        containerColor =
-            LaranjadaBlack,
+    BoxWithConstraints(
+        modifier =
+            Modifier.fillMaxSize()
+    ) {
+        val isTablet =
+            maxWidth >= 600.dp
 
-        bottomBar = {
-            if (
-                detail !=
-                null
-            ) {
+        Scaffold(
+            containerColor =
+                LaranjadaBlack,
+
+            bottomBar = {
                 if (
-                    detail.conversation
-                        .canReply
+                    detail !=
+                    null
                 ) {
-                    ConversationComposer(
-                        value =
-                            messageBody,
+                    if (
+                        detail.conversation
+                            .canReply
+                    ) {
+                        ConversationComposer(
+                            value =
+                                messageBody,
+                            onValueChange = {
+                                messageBody =
+                                    it
 
-                        onValueChange = {
-                            messageBody =
-                                it
+                                viewModel
+                                    .clearSendError()
+                            },
+                            isSending =
+                                state.isSending,
+                            errorMessage =
+                                state.sendErrorMessage,
+                            onSend = {
+                                val normalized =
+                                    messageBody.trim()
 
-                            viewModel
-                                .clearSendError()
-                        },
+                                if (
+                                    normalized.isBlank()
+                                ) {
+                                    return@ConversationComposer
+                                }
 
-                        isSending =
-                            state.isSending,
-
-                        errorMessage =
-                            state.sendErrorMessage,
-
-                        onSend = {
-                            val normalized =
-                                messageBody.trim()
-
-                            if (
-                                normalized.isBlank()
-                            ) {
-                                return@ConversationComposer
-                            }
-
-                            viewModel.sendMessage(
-                                conversationUuid =
-                                    conversationUuid,
-
-                                body =
-                                    normalized,
-
-                                onSuccess = {
-                                    messageBody =
-                                        ""
-                                },
-
-                                onSessionEnded =
-                                    onSessionEnded
-                            )
-                        }
-                    )
-                } else {
-                    ClosedConversationBar()
+                                viewModel.sendMessage(
+                                    conversationUuid =
+                                        conversationUuid,
+                                    body =
+                                        normalized,
+                                    onSuccess = {
+                                        messageBody =
+                                            ""
+                                    },
+                                    onSessionEnded =
+                                        onSessionEnded
+                                )
+                            },
+                            isTablet =
+                                isTablet
+                        )
+                    } else {
+                        ClosedConversationBar(
+                            isTablet =
+                                isTablet
+                        )
+                    }
                 }
             }
-        }
-    ) {
-            scaffoldPadding ->
+        ) {
+                scaffoldPadding ->
 
-        when {
-            state.isLoading &&
-                    detail == null -> {
+            when {
+                state.isLoading &&
+                        detail ==
+                        null -> {
 
-                Box(
-                    modifier =
-                        Modifier
+                    Box(
+                        modifier = Modifier
                             .fillMaxSize()
                             .padding(
                                 scaffoldPadding
                             ),
+                        contentAlignment =
+                            Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color =
+                                LaranjadaOrange
+                        )
+                    }
+                }
 
-                    contentAlignment =
-                        Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color =
-                            LaranjadaOrange
+                detail ==
+                        null -> {
+
+                    ConversationErrorState(
+                        message =
+                            state.loadErrorMessage
+                                ?: "Não foi possível carregar o atendimento.",
+                        onBackClick =
+                            onBackClick,
+                        onRetry = {
+                            viewModel.retry(
+                                conversationUuid =
+                                    conversationUuid,
+                                onSessionEnded =
+                                    onSessionEnded
+                            )
+                        },
+                        modifier =
+                            Modifier.padding(
+                                scaffoldPadding
+                            ),
+                        isTablet =
+                            isTablet
                     )
                 }
-            }
 
-            detail == null -> {
-                ConversationErrorState(
-                    message =
-                        state.loadErrorMessage
-                            ?: "Não foi possível carregar o atendimento.",
-
-                    onBackClick =
-                        onBackClick,
-
-                    onRetry = {
-                        viewModel.retry(
-                            conversationUuid =
-                                conversationUuid,
-
-                            onSessionEnded =
-                                onSessionEnded
-                        )
-                    },
-
-                    modifier =
-                        Modifier.padding(
-                            scaffoldPadding
-                        )
-                )
-            }
-
-            else -> {
-                ConversationContent(
-                    conversation =
-                        detail.conversation,
-
-                    contentRequest =
-                        detail.contentRequest,
-
-                    messages =
-                        detail.messages,
-
-                    listState =
-                        listState,
-
-                    onBackClick =
-                        onBackClick,
-
-                    onNewConversationClick =
-                        onNewConversationClick,
-
-                    modifier =
-                        Modifier.padding(
-                            scaffoldPadding
-                        )
-                )
+                else -> {
+                    ConversationContent(
+                        conversation =
+                            detail.conversation,
+                        contentRequest =
+                            detail.contentRequest,
+                        messages =
+                            detail.messages,
+                        listState =
+                            listState,
+                        onBackClick =
+                            onBackClick,
+                        onNewConversationClick =
+                            onNewConversationClick,
+                        modifier =
+                            Modifier.padding(
+                                scaffoldPadding
+                            ),
+                        isTablet =
+                            isTablet
+                    )
+                }
             }
         }
     }
@@ -357,104 +334,143 @@ private fun ConversationContent(
     listState: LazyListState,
     onBackClick: () -> Unit,
     onNewConversationClick: () -> Unit,
-    modifier: Modifier =
-        Modifier
+    modifier: Modifier = Modifier,
+    isTablet: Boolean
 ) {
-    LazyColumn(
-        state =
-            listState,
-
+    Box(
         modifier =
-            modifier
+            modifier.fillMaxSize(),
+        contentAlignment =
+            Alignment.TopCenter
+    ) {
+        LazyColumn(
+            state =
+                listState,
+            modifier = Modifier
                 .fillMaxSize()
+                .widthIn(
+                    max =
+                        if (isTablet) {
+                            900.dp
+                        } else {
+                            560.dp
+                        }
+                )
                 .windowInsetsPadding(
                     WindowInsets.statusBars
                 ),
-
-        contentPadding =
-            PaddingValues(
-                start = 14.dp,
-                end = 14.dp,
-                bottom = 18.dp
-            ),
-
-        verticalArrangement =
-            Arrangement.spacedBy(
-                10.dp
-            )
-    ) {
-        item {
-            ConversationHeader(
-                conversation =
-                    conversation,
-
-                onBackClick =
-                    onBackClick,
-
-                onNewConversationClick =
-                    onNewConversationClick
-            )
-        }
-
-        if (
-            contentRequest !=
-            null
+            contentPadding =
+                PaddingValues(
+                    start =
+                        if (isTablet) {
+                            28.dp
+                        } else {
+                            14.dp
+                        },
+                    end =
+                        if (isTablet) {
+                            28.dp
+                        } else {
+                            14.dp
+                        },
+                    bottom =
+                        if (isTablet) {
+                            24.dp
+                        } else {
+                            18.dp
+                        }
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    if (isTablet) {
+                        14.dp
+                    } else {
+                        10.dp
+                    }
+                )
         ) {
             item {
-                ContentRequestSummary(
-                    contentRequest =
-                        contentRequest
+                ConversationHeader(
+                    conversation =
+                        conversation,
+                    onBackClick =
+                        onBackClick,
+                    onNewConversationClick =
+                        onNewConversationClick,
+                    isTablet =
+                        isTablet
                 )
             }
-        }
 
-        item {
-            PrivateConversationNotice()
-        }
+            if (
+                contentRequest !=
+                null
+            ) {
+                item {
+                    ContentRequestSummary(
+                        contentRequest =
+                            contentRequest,
+                        isTablet =
+                            isTablet
+                    )
+                }
+            }
 
-        if (
-            messages.isEmpty()
-        ) {
             item {
-                Text(
-                    text =
-                        "Nenhuma mensagem nesta conversa.",
+                PrivateConversationNotice(
+                    isTablet =
+                        isTablet
+                )
+            }
 
-                    color =
-                        LaranjadaMutedText,
-
-                    fontSize =
-                        13.sp,
-
-                    textAlign =
-                        TextAlign.Center,
-
-                    modifier =
-                        Modifier
+            if (
+                messages.isEmpty()
+            ) {
+                item {
+                    Text(
+                        text =
+                            "Nenhuma mensagem nesta conversa.",
+                        color =
+                            LaranjadaMutedText,
+                        fontSize =
+                            if (isTablet) {
+                                15.sp
+                            } else {
+                                13.sp
+                            },
+                        textAlign =
+                            TextAlign.Center,
+                        modifier = Modifier
                             .fillMaxWidth()
                             .padding(
-                                vertical = 36.dp
+                                vertical =
+                                    if (isTablet) {
+                                        48.dp
+                                    } else {
+                                        36.dp
+                                    }
                             )
-                )
+                    )
+                }
             }
-        }
 
-        items(
-            count =
-                messages.size,
-
-            key = {
+            items(
+                count =
+                    messages.size,
+                key = {
+                        index ->
+                    messages[index].uuid
+                }
+            ) {
                     index ->
 
-                messages[index].uuid
+                SupportMessageBubble(
+                    message =
+                        messages[index],
+                    isTablet =
+                        isTablet
+                )
             }
-        ) {
-                index ->
-
-            SupportMessageBubble(
-                message =
-                    messages[index]
-            )
         }
     }
 }
@@ -463,7 +479,8 @@ private fun ConversationContent(
 private fun ConversationHeader(
     conversation: SupportConversationInfo,
     onBackClick: () -> Unit,
-    onNewConversationClick: () -> Unit
+    onNewConversationClick: () -> Unit,
+    isTablet: Boolean
 ) {
     val statusColor =
         supportStatusColor(
@@ -471,66 +488,85 @@ private fun ConversationHeader(
         )
 
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(
+                if (isTablet) {
+                    94.dp
+                } else {
                     82.dp
-                ),
-
+                }
+            ),
         verticalAlignment =
             Alignment.CenterVertically
     ) {
         IconButton(
             onClick =
-                onBackClick
+                onBackClick,
+            modifier =
+                Modifier.size(
+                    if (isTablet) {
+                        52.dp
+                    } else {
+                        48.dp
+                    }
+                )
         ) {
             Icon(
                 imageVector =
                     Icons.AutoMirrored
                         .Rounded
                         .ArrowBack,
-
                 contentDescription =
                     "Voltar",
-
                 tint =
-                    Color.White
+                    Color.White,
+                modifier =
+                    Modifier.size(
+                        if (isTablet) {
+                            30.dp
+                        } else {
+                            24.dp
+                        }
+                    )
             )
         }
 
         Box(
-            modifier =
-                Modifier
-                    .size(
+            modifier = Modifier
+                .size(
+                    if (isTablet) {
+                        52.dp
+                    } else {
                         44.dp
-                    )
-                    .background(
-                        color =
-                            LaranjadaOrange.copy(
-                                alpha = 0.12f
-                            ),
-
-                        shape =
-                            CircleShape
-                    ),
-
+                    }
+                )
+                .background(
+                    color =
+                        LaranjadaOrange.copy(
+                            alpha =
+                                0.12f
+                        ),
+                    shape =
+                        CircleShape
+                ),
             contentAlignment =
                 Alignment.Center
         ) {
             Icon(
                 imageVector =
                     Icons.Rounded.HeadsetMic,
-
                 contentDescription =
                     null,
-
                 tint =
                     LaranjadaOrange,
-
                 modifier =
                     Modifier.size(
-                        22.dp
+                        if (isTablet) {
+                            26.dp
+                        } else {
+                            22.dp
+                        }
                     )
             )
         }
@@ -538,74 +574,83 @@ private fun ConversationHeader(
         Spacer(
             modifier =
                 Modifier.width(
-                    11.dp
+                    if (isTablet) {
+                        14.dp
+                    } else {
+                        11.dp
+                    }
                 )
         )
 
         Column(
             modifier =
-                Modifier.weight(
-                    1f
-                )
+                Modifier.weight(1f)
         ) {
             Text(
                 text =
                     conversation.subject,
-
                 color =
                     Color.White,
-
                 fontSize =
-                    15.sp,
-
+                    if (isTablet) {
+                        18.sp
+                    } else {
+                        15.sp
+                    },
                 fontWeight =
                     FontWeight.Bold,
-
                 maxLines =
-                    1
+                    1,
+                overflow =
+                    TextOverflow.Ellipsis
             )
 
             Row(
                 modifier =
                     Modifier.padding(
-                        top = 3.dp
+                        top =
+                            4.dp
                     ),
-
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
                 Text(
                     text =
                         conversation.category.label,
-
                     color =
                         LaranjadaMutedText,
-
                     fontSize =
-                        11.sp
+                        if (isTablet) {
+                            13.sp
+                        } else {
+                            11.sp
+                        }
                 )
 
                 Text(
                     text =
                         " • ",
-
                     color =
                         LaranjadaMutedText,
-
                     fontSize =
-                        11.sp
+                        if (isTablet) {
+                            13.sp
+                        } else {
+                            11.sp
+                        }
                 )
 
                 Text(
                     text =
                         conversation.status.label,
-
                     color =
                         statusColor,
-
                     fontSize =
-                        11.sp,
-
+                        if (isTablet) {
+                            13.sp
+                        } else {
+                            11.sp
+                        },
                     fontWeight =
                         FontWeight.Bold
                 )
@@ -614,17 +659,31 @@ private fun ConversationHeader(
 
         IconButton(
             onClick =
-                onNewConversationClick
+                onNewConversationClick,
+            modifier =
+                Modifier.size(
+                    if (isTablet) {
+                        52.dp
+                    } else {
+                        48.dp
+                    }
+                )
         ) {
             Icon(
                 imageVector =
                     Icons.Rounded.Add,
-
                 contentDescription =
                     "Novo atendimento",
-
                 tint =
-                    LaranjadaOrange
+                    LaranjadaOrange,
+                modifier =
+                    Modifier.size(
+                        if (isTablet) {
+                            30.dp
+                        } else {
+                            24.dp
+                        }
+                    )
             )
         }
     }
@@ -632,7 +691,8 @@ private fun ConversationHeader(
 
 @Composable
 private fun ContentRequestSummary(
-    contentRequest: SupportContentRequest
+    contentRequest: SupportContentRequest,
+    isTablet: Boolean
 ) {
     val decisionColor =
         supportDecisionColor(
@@ -642,76 +702,87 @@ private fun ContentRequestSummary(
     Surface(
         modifier =
             Modifier.fillMaxWidth(),
-
         shape =
             RoundedCornerShape(
-                12.dp
+                if (isTablet) {
+                    16.dp
+                } else {
+                    12.dp
+                }
             ),
-
         color =
             SupportPanel,
-
         border =
             BorderStroke(
                 width =
                     1.dp,
-
                 color =
                     Color.White.copy(
-                        alpha = 0.10f
+                        alpha =
+                            0.10f
                     )
             )
     ) {
         Column(
             modifier =
                 Modifier.padding(
-                    14.dp
+                    if (isTablet) {
+                        20.dp
+                    } else {
+                        14.dp
+                    }
                 ),
-
             verticalArrangement =
                 Arrangement.spacedBy(
-                    10.dp
+                    if (isTablet) {
+                        14.dp
+                    } else {
+                        10.dp
+                    }
                 )
         ) {
             ContentSummaryRow(
                 label =
                     "CONTEÚDO",
-
                 value =
-                    contentRequest.title
+                    contentRequest.title,
+                isTablet =
+                    isTablet
             )
 
             ContentSummaryRow(
                 label =
                     "TIPO",
-
                 value =
                     contentRequest
                         .contentType
-                        .label
+                        .label,
+                isTablet =
+                    isTablet
             )
 
             ContentSummaryRow(
                 label =
                     "ANO",
-
                 value =
                     contentRequest
                         .releaseYear
-                        .toString()
+                        .toString(),
+                isTablet =
+                    isTablet
             )
 
             ContentSummaryRow(
                 label =
                     "DECISÃO",
-
                 value =
                     contentRequest
                         .decision
                         .label,
-
                 valueColor =
-                    decisionColor
+                    decisionColor,
+                isTablet =
+                    isTablet
             )
         }
     }
@@ -721,23 +792,23 @@ private fun ContentRequestSummary(
 private fun ContentSummaryRow(
     label: String,
     value: String,
-    valueColor: Color =
-        Color.White
+    valueColor: Color = Color.White,
+    isTablet: Boolean
 ) {
     Column {
         Text(
             text =
                 label,
-
             color =
                 LaranjadaMutedText,
-
             fontSize =
-                10.sp,
-
+                if (isTablet) {
+                    12.sp
+                } else {
+                    10.sp
+                },
             fontWeight =
                 FontWeight.Bold,
-
             letterSpacing =
                 0.5.sp
         )
@@ -745,70 +816,85 @@ private fun ContentSummaryRow(
         Text(
             text =
                 value,
-
             color =
                 valueColor,
-
             fontSize =
-                14.sp,
-
+                if (isTablet) {
+                    16.sp
+                } else {
+                    14.sp
+                },
             fontWeight =
                 FontWeight.Bold,
-
             modifier =
                 Modifier.padding(
-                    top = 2.dp
+                    top =
+                        3.dp
                 )
         )
     }
 }
 
 @Composable
-private fun PrivateConversationNotice() {
+private fun PrivateConversationNotice(
+    isTablet: Boolean
+) {
     Surface(
-        modifier =
-            Modifier
-                .widthIn(
-                    max = 420.dp
-                )
-                .fillMaxWidth(),
-
+        modifier = Modifier
+            .widthIn(
+                max =
+                    if (isTablet) {
+                        560.dp
+                    } else {
+                        420.dp
+                    }
+            )
+            .fillMaxWidth(),
         shape =
             RoundedCornerShape(
-                50
+                50.dp
             ),
-
         color =
             Color.White.copy(
-                alpha = 0.04f
+                alpha =
+                    0.04f
             )
     ) {
         Row(
             modifier =
                 Modifier.padding(
-                    horizontal = 12.dp,
-                    vertical = 8.dp
+                    horizontal =
+                        if (isTablet) {
+                            16.dp
+                        } else {
+                            12.dp
+                        },
+                    vertical =
+                        if (isTablet) {
+                            10.dp
+                        } else {
+                            8.dp
+                        }
                 ),
-
             horizontalArrangement =
                 Arrangement.Center,
-
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
             Icon(
                 imageVector =
                     Icons.Rounded.Lock,
-
                 contentDescription =
                     null,
-
                 tint =
                     LaranjadaMutedText,
-
                 modifier =
                     Modifier.size(
-                        13.dp
+                        if (isTablet) {
+                            16.dp
+                        } else {
+                            13.dp
+                        }
                     )
             )
 
@@ -822,13 +908,14 @@ private fun PrivateConversationNotice() {
             Text(
                 text =
                     "Esta é uma conversa privada entre você e a equipe Laranjada.",
-
                 color =
                     LaranjadaMutedText,
-
                 fontSize =
-                    10.sp,
-
+                    if (isTablet) {
+                        12.sp
+                    } else {
+                        10.sp
+                    },
                 textAlign =
                     TextAlign.Center
             )
@@ -838,7 +925,8 @@ private fun PrivateConversationNotice() {
 
 @Composable
 private fun SupportMessageBubble(
-    message: SupportMessage
+    message: SupportMessage,
+    isTablet: Boolean
 ) {
     val isUser =
         message.senderType ==
@@ -851,7 +939,6 @@ private fun SupportMessageBubble(
     Box(
         modifier =
             Modifier.fillMaxWidth(),
-
         contentAlignment =
             when {
                 isSystem ->
@@ -870,34 +957,47 @@ private fun SupportMessageBubble(
             Surface(
                 shape =
                     RoundedCornerShape(
-                        50
+                        50.dp
                     ),
-
                 color =
                     Color.White.copy(
-                        alpha = 0.06f
+                        alpha =
+                            0.06f
                     )
             ) {
                 Text(
                     text =
                         message.body,
-
                     color =
                         LaranjadaMutedText,
-
                     fontSize =
-                        11.sp,
-
+                        if (isTablet) {
+                            13.sp
+                        } else {
+                            11.sp
+                        },
                     lineHeight =
-                        16.sp,
-
+                        if (isTablet) {
+                            18.sp
+                        } else {
+                            16.sp
+                        },
                     textAlign =
                         TextAlign.Center,
-
                     modifier =
                         Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 7.dp
+                            horizontal =
+                                if (isTablet) {
+                                    16.dp
+                                } else {
+                                    12.dp
+                                },
+                            vertical =
+                                if (isTablet) {
+                                    9.dp
+                                } else {
+                                    7.dp
+                                }
                         )
                 )
             }
@@ -908,56 +1008,62 @@ private fun SupportMessageBubble(
         Surface(
             modifier =
                 Modifier.fillMaxWidth(
-                    0.82f
+                    if (isTablet) {
+                        0.72f
+                    } else {
+                        0.82f
+                    }
                 ),
-
             shape =
                 RoundedCornerShape(
                     topStart =
-                        14.dp,
-
-                    topEnd =
-                        14.dp,
-
-                    bottomStart =
-                        if (
-                            isUser
-                        ) {
+                        if (isTablet) {
+                            18.dp
+                        } else {
                             14.dp
+                        },
+                    topEnd =
+                        if (isTablet) {
+                            18.dp
+                        } else {
+                            14.dp
+                        },
+                    bottomStart =
+                        if (isUser) {
+                            if (isTablet) {
+                                18.dp
+                            } else {
+                                14.dp
+                            }
                         } else {
                             4.dp
                         },
-
                     bottomEnd =
-                        if (
-                            isUser
-                        ) {
+                        if (isUser) {
                             4.dp
                         } else {
-                            14.dp
+                            if (isTablet) {
+                                18.dp
+                            } else {
+                                14.dp
+                            }
                         }
                 ),
-
             color =
-                if (
-                    isUser
-                ) {
+                if (isUser) {
                     SupportOrangeDark
                 } else {
                     SupportPanelSecondary
                 },
-
             border =
-                if (
-                    isUser
-                ) {
+                if (isUser) {
                     BorderStroke(
                         width =
                             1.dp,
-
                         color =
                             LaranjadaOrange.copy(
-                                alpha = 0.35f
+                                alpha =
+                                    0.35f
                             )
                     )
                 } else {
@@ -967,14 +1073,23 @@ private fun SupportMessageBubble(
             Column(
                 modifier =
                     Modifier.padding(
-                        horizontal = 13.dp,
-                        vertical = 11.dp
+                        horizontal =
+                            if (isTablet) {
+                                17.dp
+                            } else {
+                                13.dp
+                            },
+                        vertical =
+                            if (isTablet) {
+                                14.dp
+                            } else {
+                                11.dp
+                            }
                     )
             ) {
                 Row(
                     modifier =
                         Modifier.fillMaxWidth(),
-
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
@@ -982,34 +1097,28 @@ private fun SupportMessageBubble(
                         text =
                             message.senderLabel
                                 .ifBlank {
-                                    if (
-                                        isUser
-                                    ) {
+                                    if (isUser) {
                                         "Você"
                                     } else {
                                         "Equipe Laranjada"
                                     }
                                 },
-
                         color =
-                            if (
-                                isUser
-                            ) {
+                            if (isUser) {
                                 Color.White
                             } else {
                                 LaranjadaOrange
                             },
-
                         fontSize =
-                            11.sp,
-
+                            if (isTablet) {
+                                13.sp
+                            } else {
+                                11.sp
+                            },
                         fontWeight =
                             FontWeight.Bold,
-
                         modifier =
-                            Modifier.weight(
-                                1f
-                            )
+                            Modifier.weight(1f)
                     )
 
                     Text(
@@ -1017,31 +1126,38 @@ private fun SupportMessageBubble(
                             formatSupportTime(
                                 message.createdAt
                             ),
-
                         color =
                             LaranjadaMutedText,
-
                         fontSize =
-                            9.sp
+                            if (isTablet) {
+                                11.sp
+                            } else {
+                                9.sp
+                            }
                     )
                 }
 
                 Text(
                     text =
                         message.body,
-
                     color =
                         Color.White,
-
                     fontSize =
-                        14.sp,
-
+                        if (isTablet) {
+                            16.sp
+                        } else {
+                            14.sp
+                        },
                     lineHeight =
-                        20.sp,
-
+                        if (isTablet) {
+                            23.sp
+                        } else {
+                            20.sp
+                        },
                     modifier =
                         Modifier.padding(
-                            top = 7.dp
+                            top =
+                                8.dp
                         )
                 )
 
@@ -1053,21 +1169,22 @@ private fun SupportMessageBubble(
                     Text(
                         text =
                             message.moderationLabel,
-
                         color =
                             LaranjadaMutedText,
-
                         fontSize =
-                            9.sp,
-
-                        modifier =
-                            Modifier
-                                .align(
-                                    Alignment.End
-                                )
-                                .padding(
-                                    top = 7.dp
-                                )
+                            if (isTablet) {
+                                11.sp
+                            } else {
+                                9.sp
+                            },
+                        modifier = Modifier
+                            .align(
+                                Alignment.End
+                            )
+                            .padding(
+                                top =
+                                    7.dp
+                            )
                     )
                 }
             }
@@ -1081,210 +1198,252 @@ private fun ConversationComposer(
     onValueChange: (String) -> Unit,
     isSending: Boolean,
     errorMessage: String?,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    isTablet: Boolean
 ) {
     Surface(
         color =
-            Color(
-                0xFF080A0C
-            ),
-
+            Color(0xFF080A0C),
         tonalElevation =
             0.dp
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(
-                        horizontal = 12.dp,
-                        vertical = 10.dp
-                    )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding(),
+            contentAlignment =
+                Alignment.TopCenter
         ) {
-            if (
-                !errorMessage
-                    .isNullOrBlank()
-            ) {
-                Text(
-                    text =
-                        errorMessage,
-
-                    color =
-                        SupportRed,
-
-                    fontSize =
-                        11.sp,
-
-                    lineHeight =
-                        15.sp,
-
-                    modifier =
-                        Modifier.padding(
-                            start = 4.dp,
-                            bottom = 6.dp
-                        )
-                )
-            }
-
-            Row(
-                verticalAlignment =
-                    Alignment.Bottom
-            ) {
-                OutlinedTextField(
-                    value =
-                        value,
-
-                    onValueChange =
-                        onValueChange,
-
-                    placeholder = {
-                        Text(
-                            text =
-                                "Escreva uma mensagem...",
-
-                            color =
-                                LaranjadaMutedText
-                        )
-                    },
-
-                    minLines =
-                        1,
-
-                    maxLines =
-                        4,
-
-                    enabled =
-                        !isSending,
-
-                    keyboardOptions =
-                        KeyboardOptions(
-                            imeAction =
-                                ImeAction.Send
-                        ),
-
-                    keyboardActions =
-                        KeyboardActions(
-                            onSend = {
-                                if (
-                                    value.trim()
-                                        .isNotBlank() &&
-                                    !isSending
-                                ) {
-                                    onSend()
-                                }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(
+                        max =
+                            if (isTablet) {
+                                900.dp
+                            } else {
+                                560.dp
                             }
-                        ),
+                    )
+                    .padding(
+                        horizontal =
+                            if (isTablet) {
+                                28.dp
+                            } else {
+                                12.dp
+                            },
+                        vertical =
+                            if (isTablet) {
+                                14.dp
+                            } else {
+                                10.dp
+                            }
+                    )
+            ) {
+                if (
+                    !errorMessage
+                        .isNullOrBlank()
+                ) {
+                    Text(
+                        text =
+                            errorMessage,
+                        color =
+                            SupportRed,
+                        fontSize =
+                            if (isTablet) {
+                                13.sp
+                            } else {
+                                11.sp
+                            },
+                        lineHeight =
+                            if (isTablet) {
+                                18.sp
+                            } else {
+                                15.sp
+                            },
+                        modifier =
+                            Modifier.padding(
+                                start =
+                                    4.dp,
+                                bottom =
+                                    6.dp
+                            )
+                    )
+                }
 
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedTextColor =
-                                Color.White,
-
-                            unfocusedTextColor =
-                                Color.White,
-
-                            cursorColor =
-                                LaranjadaOrange,
-
-                            focusedBorderColor =
-                                LaranjadaOrange,
-
-                            unfocusedBorderColor =
-                                Color.White.copy(
-                                    alpha = 0.18f
+                Row(
+                    verticalAlignment =
+                        Alignment.Bottom
+                ) {
+                    OutlinedTextField(
+                        value =
+                            value,
+                        onValueChange =
+                            onValueChange,
+                        placeholder = {
+                            Text(
+                                text =
+                                    "Escreva uma mensagem...",
+                                color =
+                                    LaranjadaMutedText,
+                                fontSize =
+                                    if (isTablet) {
+                                        15.sp
+                                    } else {
+                                        14.sp
+                                    }
+                            )
+                        },
+                        minLines =
+                            1,
+                        maxLines =
+                            if (isTablet) {
+                                5
+                            } else {
+                                4
+                            },
+                        enabled =
+                            !isSending,
+                        keyboardOptions =
+                            KeyboardOptions(
+                                imeAction =
+                                    ImeAction.Send
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onSend = {
+                                    if (
+                                        value.trim()
+                                            .isNotBlank() &&
+                                        !isSending
+                                    ) {
+                                        onSend()
+                                    }
+                                }
+                            ),
+                        textStyle =
+                            TextStyle(
+                                fontSize =
+                                    if (isTablet) {
+                                        16.sp
+                                    } else {
+                                        14.sp
+                                    }
+                            ),
+                        colors =
+                            OutlinedTextFieldDefaults
+                                .colors(
+                                    focusedTextColor =
+                                        Color.White,
+                                    unfocusedTextColor =
+                                        Color.White,
+                                    cursorColor =
+                                        LaranjadaOrange,
+                                    focusedBorderColor =
+                                        LaranjadaOrange,
+                                    unfocusedBorderColor =
+                                        Color.White.copy(
+                                            alpha =
+                                                0.18f
+                                        ),
+                                    focusedContainerColor =
+                                        SupportPanel,
+                                    unfocusedContainerColor =
+                                        SupportPanel
                                 ),
+                        shape =
+                            RoundedCornerShape(
+                                if (isTablet) {
+                                    14.dp
+                                } else {
+                                    12.dp
+                                }
+                            ),
+                        modifier =
+                            Modifier.weight(1f)
+                    )
 
-                            focusedContainerColor =
-                                SupportPanel,
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                if (isTablet) {
+                                    12.dp
+                                } else {
+                                    8.dp
+                                }
+                            )
+                    )
 
-                            unfocusedContainerColor =
-                                SupportPanel
-                        ),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
-
-                    modifier =
-                        Modifier.weight(
-                            1f
-                        )
-                )
-
-                Spacer(
-                    modifier =
-                        Modifier.width(
-                            8.dp
-                        )
-                )
-
-                Button(
-                    onClick =
-                        onSend,
-
-                    enabled =
-                        value.trim()
-                            .isNotBlank() &&
-                                !isSending,
-
-                    modifier =
-                        Modifier.size(
-                            52.dp
-                        ),
-
-                    contentPadding =
-                        PaddingValues(
-                            0.dp
-                        ),
-
-                    shape =
-                        RoundedCornerShape(
-                            12.dp
-                        ),
-
-                    colors =
-                        ButtonDefaults
-                            .buttonColors(
-                                containerColor =
-                                    LaranjadaOrange,
-
-                                contentColor =
+                    Button(
+                        onClick =
+                            onSend,
+                        enabled =
+                            value.trim()
+                                .isNotBlank() &&
+                                    !isSending,
+                        modifier =
+                            Modifier.size(
+                                if (isTablet) {
+                                    60.dp
+                                } else {
+                                    52.dp
+                                }
+                            ),
+                        contentPadding =
+                            PaddingValues(0.dp),
+                        shape =
+                            RoundedCornerShape(
+                                if (isTablet) {
+                                    14.dp
+                                } else {
+                                    12.dp
+                                }
+                            ),
+                        colors =
+                            ButtonDefaults
+                                .buttonColors(
+                                    containerColor =
+                                        LaranjadaOrange,
+                                    contentColor =
+                                        Color.White
+                                )
+                    ) {
+                        if (
+                            isSending
+                        ) {
+                            CircularProgressIndicator(
+                                modifier =
+                                    Modifier.size(
+                                        if (isTablet) {
+                                            22.dp
+                                        } else {
+                                            19.dp
+                                        }
+                                    ),
+                                strokeWidth =
+                                    2.dp,
+                                color =
                                     Color.White
                             )
-                ) {
-                    if (
-                        isSending
-                    ) {
-                        CircularProgressIndicator(
-                            modifier =
-                                Modifier.size(
-                                    19.dp
-                                ),
-
-                            strokeWidth =
-                                2.dp,
-
-                            color =
-                                Color.White
-                        )
-                    } else {
-                        Icon(
-                            imageVector =
-                                Icons.AutoMirrored
-                                    .Rounded
-                                    .Send,
-
-                            contentDescription =
-                                "Enviar",
-
-                            modifier =
-                                Modifier.size(
-                                    20.dp
-                                )
-                        )
+                        } else {
+                            Icon(
+                                imageVector =
+                                    Icons.AutoMirrored
+                                        .Rounded
+                                        .Send,
+                                contentDescription =
+                                    "Enviar",
+                                modifier =
+                                    Modifier.size(
+                                        if (isTablet) {
+                                            24.dp
+                                        } else {
+                                            20.dp
+                                        }
+                                    )
+                            )
+                        }
                     }
                 }
             }
@@ -1293,61 +1452,62 @@ private fun ConversationComposer(
 }
 
 @Composable
-private fun ClosedConversationBar() {
+private fun ClosedConversationBar(
+    isTablet: Boolean
+) {
     Surface(
         color =
-            Color(
-                0xFF080A0C
-            )
+            Color(0xFF080A0C)
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(
+                    if (isTablet) {
+                        20.dp
+                    } else {
                         16.dp
-                    ),
-
+                    }
+                ),
             horizontalArrangement =
                 Arrangement.Center,
-
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
             Icon(
                 imageVector =
                     Icons.Rounded.Lock,
-
                 contentDescription =
                     null,
-
                 tint =
                     LaranjadaMutedText,
-
                 modifier =
                     Modifier.size(
-                        17.dp
+                        if (isTablet) {
+                            20.dp
+                        } else {
+                            17.dp
+                        }
                     )
             )
 
             Spacer(
                 modifier =
-                    Modifier.width(
-                        7.dp
-                    )
+                    Modifier.width(7.dp)
             )
 
             Text(
                 text =
                     "Esta conversa foi encerrada.",
-
                 color =
                     LaranjadaMutedText,
-
                 fontSize =
-                    12.sp,
-
+                    if (isTablet) {
+                        14.sp
+                    } else {
+                        12.sp
+                    },
                 fontWeight =
                     FontWeight.SemiBold
             )
@@ -1360,124 +1520,157 @@ private fun ConversationErrorState(
     message: String,
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
-    modifier: Modifier =
-        Modifier
+    modifier: Modifier = Modifier,
+    isTablet: Boolean
 ) {
-    Column(
+    Box(
         modifier =
             modifier
                 .fillMaxSize()
                 .background(
                     LaranjadaBlack
+                ),
+        contentAlignment =
+            Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(
+                    max =
+                        if (isTablet) {
+                            760.dp
+                        } else {
+                            560.dp
+                        }
                 )
                 .windowInsetsPadding(
                     WindowInsets.statusBars
                 )
                 .padding(
-                    horizontal = 16.dp
+                    horizontal =
+                        if (isTablet) {
+                            28.dp
+                        } else {
+                            16.dp
+                        }
                 )
-    ) {
-        Row(
-            modifier =
-                Modifier
+        ) {
+            Row(
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(
-                        68.dp
+                        if (isTablet) {
+                            82.dp
+                        } else {
+                            68.dp
+                        }
                     ),
-
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick =
-                    onBackClick
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector =
-                        Icons.AutoMirrored
-                            .Rounded
-                            .ArrowBack,
+                IconButton(
+                    onClick =
+                        onBackClick,
+                    modifier =
+                        Modifier.size(
+                            if (isTablet) {
+                                52.dp
+                            } else {
+                                48.dp
+                            }
+                        )
+                ) {
+                    Icon(
+                        imageVector =
+                            Icons.AutoMirrored
+                                .Rounded
+                                .ArrowBack,
+                        contentDescription =
+                            "Voltar",
+                        tint =
+                            Color.White,
+                        modifier =
+                            Modifier.size(
+                                if (isTablet) {
+                                    30.dp
+                                } else {
+                                    24.dp
+                                }
+                            )
+                    )
+                }
 
-                    contentDescription =
-                        "Voltar",
-
-                    tint =
-                        Color.White
+                Text(
+                    text =
+                        "Atendimento",
+                    color =
+                        Color.White,
+                    fontSize =
+                        if (isTablet) {
+                            27.sp
+                        } else {
+                            21.sp
+                        },
+                    fontWeight =
+                        FontWeight.ExtraBold
                 )
             }
 
-            Text(
-                text =
-                    "Atendimento",
-
-                color =
-                    Color.White,
-
-                fontSize =
-                    21.sp,
-
-                fontWeight =
-                    FontWeight.ExtraBold
-            )
-        }
-
-        Column(
-            modifier =
-                Modifier
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .weight(
-                        1f
-                    ),
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-
-            verticalArrangement =
-                Arrangement.Center
-        ) {
-            Text(
-                text =
-                    message,
-
-                color =
-                    LaranjadaMutedText,
-
-                fontSize =
-                    13.sp,
-
-                lineHeight =
-                    18.sp,
-
-                textAlign =
-                    TextAlign.Center
-            )
-
-            Button(
-                onClick =
-                    onRetry,
-
-                colors =
-                    ButtonDefaults
-                        .buttonColors(
-                            containerColor =
-                                LaranjadaOrange,
-
-                            contentColor =
-                                Color.White
-                        ),
-
-                modifier =
-                    Modifier.padding(
-                        top = 18.dp
-                    )
+                    .weight(1f),
+                horizontalAlignment =
+                    Alignment.CenterHorizontally,
+                verticalArrangement =
+                    Arrangement.Center
             ) {
                 Text(
                     text =
-                        "TENTAR NOVAMENTE",
-
-                    fontWeight =
-                        FontWeight.Bold
+                        message,
+                    color =
+                        LaranjadaMutedText,
+                    fontSize =
+                        if (isTablet) {
+                            15.sp
+                        } else {
+                            13.sp
+                        },
+                    lineHeight =
+                        if (isTablet) {
+                            21.sp
+                        } else {
+                            18.sp
+                        },
+                    textAlign =
+                        TextAlign.Center
                 )
+
+                Button(
+                    onClick =
+                        onRetry,
+                    colors =
+                        ButtonDefaults
+                            .buttonColors(
+                                containerColor =
+                                    LaranjadaOrange,
+                                contentColor =
+                                    Color.White
+                            ),
+                    modifier =
+                        Modifier.padding(
+                            top =
+                                18.dp
+                        )
+                ) {
+                    Text(
+                        text =
+                            "TENTAR NOVAMENTE",
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -1486,7 +1679,6 @@ private fun ConversationErrorState(
 private fun conversationHeaderItemCount(
     hasContentRequest: Boolean
 ): Int {
-
     return if (
         hasContentRequest
     ) {

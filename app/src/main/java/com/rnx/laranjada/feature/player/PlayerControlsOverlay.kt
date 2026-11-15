@@ -44,8 +44,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
 
@@ -75,273 +77,831 @@ internal fun PlayerControlsOverlay(
     showEpisodesButton: Boolean,
     onEpisodesClick: () -> Unit
 ) {
+    val configuration =
+        LocalConfiguration.current
+
+    /*
+     * TABLET
+     *
+     * smallestScreenWidthDp não muda quando
+     * o aparelho gira.
+     *
+     * Dessa forma o mesmo tamanho de controles
+     * é utilizado no tablet tanto em portrait
+     * quanto em landscape.
+     *
+     * O celular mantém exatamente a escala
+     * anterior.
+     */
+    val isTablet =
+        configuration.smallestScreenWidthDp >=
+                600
+
+    val topHorizontalPadding =
+        if (
+            isTablet
+        ) {
+            26.dp
+        } else {
+            18.dp
+        }
+
+    val topVerticalPadding =
+        if (
+            isTablet
+        ) {
+            18.dp
+        } else {
+            14.dp
+        }
+
+    val topCloseIconSize =
+        if (
+            isTablet
+        ) {
+            35.dp
+        } else {
+            30.dp
+        }
+
+    val topRotationIconSize =
+        if (
+            isTablet
+        ) {
+            33.dp
+        } else {
+            28.dp
+        }
+
+    val topActionIconSize =
+        if (
+            isTablet
+        ) {
+            32.dp
+        } else {
+            27.dp
+        }
+
+    val topPictureInPictureIconSize =
+        if (
+            isTablet
+        ) {
+            33.dp
+        } else {
+            28.dp
+        }
+
+    val topButtonSpacing =
+        if (
+            isTablet
+        ) {
+            16.dp
+        } else {
+            14.dp
+        }
+
+    val bottomHorizontalPadding =
+        if (
+            isTablet
+        ) {
+            28.dp
+        } else {
+            18.dp
+        }
+
+    val bottomPadding =
+        if (
+            isTablet
+        ) {
+            24.dp
+        } else {
+            18.dp
+        }
+
+    val bottomActionIconSize =
+        if (
+            isTablet
+        ) {
+            27.dp
+        } else {
+            21.dp
+        }
+
+    val bottomActionSpacing =
+        if (
+            isTablet
+        ) {
+            8.dp
+        } else {
+            6.dp
+        }
+
+    val speedTextSize =
+        if (
+            isTablet
+        ) {
+            15.sp
+        } else {
+            14.sp
+        }
+
+    val timeTextSize =
+        if (
+            isTablet
+        ) {
+            15.sp
+        } else {
+            14.sp
+        }
+
+    val progressTimeSpacing =
+        if (
+            isTablet
+        ) {
+            14.dp
+        } else {
+            10.dp
+        }
+
+    val transportAreaHeight =
+        if (
+            isTablet
+        ) {
+            74.dp
+        } else {
+            58.dp
+        }
+
+    val replayContainerSize =
+        if (
+            isTablet
+        ) {
+            58.dp
+        } else {
+            46.dp
+        }
+
+    val replayIconSize =
+        if (
+            isTablet
+        ) {
+            31.dp
+        } else {
+            25.dp
+        }
+
+    val playContainerSize =
+        if (
+            isTablet
+        ) {
+            74.dp
+        } else {
+            58.dp
+        }
+
+    val playIconSize =
+        if (
+            isTablet
+        ) {
+            43.dp
+        } else {
+            34.dp
+        }
+
+    val transportButtonSpacing =
+        if (
+            isTablet
+        ) {
+            28.dp
+        } else {
+            20.dp
+        }
+
+    val orientationLockIconSize =
+        if (
+            isTablet
+        ) {
+            29.dp
+        } else {
+            24.dp
+        }
+
+    val episodesIconSize =
+        if (
+            isTablet
+        ) {
+            30.dp
+        } else {
+            25.dp
+        }
+
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier =
+            Modifier.fillMaxSize()
     ) {
+        /*
+         * Gradiente dos controles.
+         *
+         * Mantido igual para não alterar
+         * a aparência atual do vídeo.
+         */
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.38f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.78f)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    Color.Black.copy(
+                                        alpha =
+                                            0.38f
+                                    ),
+
+                                    Color.Transparent,
+
+                                    Color.Black.copy(
+                                        alpha =
+                                            0.78f
+                                    )
+                                )
                         )
                     )
-                )
         )
 
+        /*
+         * CONTROLES SUPERIORES
+         */
         Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.TopCenter
+                    )
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal =
+                            topHorizontalPadding,
+
+                        vertical =
+                            topVerticalPadding
+                    ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
             PlayerTopIconButton(
-                onClick = onCloseClick
+                onClick =
+                    onCloseClick
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Fechar player",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp)
+                    imageVector =
+                        Icons.Rounded.Close,
+
+                    contentDescription =
+                        "Fechar player",
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            topCloseIconSize
+                        )
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        topButtonSpacing
+                    )
+            )
 
             PlayerTopIconButton(
-                onClick = onToggleOrientationClick
+                onClick =
+                    onToggleOrientationClick
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.ScreenRotation,
-                    contentDescription = if (preferLandscape) {
-                        "Virar para modo em pé"
-                    } else {
-                        "Virar para modo deitado"
-                    },
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    imageVector =
+                        Icons.Rounded.ScreenRotation,
+
+                    contentDescription =
+                        if (
+                            preferLandscape
+                        ) {
+                            "Virar para modo em pé"
+                        } else {
+                            "Virar para modo deitado"
+                        },
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            topRotationIconSize
+                        )
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(
+                modifier =
+                    Modifier.weight(
+                        1f
+                    )
+            )
 
             PlayerTopIconButton(
-                onClick = onSpeedClick
+                onClick =
+                    onSpeedClick
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Speed,
-                    contentDescription = "Velocidade",
-                    tint = Color.White,
-                    modifier = Modifier.size(27.dp)
+                    imageVector =
+                        Icons.Rounded.Speed,
+
+                    contentDescription =
+                        "Velocidade",
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            topActionIconSize
+                        )
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        topButtonSpacing
+                    )
+            )
 
             PlayerTopIconButton(
-                onClick = onScreenshotClick
+                onClick =
+                    onScreenshotClick
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PhotoCamera,
-                    contentDescription = "Capturar tela",
-                    tint = Color.White,
-                    modifier = Modifier.size(27.dp)
+                    imageVector =
+                        Icons.Rounded.PhotoCamera,
+
+                    contentDescription =
+                        "Capturar tela",
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            topActionIconSize
+                        )
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(
+                modifier =
+                    Modifier.width(
+                        topButtonSpacing
+                    )
+            )
 
             PlayerTopIconButton(
-                onClick = onPictureInPictureClick
+                onClick =
+                    onPictureInPictureClick
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PictureInPictureAlt,
-                    contentDescription = "Picture-in-picture",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    imageVector =
+                        Icons.Rounded.PictureInPictureAlt,
+
+                    contentDescription =
+                        "Picture-in-picture",
+
+                    tint =
+                        Color.White,
+
+                    modifier =
+                        Modifier.size(
+                            topPictureInPictureIconSize
+                        )
                 )
             }
         }
 
+        /*
+         * CONTROLES INFERIORES
+         */
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 18.dp, end = 18.dp, bottom = 18.dp)
-        ) {
-            Row(
-                modifier = Modifier
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.BottomCenter
+                    )
                     .fillMaxWidth()
-                    .padding(bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(
+                        start =
+                            bottomHorizontalPadding,
+
+                        end =
+                            bottomHorizontalPadding,
+
+                        bottom =
+                            bottomPadding
+                    )
+        ) {
+            /*
+             * Velocidade + áudio +
+             * legenda + configurações.
+             */
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            bottom =
+                                if (
+                                    isTablet
+                                ) {
+                                    8.dp
+                                } else {
+                                    6.dp
+                                }
+                        ),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (playbackSpeed == 1f) {
-                        "1x"
-                    } else {
-                        "${formatSpeed(playbackSpeed)}x"
-                    },
-                    color = Color.White.copy(alpha = 0.92f)
+                    text =
+                        if (
+                            playbackSpeed ==
+                            1f
+                        ) {
+                            "1x"
+                        } else {
+                            "${formatSpeed(playbackSpeed)}x"
+                        },
+
+                    color =
+                        Color.White.copy(
+                            alpha =
+                                0.92f
+                        ),
+
+                    fontSize =
+                        speedTextSize
                 )
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        )
+                )
 
                 PlayerBottomIconButton(
-                    onClick = onAudioClick
+                    onClick =
+                        onAudioClick
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Audiotrack,
-                        contentDescription = "Áudio",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                        imageVector =
+                            Icons.Rounded.Audiotrack,
+
+                        contentDescription =
+                            "Áudio",
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier.size(
+                                bottomActionIconSize
+                            )
                     )
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            bottomActionSpacing
+                        )
+                )
 
                 PlayerBottomIconButton(
-                    onClick = onSubtitleClick
+                    onClick =
+                        onSubtitleClick
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ClosedCaption,
-                        contentDescription = "Legenda",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                        imageVector =
+                            Icons.Rounded.ClosedCaption,
+
+                        contentDescription =
+                            "Legenda",
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier.size(
+                                bottomActionIconSize
+                            )
                     )
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            bottomActionSpacing
+                        )
+                )
 
                 PlayerBottomIconButton(
-                    onClick = onSubtitleSettingsClick
+                    onClick =
+                        onSubtitleSettingsClick
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Configurações de legenda",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                        imageVector =
+                            Icons.Rounded.Settings,
+
+                        contentDescription =
+                            "Configurações de legenda",
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier.size(
+                                bottomActionIconSize
+                            )
                     )
                 }
             }
 
+            /*
+             * Barra de progresso + tempo.
+             */
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
                 PlayerProgressBar(
-                    modifier = Modifier.weight(1f),
-                    currentPositionMs = currentPositionMs,
-                    durationMs = durationMs,
-                    draggedProgress = draggedProgress,
-                    onDraggedProgressChange = onDraggedProgressChange,
-                    onDragFinished = onDragFinished
+                    modifier =
+                        Modifier.weight(
+                            1f
+                        ),
+
+                    currentPositionMs =
+                        currentPositionMs,
+
+                    durationMs =
+                        durationMs,
+
+                    draggedProgress =
+                        draggedProgress,
+
+                    onDraggedProgressChange =
+                        onDraggedProgressChange,
+
+                    onDragFinished =
+                        onDragFinished
                 )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(
+                    modifier =
+                        Modifier.width(
+                            progressTimeSpacing
+                        )
+                )
 
                 Text(
-                    text = "${formatTime(currentPositionMs)} / ${formatTime(durationMs)}",
-                    color = LaranjadaText
+                    text =
+                        "${formatTime(currentPositionMs)} / " +
+                                formatTime(
+                                    durationMs
+                                ),
+
+                    color =
+                        LaranjadaText,
+
+                    fontSize =
+                        timeTextSize
                 )
             }
 
+            /*
+             * Linha inferior.
+             *
+             * Cadeado à esquerda.
+             * Transporte no centro.
+             * Episódios à direita.
+             */
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-                    .padding(top = 5.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(
+                            transportAreaHeight
+                        )
+                        .padding(
+                            top =
+                                if (
+                                    isTablet
+                                ) {
+                                    7.dp
+                                } else {
+                                    5.dp
+                                }
+                        )
             ) {
                 PlayerBottomIconButton(
-                    onClick = onToggleOrientationLockClick,
-                    modifier = Modifier.align(Alignment.CenterStart)
+                    onClick =
+                        onToggleOrientationLockClick,
+
+                    modifier =
+                        Modifier.align(
+                            Alignment.CenterStart
+                        )
                 ) {
                     Icon(
-                        imageVector = if (orientationLocked) {
-                            Icons.Rounded.Lock
-                        } else {
-                            Icons.Rounded.LockOpen
-                        },
-                        contentDescription = if (orientationLocked) {
-                            "Destravar orientação"
-                        } else {
-                            "Travar orientação"
-                        },
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        imageVector =
+                            if (
+                                orientationLocked
+                            ) {
+                                Icons.Rounded.Lock
+                            } else {
+                                Icons.Rounded.LockOpen
+                            },
+
+                        contentDescription =
+                            if (
+                                orientationLocked
+                            ) {
+                                "Destravar orientação"
+                            } else {
+                                "Travar orientação"
+                            },
+
+                        tint =
+                            Color.White,
+
+                        modifier =
+                            Modifier.size(
+                                orientationLockIconSize
+                            )
                     )
                 }
 
                 Row(
-                    modifier = Modifier.align(Alignment.Center),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    modifier =
+                        Modifier.align(
+                            Alignment.Center
+                        ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically,
+
+                    horizontalArrangement =
+                        Arrangement.Center
                 ) {
                     PlayerRoundButton(
-                        onClick = onReplayClick,
-                        containerSize = 46.dp,
-                        iconSize = 25.dp
+                        onClick =
+                            onReplayClick,
+
+                        containerSize =
+                            replayContainerSize,
+
+                        iconSize =
+                            replayIconSize
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Replay10,
-                            contentDescription = "Voltar 10 segundos",
-                            tint = Color.White,
-                            modifier = Modifier.size(25.dp)
+                            imageVector =
+                                Icons.Rounded.Replay10,
+
+                            contentDescription =
+                                "Voltar 10 segundos",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(
+                                    replayIconSize
+                                )
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                transportButtonSpacing
+                            )
+                    )
 
                     PlayerRoundButton(
-                        onClick = onPlayPauseClick,
-                        containerSize = 58.dp,
-                        iconSize = 34.dp
+                        onClick =
+                            onPlayPauseClick,
+
+                        containerSize =
+                            playContainerSize,
+
+                        iconSize =
+                            playIconSize
                     ) {
                         Icon(
-                            imageVector = if (isPlaying) {
-                                Icons.Rounded.Pause
-                            } else {
-                                Icons.Rounded.PlayArrow
-                            },
-                            contentDescription = if (isPlaying) {
-                                "Pausar"
-                            } else {
-                                "Reproduzir"
-                            },
-                            tint = Color.White,
-                            modifier = Modifier.size(34.dp)
+                            imageVector =
+                                if (
+                                    isPlaying
+                                ) {
+                                    Icons.Rounded.Pause
+                                } else {
+                                    Icons.Rounded.PlayArrow
+                                },
+
+                            contentDescription =
+                                if (
+                                    isPlaying
+                                ) {
+                                    "Pausar"
+                                } else {
+                                    "Reproduzir"
+                                },
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(
+                                    playIconSize
+                                )
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(
+                        modifier =
+                            Modifier.width(
+                                transportButtonSpacing
+                            )
+                    )
 
                     PlayerRoundButton(
-                        onClick = onForwardClick,
-                        containerSize = 46.dp,
-                        iconSize = 25.dp
+                        onClick =
+                            onForwardClick,
+
+                        containerSize =
+                            replayContainerSize,
+
+                        iconSize =
+                            replayIconSize
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Forward10,
-                            contentDescription = "Avançar 10 segundos",
-                            tint = Color.White,
-                            modifier = Modifier.size(25.dp)
+                            imageVector =
+                                Icons.Rounded.Forward10,
+
+                            contentDescription =
+                                "Avançar 10 segundos",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(
+                                    replayIconSize
+                                )
                         )
                     }
                 }
 
-                if (showEpisodesButton) {
+                if (
+                    showEpisodesButton
+                ) {
                     PlayerBottomIconButton(
-                        onClick = onEpisodesClick,
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                        onClick =
+                            onEpisodesClick,
+
+                        modifier =
+                            Modifier.align(
+                                Alignment.CenterEnd
+                            )
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Menu,
-                            contentDescription = "Episódios",
-                            tint = Color.White,
-                            modifier = Modifier.size(25.dp)
+                            imageVector =
+                                Icons.Rounded.Menu,
+
+                            contentDescription =
+                                "Episódios",
+
+                            tint =
+                                Color.White,
+
+                            modifier =
+                                Modifier.size(
+                                    episodesIconSize
+                                )
                         )
                     }
                 }
@@ -355,12 +915,40 @@ internal fun PlayerTopIconButton(
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val configuration =
+        LocalConfiguration.current
+
+    val isTablet =
+        configuration.smallestScreenWidthDp >=
+                600
+
+    val buttonSize =
+        if (
+            isTablet
+        ) {
+            52.dp
+        } else {
+            44.dp
+        }
+
     IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.24f))
+        onClick =
+            onClick,
+
+        modifier =
+            Modifier
+                .size(
+                    buttonSize
+                )
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color.Black.copy(
+                        alpha =
+                            0.24f
+                    )
+                )
     ) {
         content()
     }
@@ -375,75 +963,224 @@ internal fun PlayerProgressBar(
     onDraggedProgressChange: (Float) -> Unit,
     onDragFinished: () -> Unit
 ) {
-    val safeDuration = durationMs.coerceAtLeast(1L)
-    val progressValue = if (draggedProgress >= 0f) {
-        draggedProgress
-    } else {
-        currentPositionMs.toFloat()
-    }
+    val configuration =
+        LocalConfiguration.current
 
-    val progressFraction = if (durationMs > 0L) {
-        progressValue
-            .coerceIn(0f, safeDuration.toFloat()) / safeDuration.toFloat()
-    } else {
-        0f
-    }
+    val isTablet =
+        configuration.smallestScreenWidthDp >=
+                600
+
+    val safeDuration =
+        durationMs.coerceAtLeast(
+            1L
+        )
+
+    val progressValue =
+        if (
+            draggedProgress >=
+            0f
+        ) {
+            draggedProgress
+        } else {
+            currentPositionMs
+                .toFloat()
+        }
+
+    val progressFraction =
+        if (
+            durationMs >
+            0L
+        ) {
+            progressValue
+                .coerceIn(
+                    0f,
+                    safeDuration
+                        .toFloat()
+                ) /
+                    safeDuration
+                        .toFloat()
+        } else {
+            0f
+        }
+
+    val interactionHeight =
+        if (
+            isTablet
+        ) {
+            36.dp
+        } else {
+            28.dp
+        }
+
+    val thumbSize =
+        if (
+            isTablet
+        ) {
+            12.dp
+        } else {
+            9.dp
+        }
+
+    val trackHeight =
+        if (
+            isTablet
+        ) {
+            6.dp
+        } else {
+            4.dp
+        }
 
     BoxWithConstraints(
-        modifier = modifier
-            .height(28.dp)
-            .pointerInput(safeDuration) {
-                detectTapGestures { offset ->
-                    val position = ((offset.x / size.width).coerceIn(0f, 1f) * safeDuration)
-                    onDraggedProgressChange(position)
-                    onDragFinished()
-                }
-            }
-            .pointerInput(safeDuration) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val position = ((offset.x / size.width).coerceIn(0f, 1f) * safeDuration)
-                        onDraggedProgressChange(position)
-                    },
-                    onDragEnd = {
-                        onDragFinished()
-                    },
-                    onDragCancel = {
-                        onDragFinished()
-                    },
-                    onDrag = { change, _ ->
-                        val position = ((change.position.x / size.width).coerceIn(0f, 1f) * safeDuration)
-                        onDraggedProgressChange(position)
-                    }
+        modifier =
+            modifier
+                .height(
+                    interactionHeight
                 )
-            },
-        contentAlignment = Alignment.CenterStart
+                .pointerInput(
+                    safeDuration
+                ) {
+                    detectTapGestures {
+                            offset ->
+
+                        val position =
+                            (
+                                    (
+                                            offset.x /
+                                                    size.width
+                                            )
+                                        .coerceIn(
+                                            0f,
+                                            1f
+                                        ) *
+                                            safeDuration
+                                    )
+
+                        onDraggedProgressChange(
+                            position
+                        )
+
+                        onDragFinished()
+                    }
+                }
+                .pointerInput(
+                    safeDuration
+                ) {
+                    detectDragGestures(
+                        onDragStart = {
+                                offset ->
+
+                            val position =
+                                (
+                                        (
+                                                offset.x /
+                                                        size.width
+                                                )
+                                            .coerceIn(
+                                                0f,
+                                                1f
+                                            ) *
+                                                safeDuration
+                                        )
+
+                            onDraggedProgressChange(
+                                position
+                            )
+                        },
+
+                        onDragEnd = {
+                            onDragFinished()
+                        },
+
+                        onDragCancel = {
+                            onDragFinished()
+                        },
+
+                        onDrag = {
+                                change,
+                                _ ->
+
+                            val position =
+                                (
+                                        (
+                                                change.position.x /
+                                                        size.width
+                                                )
+                                            .coerceIn(
+                                                0f,
+                                                1f
+                                            ) *
+                                                safeDuration
+                                        )
+
+                            onDraggedProgressChange(
+                                position
+                            )
+                        }
+                    )
+                },
+
+        contentAlignment =
+            Alignment.CenterStart
     ) {
-        val thumbSize = 9.dp
-        val trackHeight = 4.dp
-
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(trackHeight)
-                .clip(RoundedCornerShape(99.dp))
-                .background(Color.White.copy(alpha = 0.32f))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(
+                        trackHeight
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            99.dp
+                        )
+                    )
+                    .background(
+                        Color.White.copy(
+                            alpha =
+                                0.32f
+                        )
+                    )
         )
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth(progressFraction)
-                .height(trackHeight)
-                .clip(RoundedCornerShape(99.dp))
-                .background(LaranjadaOrange)
+            modifier =
+                Modifier
+                    .fillMaxWidth(
+                        progressFraction
+                    )
+                    .height(
+                        trackHeight
+                    )
+                    .clip(
+                        RoundedCornerShape(
+                            99.dp
+                        )
+                    )
+                    .background(
+                        LaranjadaOrange
+                    )
         )
 
         Box(
-            modifier = Modifier
-                .offset(x = (maxWidth - thumbSize) * progressFraction)
-                .size(thumbSize)
-                .clip(CircleShape)
-                .background(LaranjadaOrange)
+            modifier =
+                Modifier
+                    .offset(
+                        x =
+                            (
+                                    maxWidth -
+                                            thumbSize
+                                    ) *
+                                    progressFraction
+                    )
+                    .size(
+                        thumbSize
+                    )
+                    .clip(
+                        CircleShape
+                    )
+                    .background(
+                        LaranjadaOrange
+                    )
         )
     }
 }
@@ -456,15 +1193,32 @@ internal fun PlayerRoundButton(
     content: @Composable () -> Unit
 ) {
     IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(containerSize)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.56f))
+        onClick =
+            onClick,
+
+        modifier =
+            Modifier
+                .size(
+                    containerSize
+                )
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color.Black.copy(
+                        alpha =
+                            0.56f
+                    )
+                )
     ) {
         Box(
-            modifier = Modifier.size(iconSize),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.size(
+                    iconSize
+                ),
+
+            contentAlignment =
+                Alignment.Center
         ) {
             content()
         }
@@ -477,12 +1231,40 @@ internal fun PlayerBottomIconButton(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val configuration =
+        LocalConfiguration.current
+
+    val isTablet =
+        configuration.smallestScreenWidthDp >=
+                600
+
+    val buttonSize =
+        if (
+            isTablet
+        ) {
+            48.dp
+        } else {
+            40.dp
+        }
+
     IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.36f))
+        onClick =
+            onClick,
+
+        modifier =
+            modifier
+                .size(
+                    buttonSize
+                )
+                .clip(
+                    CircleShape
+                )
+                .background(
+                    Color.Black.copy(
+                        alpha =
+                            0.36f
+                    )
+                )
     ) {
         content()
     }

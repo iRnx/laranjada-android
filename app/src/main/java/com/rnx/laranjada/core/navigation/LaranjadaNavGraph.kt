@@ -514,9 +514,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * CENTRAL DE ATENDIMENTO
-         */
         composable(
             route =
                 AppRoutes.Support.route
@@ -552,9 +549,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * NOVO ATENDIMENTO
-         */
         composable(
             route =
                 AppRoutes.SupportCreate.route
@@ -591,9 +585,6 @@ fun LaranjadaNavGraph(
             )
         }
 
-        /*
-         * CONVERSA DE ATENDIMENTO
-         */
         composable(
             route =
                 AppRoutes
@@ -1480,7 +1471,8 @@ fun LaranjadaNavGraph(
                         onPlayClick = {
                                 playerContentType,
                                 playerUuid,
-                                seriesUuid ->
+                                seriesUuid,
+                                initialPositionSeconds ->
 
                             navController.navigate(
                                 AppRoutes.Player.createRoute(
@@ -1491,12 +1483,12 @@ fun LaranjadaNavGraph(
                                         playerUuid,
 
                                     seriesUuid =
-                                        seriesUuid
+                                        seriesUuid,
+
+                                    initialPositionSeconds =
+                                        initialPositionSeconds
                                 )
                             )
-                        },
-
-                        onRestartClick = {
                         },
 
                         onFavoriteClick = {

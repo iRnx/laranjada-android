@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -169,7 +168,8 @@ fun HomeBottomBar(
 
         color =
             BottomBarBackground.copy(
-                alpha = 0.96f
+                alpha =
+                    0.96f
             ),
 
         tonalElevation =
@@ -189,7 +189,8 @@ fun HomeBottomBar(
 
                             color =
                                 Color.White.copy(
-                                    alpha = 0.05f
+                                    alpha =
+                                        0.05f
                                 )
                         )
                     ),
@@ -201,80 +202,158 @@ fun HomeBottomBar(
                 maxWidth >=
                         600.dp
 
-            Row(
-                modifier =
-                    if (
-                        isTablet
-                    ) {
-                        Modifier
-                            .fillMaxWidth()
-                            .widthIn(
-                                max = 560.dp
-                            )
-                            .padding(
-                                horizontal = 28.dp,
-                                vertical = 12.dp
-                            )
-                    } else {
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = 34.dp,
-                                vertical = 12.dp
-                            )
-                    },
-
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-
-                verticalAlignment =
-                    Alignment.CenterVertically
+            /*
+             * TABLET
+             *
+             * No tablet os itens deixam de usar
+             * toda a largura disponível.
+             *
+             * Eles passam a formar um grupo
+             * centralizado com espaçamento fixo.
+             *
+             * Isso mantém a mesma proporção
+             * tanto em portrait quanto em
+             * landscape.
+             */
+            if (
+                isTablet
             ) {
-                items.forEachIndexed {
-                        index,
-                        item ->
+                Row(
+                    modifier =
+                        Modifier.padding(
+                            horizontal =
+                                24.dp,
 
-                    val enabled =
-                        index !=
-                                1 ||
-                                searchEnabled
+                            vertical =
+                                14.dp
+                        ),
 
-                    BottomNavItem(
-                        item =
-                            item,
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            46.dp
+                        ),
 
-                        selected =
-                            index ==
-                                    effectiveSelectedIndex,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    items.forEachIndexed {
+                            index,
+                            item ->
 
-                        enabled =
-                            enabled,
+                        val enabled =
+                            index !=
+                                    1 ||
+                                    searchEnabled
 
-                        profileName =
-                            effectiveProfileName,
+                        BottomNavItem(
+                            item =
+                                item,
 
-                        profileAvatarUrl =
-                            effectiveAvatarUrl,
+                            selected =
+                                index ==
+                                        effectiveSelectedIndex,
 
-                        tablet =
-                            isTablet,
+                            enabled =
+                                enabled,
 
-                        onClick = {
-                            if (
-                                navigationContext !=
-                                null
-                            ) {
-                                navigationContext
-                                    .onNavigate(
+                            profileName =
+                                effectiveProfileName,
+
+                            profileAvatarUrl =
+                                effectiveAvatarUrl,
+
+                            tablet =
+                                true,
+
+                            onClick = {
+                                if (
+                                    navigationContext !=
+                                    null
+                                ) {
+                                    navigationContext
+                                        .onNavigate(
+                                            index
+                                        )
+                                } else {
+                                    onItemClick(
                                         index
                                     )
-                            } else {
-                                onItemClick(
-                                    index
-                                )
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                }
+            } else {
+                /*
+                 * MOBILE
+                 *
+                 * Mantém exatamente a
+                 * distribuição já existente.
+                 */
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal =
+                                    34.dp,
+
+                                vertical =
+                                    12.dp
+                            ),
+
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    items.forEachIndexed {
+                            index,
+                            item ->
+
+                        val enabled =
+                            index !=
+                                    1 ||
+                                    searchEnabled
+
+                        BottomNavItem(
+                            item =
+                                item,
+
+                            selected =
+                                index ==
+                                        effectiveSelectedIndex,
+
+                            enabled =
+                                enabled,
+
+                            profileName =
+                                effectiveProfileName,
+
+                            profileAvatarUrl =
+                                effectiveAvatarUrl,
+
+                            tablet =
+                                false,
+
+                            onClick = {
+                                if (
+                                    navigationContext !=
+                                    null
+                                ) {
+                                    navigationContext
+                                        .onNavigate(
+                                            index
+                                        )
+                                } else {
+                                    onItemClick(
+                                        index
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -303,7 +382,7 @@ private fun BottomNavItem(
                     if (
                         tablet
                     ) {
-                        48.dp
+                        56.dp
                     } else {
                         44.dp
                     }
@@ -345,7 +424,8 @@ private fun BottomNavItem(
                         when {
                             !enabled ->
                                 LaranjadaMutedText.copy(
-                                    alpha = 0.45f
+                                    alpha =
+                                        0.45f
                                 )
 
                             selected ->
@@ -360,10 +440,10 @@ private fun BottomNavItem(
                             when {
                                 tablet &&
                                         selected ->
-                                    30.dp
+                                    35.dp
 
                                 tablet ->
-                                    28.dp
+                                    32.dp
 
                                 selected ->
                                     28.dp
@@ -408,7 +488,7 @@ private fun ProfileAvatar(
                     if (
                         tablet
                     ) {
-                        35.dp
+                        41.dp
                     } else {
                         32.dp
                     }
@@ -418,7 +498,8 @@ private fun ProfileAvatar(
                 )
                 .background(
                     LaranjadaSurfaceLight.copy(
-                        alpha = 0.82f
+                        alpha =
+                            0.82f
                     )
                 )
                 .border(
@@ -428,7 +509,13 @@ private fun ProfileAvatar(
                                 if (
                                     selected
                                 ) {
-                                    2.dp
+                                    if (
+                                        tablet
+                                    ) {
+                                        2.5.dp
+                                    } else {
+                                        2.dp
+                                    }
                                 } else {
                                     1.dp
                                 },
@@ -440,7 +527,8 @@ private fun ProfileAvatar(
                                     LaranjadaOrange
                                 } else {
                                     LaranjadaMutedText.copy(
-                                        alpha = 0.80f
+                                        alpha =
+                                            0.80f
                                     )
                                 }
                         ),
@@ -501,7 +589,7 @@ private fun ProfileAvatar(
                     if (
                         tablet
                     ) {
-                        12.sp
+                        14.sp
                     } else {
                         11.sp
                     },
@@ -513,7 +601,7 @@ private fun ProfileAvatar(
                     if (
                         tablet
                     ) {
-                        12.sp
+                        14.sp
                     } else {
                         11.sp
                     }

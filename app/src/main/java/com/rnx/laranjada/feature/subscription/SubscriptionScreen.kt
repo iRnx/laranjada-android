@@ -9,12 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,10 +23,10 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -46,7 +45,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,11 +81,20 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
-private val SubscriptionPanel = Color(0xFF101417)
-private val SubscriptionPanelSecondary = Color(0xFF151A1F)
-private val SubscriptionGreen = Color(0xFF3FB950)
-private val SubscriptionRed = Color(0xFFFF6B6B)
-private val SubscriptionWarning = Color(0xFFFFB547)
+private val SubscriptionPanel =
+    Color(0xFF101417)
+
+private val SubscriptionPanelSecondary =
+    Color(0xFF151A1F)
+
+private val SubscriptionGreen =
+    Color(0xFF3FB950)
+
+private val SubscriptionRed =
+    Color(0xFFFF6B6B)
+
+private val SubscriptionWarning =
+    Color(0xFFFFB547)
 
 @Composable
 fun SubscriptionScreen(
@@ -95,33 +102,45 @@ fun SubscriptionScreen(
     onSessionEnded: () -> Unit,
     viewModel: SubscriptionViewModel = viewModel()
 ) {
-    val state = viewModel.uiState
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val state =
+        viewModel.uiState
 
-    var accessExpanded by rememberSaveable {
+    val context =
+        LocalContext.current
+
+    val lifecycleOwner =
+        LocalLifecycleOwner.current
+
+    var accessExpanded by
+    rememberSaveable {
         mutableStateOf(false)
     }
 
-    var featuresExpanded by rememberSaveable {
+    var featuresExpanded by
+    rememberSaveable {
         mutableStateOf(false)
     }
 
-    var detailsExpanded by rememberSaveable {
+    var detailsExpanded by
+    rememberSaveable {
         mutableStateOf(false)
     }
 
-    var historyExpanded by rememberSaveable {
+    var historyExpanded by
+    rememberSaveable {
         mutableStateOf(false)
     }
 
     LaunchedEffect(Unit) {
         viewModel.start(
-            onSessionEnded = onSessionEnded
+            onSessionEnded =
+                onSessionEnded
         )
     }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(
+        lifecycleOwner
+    ) {
         val observer =
             LifecycleEventObserver {
                     _,
@@ -131,16 +150,18 @@ fun SubscriptionScreen(
                     event ==
                     Lifecycle.Event.ON_RESUME
                 ) {
-                    viewModel.refreshAfterReturn(
-                        onSessionEnded =
-                            onSessionEnded
-                    )
+                    viewModel
+                        .refreshAfterReturn(
+                            onSessionEnded =
+                                onSessionEnded
+                        )
                 }
             }
 
-        lifecycleOwner.lifecycle.addObserver(
-            observer
-        )
+        lifecycleOwner.lifecycle
+            .addObserver(
+                observer
+            )
 
         onDispose {
             lifecycleOwner.lifecycle
@@ -150,25 +171,33 @@ fun SubscriptionScreen(
         }
     }
 
-    Scaffold(
-        containerColor =
-            LaranjadaBlack
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                )
     ) {
-            scaffoldPadding ->
+        val isTablet =
+            maxWidth >=
+                    600.dp
+
+        val isExpanded =
+            maxWidth >=
+                    840.dp
 
         when {
             state.isLoading &&
-                    state.overview == null -> {
+                    state.overview ==
+                    null -> {
 
-                SubscriptionLoadingState(
-                    modifier =
-                        Modifier.padding(
-                            scaffoldPadding
-                        )
-                )
+                SubscriptionLoadingState()
             }
 
-            state.overview == null -> {
+            state.overview ==
+                    null -> {
+
                 SubscriptionErrorState(
                     message =
                         state.loadErrorMessage
@@ -181,114 +210,224 @@ fun SubscriptionScreen(
                         )
                     },
 
-                    modifier =
-                        Modifier.padding(
-                            scaffoldPadding
-                        )
+                    isTablet =
+                        isTablet
                 )
             }
 
             else -> {
-                val overview =
-                    state.overview
+                SubscriptionContent(
+                    overview =
+                        state.overview,
 
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(
-                                scaffoldPadding
+                    isTablet =
+                        isTablet,
+
+                    isExpanded =
+                        isExpanded,
+
+                    accessExpanded =
+                        accessExpanded,
+
+                    featuresExpanded =
+                        featuresExpanded,
+
+                    detailsExpanded =
+                        detailsExpanded,
+
+                    historyExpanded =
+                        historyExpanded,
+
+                    onBackClick =
+                        onBackClick,
+
+                    onToggleAccess = {
+                        accessExpanded =
+                            !accessExpanded
+                    },
+
+                    onToggleFeatures = {
+                        featuresExpanded =
+                            !featuresExpanded
+                    },
+
+                    onToggleDetails = {
+                        detailsExpanded =
+                            !detailsExpanded
+                    },
+
+                    onToggleHistory = {
+                        historyExpanded =
+                            !historyExpanded
+                    },
+
+                    onOpenPlans = {
+                        if (
+                            !openPlansPage(
+                                context
                             )
-                ) {
-                    LazyColumn(
-                        modifier =
-                            Modifier
-                                .widthIn(
-                                    max = 760.dp
-                                )
-                                .fillMaxWidth()
-                                .fillMaxHeight()
-                                .align(
-                                    Alignment.TopCenter
-                                )
-                                .windowInsetsPadding(
-                                    WindowInsets.statusBars
-                                ),
+                        ) {
+                            Toast.makeText(
+                                context,
+                                "Não foi possível abrir a página de planos.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
 
-                        contentPadding =
-                            PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 32.dp
+@Composable
+private fun SubscriptionContent(
+    overview: SubscriptionOverview,
+    isTablet: Boolean,
+    isExpanded: Boolean,
+    accessExpanded: Boolean,
+    featuresExpanded: Boolean,
+    detailsExpanded: Boolean,
+    historyExpanded: Boolean,
+    onBackClick: () -> Unit,
+    onToggleAccess: () -> Unit,
+    onToggleFeatures: () -> Unit,
+    onToggleDetails: () -> Unit,
+    onToggleHistory: () -> Unit,
+    onOpenPlans: () -> Unit
+) {
+    val contentMaxWidth =
+        when {
+            isExpanded ->
+                1120.dp
+
+            isTablet ->
+                760.dp
+
+            else ->
+                560.dp
+        }
+
+    val horizontalPadding =
+        when {
+            isExpanded ->
+                32.dp
+
+            isTablet ->
+                28.dp
+
+            else ->
+                16.dp
+        }
+
+    val sectionSpacing =
+        if (
+            isTablet
+        ) {
+            16.dp
+        } else {
+            14.dp
+        }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    WindowInsets.statusBars
+                )
+                .verticalScroll(
+                    rememberScrollState()
+                ),
+
+        horizontalAlignment =
+            Alignment.CenterHorizontally
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .widthIn(
+                        max =
+                            contentMaxWidth
+                    )
+                    .padding(
+                        horizontal =
+                            horizontalPadding
+                    )
+        ) {
+            SubscriptionTopBar(
+                onBackClick =
+                    onBackClick,
+
+                isTablet =
+                    isTablet
+            )
+
+            if (
+                isExpanded
+            ) {
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    horizontalArrangement =
+                        Arrangement.spacedBy(
+                            20.dp
+                        ),
+
+                    verticalAlignment =
+                        Alignment.Top
+                ) {
+                    Column(
+                        modifier =
+                            Modifier.weight(
+                                1f
                             )
                     ) {
-                        item {
-                            SubscriptionTopBar(
-                                onBackClick =
-                                    onBackClick
-                            )
-                        }
+                        SubscriptionHeroCard(
+                            overview =
+                                overview,
 
-                        item {
-                            SubscriptionHeroCard(
-                                overview =
-                                    overview
-                            )
+                            isTablet =
+                                true
+                        )
 
-                            Spacer(
+                        Spacer(
+                            modifier =
                                 Modifier.height(
-                                    16.dp
+                                    sectionSpacing
                                 )
-                            )
-                        }
+                        )
 
-                        overview.access?.let {
-                                access ->
+                        overview.access
+                            ?.let {
+                                    access ->
 
-                            item {
-                                ExpandableSubscriptionSection(
-                                    icon =
-                                        Icons.Rounded.CalendarMonth,
+                                SubscriptionAccessSection(
+                                    overview =
+                                        overview,
 
-                                    title =
-                                        "Período de acesso",
-
-                                    subtitle =
-                                        accessPeriodSubtitle(
-                                            overview
-                                        ),
+                                    access =
+                                        access,
 
                                     expanded =
                                         accessExpanded,
 
-                                    onClick = {
-                                        accessExpanded =
-                                            !accessExpanded
-                                    }
+                                    onToggle =
+                                        onToggleAccess,
+
+                                    isTablet =
+                                        true
                                 )
-
-                                if (
-                                    accessExpanded
-                                ) {
-                                    Spacer(
-                                        Modifier.height(
-                                            10.dp
-                                        )
-                                    )
-
-                                    AccessDetailsCard(
-                                        access =
-                                            access
-                                    )
-                                }
 
                                 Spacer(
-                                    Modifier.height(
-                                        14.dp
-                                    )
+                                    modifier =
+                                        Modifier.height(
+                                            sectionSpacing
+                                        )
                                 )
                             }
-                        }
 
                         val features =
                             overview.plan
@@ -298,204 +437,90 @@ fun SubscriptionScreen(
                         if (
                             features.isNotEmpty()
                         ) {
-                            item {
-                                ExpandableSubscriptionSection(
-                                    icon =
-                                        Icons.Rounded.Star,
+                            SubscriptionFeaturesSection(
+                                overview =
+                                    overview,
 
-                                    title =
-                                        "O que está incluído",
-
-                                    subtitle =
-                                        overview.plan
-                                            ?.accessSummary
-                                            ?.takeIf {
-                                                it.isNotBlank()
-                                            }
-                                            ?: "Benefícios do seu plano.",
-
-                                    expanded =
-                                        featuresExpanded,
-
-                                    onClick = {
-                                        featuresExpanded =
-                                            !featuresExpanded
-                                    }
-                                )
-
-                                if (
-                                    featuresExpanded
-                                ) {
-                                    Spacer(
-                                        Modifier.height(
-                                            10.dp
-                                        )
-                                    )
-
-                                    FeaturesCard(
-                                        features =
-                                            features
-                                    )
-                                }
-
-                                Spacer(
-                                    Modifier.height(
-                                        14.dp
-                                    )
-                                )
-                            }
-                        }
-
-                        if (
-                            overview.plan != null ||
-                            overview.access != null ||
-                            overview.payment != null ||
-                            overview.discount != null
-                        ) {
-                            item {
-                                ExpandableSubscriptionSection(
-                                    icon =
-                                        Icons.Rounded.Info,
-
-                                    title =
-                                        "Detalhes do acesso",
-
-                                    subtitle =
-                                        "Plano, pagamento e informações do acesso.",
-
-                                    expanded =
-                                        detailsExpanded,
-
-                                    onClick = {
-                                        detailsExpanded =
-                                            !detailsExpanded
-                                    }
-                                )
-
-                                if (
-                                    detailsExpanded
-                                ) {
-                                    Spacer(
-                                        Modifier.height(
-                                            10.dp
-                                        )
-                                    )
-
-                                    SubscriptionDetailsCard(
-                                        overview =
-                                            overview
-                                    )
-                                }
-
-                                Spacer(
-                                    Modifier.height(
-                                        14.dp
-                                    )
-                                )
-                            }
-                        }
-
-                        item {
-                            ExpandableSubscriptionSection(
-                                icon =
-                                    Icons.Rounded.History,
-
-                                title =
-                                    "Histórico de pagamentos",
-
-                                subtitle =
-                                    historySubtitle(
-                                        overview.history.size
-                                    ),
+                                features =
+                                    features,
 
                                 expanded =
-                                    historyExpanded,
+                                    featuresExpanded,
 
-                                onClick = {
-                                    historyExpanded =
-                                        !historyExpanded
-                                }
+                                onToggle =
+                                    onToggleFeatures,
+
+                                isTablet =
+                                    true
+                            )
+                        }
+                    }
+
+                    Column(
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    ) {
+                        if (
+                            hasSubscriptionDetails(
+                                overview
+                            )
+                        ) {
+                            SubscriptionDetailsSection(
+                                overview =
+                                    overview,
+
+                                expanded =
+                                    detailsExpanded,
+
+                                onToggle =
+                                    onToggleDetails,
+
+                                isTablet =
+                                    true
                             )
 
-                            if (
-                                historyExpanded
-                            ) {
-                                Spacer(
+                            Spacer(
+                                modifier =
                                     Modifier.height(
-                                        10.dp
+                                        sectionSpacing
                                     )
-                                )
-                            }
+                            )
                         }
 
-                        if (
-                            historyExpanded
-                        ) {
-                            if (
-                                overview.history.isEmpty()
-                            ) {
-                                item {
-                                    EmptyHistoryCard()
+                        SubscriptionHistorySection(
+                            history =
+                                overview.history,
 
-                                    Spacer(
-                                        Modifier.height(
-                                            14.dp
-                                        )
-                                    )
-                                }
-                            } else {
-                                items(
-                                    items =
-                                        overview.history
-                                ) {
-                                        historyItem ->
+                            expanded =
+                                historyExpanded,
 
-                                    HistoryCard(
-                                        item =
-                                            historyItem
-                                    )
+                            onToggle =
+                                onToggleHistory,
 
-                                    Spacer(
-                                        Modifier.height(
-                                            10.dp
-                                        )
-                                    )
-                                }
-
-                                item {
-                                    Spacer(
-                                        Modifier.height(
-                                            4.dp
-                                        )
-                                    )
-                                }
-                            }
-                        } else {
-                            item {
-                                Spacer(
-                                    Modifier.height(
-                                        14.dp
-                                    )
-                                )
-                            }
-                        }
+                            isTablet =
+                                true
+                        )
 
                         if (
                             overview.supportReference
                                 .isNotBlank()
                         ) {
-                            item {
-                                SupportReferenceCard(
-                                    reference =
-                                        overview.supportReference
-                                )
-
-                                Spacer(
+                            Spacer(
+                                modifier =
                                     Modifier.height(
-                                        18.dp
+                                        sectionSpacing
                                     )
-                                )
-                            }
+                            )
+
+                            SupportReferenceCard(
+                                reference =
+                                    overview.supportReference,
+
+                                isTablet =
+                                    true
+                            )
                         }
 
                         if (
@@ -503,121 +528,217 @@ fun SubscriptionScreen(
                                 overview
                             )
                         ) {
-                            item {
-                                Button(
-                                    onClick = {
-                                        if (
-                                            !openPlansPage(
-                                                context
-                                            )
-                                        ) {
-                                            Toast.makeText(
-                                                context,
-                                                "Não foi possível abrir a página de planos.",
-                                                Toast.LENGTH_SHORT
-                                            )
-                                                .show()
-                                        }
-                                    },
-
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .height(
-                                                52.dp
-                                            ),
-
-                                    shape =
-                                        RoundedCornerShape(
-                                            8.dp
-                                        ),
-
-                                    colors =
-                                        ButtonDefaults
-                                            .buttonColors(
-                                                containerColor =
-                                                    LaranjadaOrange,
-
-                                                contentColor =
-                                                    Color.White
-                                            )
-                                ) {
-                                    Text(
-                                        text =
-                                            "VER PLANOS",
-
-                                        fontWeight =
-                                            FontWeight.ExtraBold
-                                    )
-
-                                    Spacer(
-                                        Modifier.width(
-                                            8.dp
-                                        )
-                                    )
-
-                                    Icon(
-                                        imageVector =
-                                            Icons.Rounded.OpenInNew,
-
-                                        contentDescription =
-                                            null,
-
-                                        modifier =
-                                            Modifier.size(
-                                                18.dp
-                                            )
-                                    )
-                                }
-
-                                Text(
-                                    text =
-                                        "A contratação continua pela página Web do Laranjada.",
-
-                                    color =
-                                        LaranjadaMutedText,
-
-                                    fontSize =
-                                        11.sp,
-
-                                    lineHeight =
-                                        16.sp,
-
-                                    textAlign =
-                                        TextAlign.Center,
-
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                top = 8.dp
-                                            )
-                                )
-
-                                Spacer(
+                            Spacer(
+                                modifier =
                                     Modifier.height(
-                                        16.dp
+                                        sectionSpacing
                                     )
-                                )
-                            }
+                            )
+
+                            PlansButton(
+                                onClick =
+                                    onOpenPlans,
+
+                                isTablet =
+                                    true
+                            )
                         }
                     }
                 }
+            } else {
+                SubscriptionHeroCard(
+                    overview =
+                        overview,
+
+                    isTablet =
+                        isTablet
+                )
+
+                Spacer(
+                    modifier =
+                        Modifier.height(
+                            sectionSpacing
+                        )
+                )
+
+                overview.access
+                    ?.let {
+                            access ->
+
+                        SubscriptionAccessSection(
+                            overview =
+                                overview,
+
+                            access =
+                                access,
+
+                            expanded =
+                                accessExpanded,
+
+                            onToggle =
+                                onToggleAccess,
+
+                            isTablet =
+                                isTablet
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(
+                                    sectionSpacing
+                                )
+                        )
+                    }
+
+                val features =
+                    overview.plan
+                        ?.features
+                        .orEmpty()
+
+                if (
+                    features.isNotEmpty()
+                ) {
+                    SubscriptionFeaturesSection(
+                        overview =
+                            overview,
+
+                        features =
+                            features,
+
+                        expanded =
+                            featuresExpanded,
+
+                        onToggle =
+                            onToggleFeatures,
+
+                        isTablet =
+                            isTablet
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                sectionSpacing
+                            )
+                    )
+                }
+
+                if (
+                    hasSubscriptionDetails(
+                        overview
+                    )
+                ) {
+                    SubscriptionDetailsSection(
+                        overview =
+                            overview,
+
+                        expanded =
+                            detailsExpanded,
+
+                        onToggle =
+                            onToggleDetails,
+
+                        isTablet =
+                            isTablet
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                sectionSpacing
+                            )
+                    )
+                }
+
+                SubscriptionHistorySection(
+                    history =
+                        overview.history,
+
+                    expanded =
+                        historyExpanded,
+
+                    onToggle =
+                        onToggleHistory,
+
+                    isTablet =
+                        isTablet
+                )
+
+                if (
+                    overview.supportReference
+                        .isNotBlank()
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                sectionSpacing
+                            )
+                    )
+
+                    SupportReferenceCard(
+                        reference =
+                            overview.supportReference,
+
+                        isTablet =
+                            isTablet
+                    )
+                }
+
+                if (
+                    shouldShowPlansButton(
+                        overview
+                    )
+                ) {
+                    Spacer(
+                        modifier =
+                            Modifier.height(
+                                sectionSpacing
+                            )
+                    )
+
+                    PlansButton(
+                        onClick =
+                            onOpenPlans,
+
+                        isTablet =
+                            isTablet
+                    )
+                }
             }
+
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        if (
+                            isTablet
+                        ) {
+                            44.dp
+                        } else {
+                            32.dp
+                        }
+                    )
+            )
         }
     }
 }
 
 @Composable
 private fun SubscriptionTopBar(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    isTablet: Boolean
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(
-                    68.dp
+                    if (
+                        isTablet
+                    ) {
+                        82.dp
+                    } else {
+                        68.dp
+                    }
                 ),
 
         verticalAlignment =
@@ -625,7 +746,18 @@ private fun SubscriptionTopBar(
     ) {
         IconButton(
             onClick =
-                onBackClick
+                onBackClick,
+
+            modifier =
+                Modifier.size(
+                    if (
+                        isTablet
+                    ) {
+                        52.dp
+                    } else {
+                        48.dp
+                    }
+                )
         ) {
             Icon(
                 imageVector =
@@ -637,9 +769,33 @@ private fun SubscriptionTopBar(
                     "Voltar",
 
                 tint =
-                    Color.White
+                    Color.White,
+
+                modifier =
+                    Modifier.size(
+                        if (
+                            isTablet
+                        ) {
+                            30.dp
+                        } else {
+                            26.dp
+                        }
+                    )
             )
         }
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    if (
+                        isTablet
+                    ) {
+                        8.dp
+                    } else {
+                        2.dp
+                    }
+                )
+        )
 
         Text(
             text =
@@ -649,7 +805,13 @@ private fun SubscriptionTopBar(
                 Color.White,
 
             fontSize =
-                23.sp,
+                if (
+                    isTablet
+                ) {
+                    28.sp
+                } else {
+                    23.sp
+                },
 
             fontWeight =
                 FontWeight.ExtraBold
@@ -659,7 +821,8 @@ private fun SubscriptionTopBar(
 
 @Composable
 private fun SubscriptionHeroCard(
-    overview: SubscriptionOverview
+    overview: SubscriptionOverview,
+    isTablet: Boolean
 ) {
     val statusColor =
         stateColor(
@@ -675,7 +838,13 @@ private fun SubscriptionHeroCard(
 
         shape =
             RoundedCornerShape(
-                16.dp
+                if (
+                    isTablet
+                ) {
+                    20.dp
+                } else {
+                    16.dp
+                }
             ),
 
         color =
@@ -685,14 +854,21 @@ private fun SubscriptionHeroCard(
             BorderStroke(
                 1.dp,
                 statusColor.copy(
-                    alpha = 0.35f
+                    alpha =
+                        0.35f
                 )
             )
     ) {
         Column(
             modifier =
                 Modifier.padding(
-                    18.dp
+                    if (
+                        isTablet
+                    ) {
+                        24.dp
+                    } else {
+                        18.dp
+                    }
                 )
         ) {
             Row(
@@ -703,14 +879,27 @@ private fun SubscriptionHeroCard(
                     modifier =
                         Modifier
                             .size(
-                                48.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    58.dp
+                                } else {
+                                    48.dp
+                                }
                             )
                             .background(
                                 LaranjadaOrange.copy(
-                                    alpha = 0.12f
+                                    alpha =
+                                        0.12f
                                 ),
                                 RoundedCornerShape(
-                                    13.dp
+                                    if (
+                                        isTablet
+                                    ) {
+                                        16.dp
+                                    } else {
+                                        13.dp
+                                    }
                                 )
                             ),
 
@@ -729,15 +918,28 @@ private fun SubscriptionHeroCard(
 
                         modifier =
                             Modifier.size(
-                                24.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    29.dp
+                                } else {
+                                    24.dp
+                                }
                             )
                     )
                 }
 
                 Spacer(
-                    Modifier.width(
-                        13.dp
-                    )
+                    modifier =
+                        Modifier.width(
+                            if (
+                                isTablet
+                            ) {
+                                16.dp
+                            } else {
+                                13.dp
+                            }
+                        )
                 )
 
                 Column(
@@ -759,7 +961,13 @@ private fun SubscriptionHeroCard(
                             LaranjadaText,
 
                         fontSize =
-                            20.sp,
+                            if (
+                                isTablet
+                            ) {
+                                24.sp
+                            } else {
+                                20.sp
+                            },
 
                         fontWeight =
                             FontWeight.ExtraBold,
@@ -777,7 +985,8 @@ private fun SubscriptionHeroCard(
                                 overview.hasAccess ->
                                     "Seu acesso atual"
 
-                                plan != null ->
+                                plan !=
+                                        null ->
                                     "Último acesso"
 
                                 else ->
@@ -788,11 +997,18 @@ private fun SubscriptionHeroCard(
                             LaranjadaMutedText,
 
                         fontSize =
-                            12.sp,
+                            if (
+                                isTablet
+                            ) {
+                                14.sp
+                            } else {
+                                12.sp
+                            },
 
                         modifier =
                             Modifier.padding(
-                                top = 2.dp
+                                top =
+                                    3.dp
                             )
                     )
                 }
@@ -802,19 +1018,30 @@ private fun SubscriptionHeroCard(
                         overview.state.label,
 
                     color =
-                        statusColor
+                        statusColor,
+
+                    isTablet =
+                        isTablet
                 )
             }
 
             if (
-                plan != null &&
+                plan !=
+                null &&
                 plan.priceLabel
                     .isNotBlank()
             ) {
                 Spacer(
-                    Modifier.height(
-                        20.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            if (
+                                isTablet
+                            ) {
+                                24.dp
+                            } else {
+                                20.dp
+                            }
+                        )
                 )
 
                 Row(
@@ -829,7 +1056,13 @@ private fun SubscriptionHeroCard(
                             Color.White,
 
                         fontSize =
-                            27.sp,
+                            if (
+                                isTablet
+                            ) {
+                                32.sp
+                            } else {
+                                27.sp
+                            },
 
                         fontWeight =
                             FontWeight.ExtraBold
@@ -847,11 +1080,18 @@ private fun SubscriptionHeroCard(
                                 LaranjadaMutedText,
 
                             fontSize =
-                                13.sp,
+                                if (
+                                    isTablet
+                                ) {
+                                    15.sp
+                                } else {
+                                    13.sp
+                                },
 
                             modifier =
                                 Modifier.padding(
-                                    bottom = 4.dp
+                                    bottom =
+                                        5.dp
                                 )
                         )
                     }
@@ -873,13 +1113,16 @@ private fun SubscriptionHeroCard(
                     }
 
             if (
-                paymentMethod != null ||
-                accessType != null
+                paymentMethod !=
+                null ||
+                accessType !=
+                null
             ) {
                 Spacer(
-                    Modifier.height(
-                        12.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            14.dp
+                        )
                 )
 
                 Row(
@@ -898,14 +1141,21 @@ private fun SubscriptionHeroCard(
 
                         modifier =
                             Modifier.size(
-                                18.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    22.dp
+                                } else {
+                                    18.dp
+                                }
                             )
                     )
 
                     Spacer(
-                        Modifier.width(
-                            7.dp
-                        )
+                        modifier =
+                            Modifier.width(
+                                8.dp
+                            )
                     )
 
                     Text(
@@ -916,11 +1166,18 @@ private fun SubscriptionHeroCard(
 
                         color =
                             Color.White.copy(
-                                alpha = 0.85f
+                                alpha =
+                                    0.85f
                             ),
 
                         fontSize =
-                            13.sp,
+                            if (
+                                isTablet
+                            ) {
+                                15.sp
+                            } else {
+                                13.sp
+                            },
 
                         fontWeight =
                             FontWeight.SemiBold
@@ -932,15 +1189,17 @@ private fun SubscriptionHeroCard(
                 !overview.hasAccess
             ) {
                 Spacer(
-                    Modifier.height(
-                        14.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            16.dp
+                        )
                 )
 
                 HorizontalDivider(
                     color =
                         Color.White.copy(
-                            alpha = 0.08f
+                            alpha =
+                                0.08f
                         )
                 )
 
@@ -954,16 +1213,248 @@ private fun SubscriptionHeroCard(
                         LaranjadaMutedText,
 
                     fontSize =
-                        12.sp,
+                        if (
+                            isTablet
+                        ) {
+                            14.sp
+                        } else {
+                            12.sp
+                        },
 
                     lineHeight =
-                        18.sp,
+                        if (
+                            isTablet
+                        ) {
+                            20.sp
+                        } else {
+                            18.sp
+                        },
 
                     modifier =
                         Modifier.padding(
-                            top = 12.dp
+                            top =
+                                14.dp
                         )
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionAccessSection(
+    overview: SubscriptionOverview,
+    access: SubscriptionAccessSummary,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    isTablet: Boolean
+) {
+    ExpandableSubscriptionSection(
+        icon =
+            Icons.Rounded.CalendarMonth,
+
+        title =
+            "Período de acesso",
+
+        subtitle =
+            accessPeriodSubtitle(
+                overview
+            ),
+
+        expanded =
+            expanded,
+
+        onClick =
+            onToggle,
+
+        isTablet =
+            isTablet
+    )
+
+    if (
+        expanded
+    ) {
+        Spacer(
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
+        )
+
+        AccessDetailsCard(
+            access =
+                access,
+
+            isTablet =
+                isTablet
+        )
+    }
+}
+
+@Composable
+private fun SubscriptionFeaturesSection(
+    overview: SubscriptionOverview,
+    features: List<String>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    isTablet: Boolean
+) {
+    ExpandableSubscriptionSection(
+        icon =
+            Icons.Rounded.Star,
+
+        title =
+            "O que está incluído",
+
+        subtitle =
+            overview.plan
+                ?.accessSummary
+                ?.takeIf {
+                    it.isNotBlank()
+                }
+                ?: "Benefícios do seu plano.",
+
+        expanded =
+            expanded,
+
+        onClick =
+            onToggle,
+
+        isTablet =
+            isTablet
+    )
+
+    if (
+        expanded
+    ) {
+        Spacer(
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
+        )
+
+        FeaturesCard(
+            features =
+                features,
+
+            isTablet =
+                isTablet
+        )
+    }
+}
+
+@Composable
+private fun SubscriptionDetailsSection(
+    overview: SubscriptionOverview,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    isTablet: Boolean
+) {
+    ExpandableSubscriptionSection(
+        icon =
+            Icons.Rounded.Info,
+
+        title =
+            "Detalhes do acesso",
+
+        subtitle =
+            "Plano, pagamento e informações do acesso.",
+
+        expanded =
+            expanded,
+
+        onClick =
+            onToggle,
+
+        isTablet =
+            isTablet
+    )
+
+    if (
+        expanded
+    ) {
+        Spacer(
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
+        )
+
+        SubscriptionDetailsCard(
+            overview =
+                overview,
+
+            isTablet =
+                isTablet
+        )
+    }
+}
+
+@Composable
+private fun SubscriptionHistorySection(
+    history: List<SubscriptionHistoryItem>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    isTablet: Boolean
+) {
+    ExpandableSubscriptionSection(
+        icon =
+            Icons.Rounded.History,
+
+        title =
+            "Histórico de pagamentos",
+
+        subtitle =
+            historySubtitle(
+                history.size
+            ),
+
+        expanded =
+            expanded,
+
+        onClick =
+            onToggle,
+
+        isTablet =
+            isTablet
+    )
+
+    if (
+        expanded
+    ) {
+        Spacer(
+            modifier =
+                Modifier.height(
+                    10.dp
+                )
+        )
+
+        if (
+            history.isEmpty()
+        ) {
+            EmptyHistoryCard(
+                isTablet =
+                    isTablet
+            )
+        } else {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(
+                        10.dp
+                    )
+            ) {
+                history.forEach {
+                        item ->
+
+                    HistoryCard(
+                        item =
+                            item,
+
+                        isTablet =
+                            isTablet
+                    )
+                }
             }
         }
     }
@@ -975,7 +1466,8 @@ private fun ExpandableSubscriptionSection(
     title: String,
     subtitle: String,
     expanded: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isTablet: Boolean
 ) {
     Surface(
         modifier =
@@ -988,7 +1480,13 @@ private fun ExpandableSubscriptionSection(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -997,7 +1495,13 @@ private fun ExpandableSubscriptionSection(
         Row(
             modifier =
                 Modifier.padding(
-                    16.dp
+                    if (
+                        isTablet
+                    ) {
+                        20.dp
+                    } else {
+                        16.dp
+                    }
                 ),
 
             verticalAlignment =
@@ -1007,14 +1511,27 @@ private fun ExpandableSubscriptionSection(
                 modifier =
                     Modifier
                         .size(
-                            42.dp
+                            if (
+                                isTablet
+                            ) {
+                                50.dp
+                            } else {
+                                42.dp
+                            }
                         )
                         .background(
                             LaranjadaOrange.copy(
-                                alpha = 0.12f
+                                alpha =
+                                    0.12f
                             ),
                             RoundedCornerShape(
-                                11.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    14.dp
+                                } else {
+                                    11.dp
+                                }
                             )
                         ),
 
@@ -1033,15 +1550,28 @@ private fun ExpandableSubscriptionSection(
 
                     modifier =
                         Modifier.size(
-                            22.dp
+                            if (
+                                isTablet
+                            ) {
+                                26.dp
+                            } else {
+                                22.dp
+                            }
                         )
                 )
             }
 
             Spacer(
-                Modifier.width(
-                    14.dp
-                )
+                modifier =
+                    Modifier.width(
+                        if (
+                            isTablet
+                        ) {
+                            16.dp
+                        } else {
+                            14.dp
+                        }
+                    )
             )
 
             Column(
@@ -1058,7 +1588,13 @@ private fun ExpandableSubscriptionSection(
                         LaranjadaText,
 
                     fontSize =
-                        16.sp,
+                        if (
+                            isTablet
+                        ) {
+                            18.sp
+                        } else {
+                            16.sp
+                        },
 
                     fontWeight =
                         FontWeight.Bold
@@ -1072,14 +1608,27 @@ private fun ExpandableSubscriptionSection(
                         LaranjadaMutedText,
 
                     fontSize =
-                        12.sp,
+                        if (
+                            isTablet
+                        ) {
+                            13.sp
+                        } else {
+                            12.sp
+                        },
 
                     lineHeight =
-                        17.sp,
+                        if (
+                            isTablet
+                        ) {
+                            19.sp
+                        } else {
+                            17.sp
+                        },
 
                     modifier =
                         Modifier.padding(
-                            top = 3.dp
+                            top =
+                                3.dp
                         )
                 )
             }
@@ -1105,12 +1654,19 @@ private fun ExpandableSubscriptionSection(
 
                 tint =
                     Color.White.copy(
-                        alpha = 0.55f
+                        alpha =
+                            0.55f
                     ),
 
                 modifier =
                     Modifier.size(
-                        26.dp
+                        if (
+                            isTablet
+                        ) {
+                            30.dp
+                        } else {
+                            26.dp
+                        }
                     )
             )
         }
@@ -1119,7 +1675,8 @@ private fun ExpandableSubscriptionSection(
 
 @Composable
 private fun AccessDetailsCard(
-    access: SubscriptionAccessSummary
+    access: SubscriptionAccessSummary,
+    isTablet: Boolean
 ) {
     Surface(
         modifier =
@@ -1127,7 +1684,13 @@ private fun AccessDetailsCard(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1136,7 +1699,13 @@ private fun AccessDetailsCard(
         Column(
             modifier =
                 Modifier.padding(
-                    16.dp
+                    if (
+                        isTablet
+                    ) {
+                        20.dp
+                    } else {
+                        16.dp
+                    }
                 )
         ) {
             SubscriptionDetailRow(
@@ -1146,7 +1715,10 @@ private fun AccessDetailsCard(
                 value =
                     formatSubscriptionDate(
                         access.periodStartAt
-                    )
+                    ),
+
+                isTablet =
+                    isTablet
             )
 
             DetailDivider()
@@ -1158,7 +1730,10 @@ private fun AccessDetailsCard(
                 value =
                     formatSubscriptionDate(
                         access.periodEndAt
-                    )
+                    ),
+
+                isTablet =
+                    isTablet
             )
 
             if (
@@ -1172,7 +1747,10 @@ private fun AccessDetailsCard(
                         "Tipo de acesso",
 
                     value =
-                        access.typeLabel
+                        access.typeLabel,
+
+                    isTablet =
+                        isTablet
                 )
             }
         }
@@ -1181,7 +1759,8 @@ private fun AccessDetailsCard(
 
 @Composable
 private fun FeaturesCard(
-    features: List<String>
+    features: List<String>,
+    isTablet: Boolean
 ) {
     Surface(
         modifier =
@@ -1189,7 +1768,13 @@ private fun FeaturesCard(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1198,12 +1783,24 @@ private fun FeaturesCard(
         Column(
             modifier =
                 Modifier.padding(
-                    16.dp
+                    if (
+                        isTablet
+                    ) {
+                        20.dp
+                    } else {
+                        16.dp
+                    }
                 ),
 
             verticalArrangement =
                 Arrangement.spacedBy(
-                    12.dp
+                    if (
+                        isTablet
+                    ) {
+                        14.dp
+                    } else {
+                        12.dp
+                    }
                 )
         ) {
             features.forEach {
@@ -1217,14 +1814,22 @@ private fun FeaturesCard(
                         modifier =
                             Modifier
                                 .padding(
-                                    top = 2.dp
+                                    top =
+                                        2.dp
                                 )
                                 .size(
-                                    18.dp
+                                    if (
+                                        isTablet
+                                    ) {
+                                        21.dp
+                                    } else {
+                                        18.dp
+                                    }
                                 )
                                 .background(
                                     SubscriptionGreen.copy(
-                                        alpha = 0.12f
+                                        alpha =
+                                            0.12f
                                     ),
                                     CircleShape
                                 ),
@@ -1244,15 +1849,22 @@ private fun FeaturesCard(
 
                             modifier =
                                 Modifier.size(
-                                    13.dp
+                                    if (
+                                        isTablet
+                                    ) {
+                                        15.dp
+                                    } else {
+                                        13.dp
+                                    }
                                 )
                         )
                     }
 
                     Spacer(
-                        Modifier.width(
-                            10.dp
-                        )
+                        modifier =
+                            Modifier.width(
+                                10.dp
+                            )
                     )
 
                     Text(
@@ -1261,14 +1873,27 @@ private fun FeaturesCard(
 
                         color =
                             Color.White.copy(
-                                alpha = 0.90f
+                                alpha =
+                                    0.90f
                             ),
 
                         fontSize =
-                            13.sp,
+                            if (
+                                isTablet
+                            ) {
+                                15.sp
+                            } else {
+                                13.sp
+                            },
 
                         lineHeight =
-                            19.sp,
+                            if (
+                                isTablet
+                            ) {
+                                21.sp
+                            } else {
+                                19.sp
+                            },
 
                         modifier =
                             Modifier.weight(
@@ -1283,7 +1908,8 @@ private fun FeaturesCard(
 
 @Composable
 private fun SubscriptionDetailsCard(
-    overview: SubscriptionOverview
+    overview: SubscriptionOverview,
+    isTablet: Boolean
 ) {
     Surface(
         modifier =
@@ -1291,7 +1917,13 @@ private fun SubscriptionDetailsCard(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1300,7 +1932,13 @@ private fun SubscriptionDetailsCard(
         Column(
             modifier =
                 Modifier.padding(
-                    16.dp
+                    if (
+                        isTablet
+                    ) {
+                        20.dp
+                    } else {
+                        16.dp
+                    }
                 )
         ) {
             val rows =
@@ -1373,7 +2011,8 @@ private fun SubscriptionDetailsCard(
                     row ->
 
                 if (
-                    index > 0
+                    index >
+                    0
                 ) {
                     DetailDivider()
                 }
@@ -1383,7 +2022,10 @@ private fun SubscriptionDetailsCard(
                         row.first,
 
                     value =
-                        row.second
+                        row.second,
+
+                    isTablet =
+                        isTablet
                 )
             }
 
@@ -1399,7 +2041,10 @@ private fun SubscriptionDetailsCard(
 
                     DiscountDetails(
                         discount =
-                            discount
+                            discount,
+
+                        isTablet =
+                            isTablet
                     )
                 }
         }
@@ -1408,7 +2053,8 @@ private fun SubscriptionDetailsCard(
 
 @Composable
 private fun DiscountDetails(
-    discount: SubscriptionDiscountSummary
+    discount: SubscriptionDiscountSummary,
+    isTablet: Boolean
 ) {
     Column {
         Text(
@@ -1419,14 +2065,21 @@ private fun DiscountDetails(
                 LaranjadaOrange,
 
             fontSize =
-                12.sp,
+                if (
+                    isTablet
+                ) {
+                    14.sp
+                } else {
+                    12.sp
+                },
 
             fontWeight =
                 FontWeight.Bold,
 
             modifier =
                 Modifier.padding(
-                    vertical = 6.dp
+                    vertical =
+                        6.dp
                 )
         )
 
@@ -1491,7 +2144,10 @@ private fun DiscountDetails(
                     row.first,
 
                 value =
-                    row.second
+                    row.second,
+
+                isTablet =
+                    isTablet
             )
         }
     }
@@ -1500,14 +2156,22 @@ private fun DiscountDetails(
 @Composable
 private fun SubscriptionDetailRow(
     label: String,
-    value: String
+    value: String,
+    isTablet: Boolean
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(
-                    vertical = 7.dp
+                    vertical =
+                        if (
+                            isTablet
+                        ) {
+                            9.dp
+                        } else {
+                            7.dp
+                        }
                 ),
 
         verticalAlignment =
@@ -1521,11 +2185,23 @@ private fun SubscriptionDetailRow(
                 LaranjadaMutedText,
 
             fontSize =
-                12.sp,
+                if (
+                    isTablet
+                ) {
+                    14.sp
+                } else {
+                    12.sp
+                },
 
             modifier =
                 Modifier.width(
-                    118.dp
+                    if (
+                        isTablet
+                    ) {
+                        142.dp
+                    } else {
+                        118.dp
+                    }
                 )
         )
 
@@ -1537,17 +2213,30 @@ private fun SubscriptionDetailRow(
 
             color =
                 Color.White.copy(
-                    alpha = 0.90f
+                    alpha =
+                        0.90f
                 ),
 
             fontSize =
-                12.sp,
+                if (
+                    isTablet
+                ) {
+                    14.sp
+                } else {
+                    12.sp
+                },
 
             fontWeight =
                 FontWeight.SemiBold,
 
             lineHeight =
-                17.sp,
+                if (
+                    isTablet
+                ) {
+                    20.sp
+                } else {
+                    17.sp
+                },
 
             modifier =
                 Modifier.weight(
@@ -1559,7 +2248,8 @@ private fun SubscriptionDetailRow(
 
 @Composable
 private fun HistoryCard(
-    item: SubscriptionHistoryItem
+    item: SubscriptionHistoryItem,
+    isTablet: Boolean
 ) {
     val toneColor =
         historyToneColor(
@@ -1572,7 +2262,13 @@ private fun HistoryCard(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1581,7 +2277,13 @@ private fun HistoryCard(
         Row(
             modifier =
                 Modifier.padding(
-                    15.dp
+                    if (
+                        isTablet
+                    ) {
+                        18.dp
+                    } else {
+                        15.dp
+                    }
                 ),
 
             verticalAlignment =
@@ -1591,14 +2293,27 @@ private fun HistoryCard(
                 modifier =
                     Modifier
                         .size(
-                            40.dp
+                            if (
+                                isTablet
+                            ) {
+                                46.dp
+                            } else {
+                                40.dp
+                            }
                         )
                         .background(
                             toneColor.copy(
-                                alpha = 0.12f
+                                alpha =
+                                    0.12f
                             ),
                             RoundedCornerShape(
-                                10.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    12.dp
+                                } else {
+                                    10.dp
+                                }
                             )
                         ),
 
@@ -1617,15 +2332,22 @@ private fun HistoryCard(
 
                     modifier =
                         Modifier.size(
-                            21.dp
+                            if (
+                                isTablet
+                            ) {
+                                24.dp
+                            } else {
+                                21.dp
+                            }
                         )
                 )
             }
 
             Spacer(
-                Modifier.width(
-                    12.dp
-                )
+                modifier =
+                    Modifier.width(
+                        12.dp
+                    )
             )
 
             Column(
@@ -1645,7 +2367,13 @@ private fun HistoryCard(
                         LaranjadaText,
 
                     fontSize =
-                        14.sp,
+                        if (
+                            isTablet
+                        ) {
+                            16.sp
+                        } else {
+                            14.sp
+                        },
 
                     fontWeight =
                         FontWeight.Bold,
@@ -1658,9 +2386,10 @@ private fun HistoryCard(
                 )
 
                 Spacer(
-                    Modifier.height(
-                        6.dp
-                    )
+                    modifier =
+                        Modifier.height(
+                            6.dp
+                        )
                 )
 
                 HistoryStatusPill(
@@ -1671,7 +2400,10 @@ private fun HistoryCard(
                             },
 
                     color =
-                        toneColor
+                        toneColor,
+
+                    isTablet =
+                        isTablet
                 )
 
                 val paymentLine =
@@ -1691,7 +2423,8 @@ private fun HistoryCard(
                         )
 
                 if (
-                    paymentLine.isNotBlank()
+                    paymentLine
+                        .isNotBlank()
                 ) {
                     Text(
                         text =
@@ -1699,18 +2432,26 @@ private fun HistoryCard(
 
                         color =
                             Color.White.copy(
-                                alpha = 0.80f
+                                alpha =
+                                    0.80f
                             ),
 
                         fontSize =
-                            12.sp,
+                            if (
+                                isTablet
+                            ) {
+                                14.sp
+                            } else {
+                                12.sp
+                            },
 
                         fontWeight =
                             FontWeight.SemiBold,
 
                         modifier =
                             Modifier.padding(
-                                top = 6.dp
+                                top =
+                                    6.dp
                             )
                     )
                 }
@@ -1729,11 +2470,18 @@ private fun HistoryCard(
                             LaranjadaMutedText,
 
                         fontSize =
-                            11.sp,
+                            if (
+                                isTablet
+                            ) {
+                                13.sp
+                            } else {
+                                11.sp
+                            },
 
                         modifier =
                             Modifier.padding(
-                                top = 4.dp
+                                top =
+                                    4.dp
                             )
                     )
                 }
@@ -1750,14 +2498,27 @@ private fun HistoryCard(
                             LaranjadaMutedText,
 
                         fontSize =
-                            11.sp,
+                            if (
+                                isTablet
+                            ) {
+                                13.sp
+                            } else {
+                                11.sp
+                            },
 
                         lineHeight =
-                            16.sp,
+                            if (
+                                isTablet
+                            ) {
+                                18.sp
+                            } else {
+                                16.sp
+                            },
 
                         modifier =
                             Modifier.padding(
-                                top = 7.dp
+                                top =
+                                    7.dp
                             )
                     )
                 }
@@ -1767,14 +2528,22 @@ private fun HistoryCard(
 }
 
 @Composable
-private fun EmptyHistoryCard() {
+private fun EmptyHistoryCard(
+    isTablet: Boolean
+) {
     Surface(
         modifier =
             Modifier.fillMaxWidth(),
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1783,7 +2552,13 @@ private fun EmptyHistoryCard() {
         Column(
             modifier =
                 Modifier.padding(
-                    22.dp
+                    if (
+                        isTablet
+                    ) {
+                        28.dp
+                    } else {
+                        22.dp
+                    }
                 ),
 
             horizontalAlignment =
@@ -1801,7 +2576,13 @@ private fun EmptyHistoryCard() {
 
                 modifier =
                     Modifier.size(
-                        30.dp
+                        if (
+                            isTablet
+                        ) {
+                            36.dp
+                        } else {
+                            30.dp
+                        }
                     )
             )
 
@@ -1813,14 +2594,21 @@ private fun EmptyHistoryCard() {
                     LaranjadaText,
 
                 fontSize =
-                    14.sp,
+                    if (
+                        isTablet
+                    ) {
+                        16.sp
+                    } else {
+                        14.sp
+                    },
 
                 fontWeight =
                     FontWeight.Bold,
 
                 modifier =
                     Modifier.padding(
-                        top = 10.dp
+                        top =
+                            10.dp
                     )
             )
 
@@ -1832,17 +2620,30 @@ private fun EmptyHistoryCard() {
                     LaranjadaMutedText,
 
                 fontSize =
-                    12.sp,
+                    if (
+                        isTablet
+                    ) {
+                        14.sp
+                    } else {
+                        12.sp
+                    },
 
                 lineHeight =
-                    17.sp,
+                    if (
+                        isTablet
+                    ) {
+                        20.sp
+                    } else {
+                        17.sp
+                    },
 
                 textAlign =
                     TextAlign.Center,
 
                 modifier =
                     Modifier.padding(
-                        top = 5.dp
+                        top =
+                            5.dp
                     )
             )
         }
@@ -1851,7 +2652,8 @@ private fun EmptyHistoryCard() {
 
 @Composable
 private fun SupportReferenceCard(
-    reference: String
+    reference: String,
+    isTablet: Boolean
 ) {
     Surface(
         modifier =
@@ -1859,7 +2661,13 @@ private fun SupportReferenceCard(
 
         shape =
             RoundedCornerShape(
-                14.dp
+                if (
+                    isTablet
+                ) {
+                    18.dp
+                } else {
+                    14.dp
+                }
             ),
 
         color =
@@ -1868,7 +2676,13 @@ private fun SupportReferenceCard(
         Row(
             modifier =
                 Modifier.padding(
-                    16.dp
+                    if (
+                        isTablet
+                    ) {
+                        20.dp
+                    } else {
+                        16.dp
+                    }
                 ),
 
             verticalAlignment =
@@ -1878,14 +2692,27 @@ private fun SupportReferenceCard(
                 modifier =
                     Modifier
                         .size(
-                            42.dp
+                            if (
+                                isTablet
+                            ) {
+                                50.dp
+                            } else {
+                                42.dp
+                            }
                         )
                         .background(
                             LaranjadaOrange.copy(
-                                alpha = 0.12f
+                                alpha =
+                                    0.12f
                             ),
                             RoundedCornerShape(
-                                11.dp
+                                if (
+                                    isTablet
+                                ) {
+                                    14.dp
+                                } else {
+                                    11.dp
+                                }
                             )
                         ),
 
@@ -1900,14 +2727,26 @@ private fun SupportReferenceCard(
                         null,
 
                     tint =
-                        LaranjadaOrange
+                        LaranjadaOrange,
+
+                    modifier =
+                        Modifier.size(
+                            if (
+                                isTablet
+                            ) {
+                                26.dp
+                            } else {
+                                22.dp
+                            }
+                        )
                 )
             }
 
             Spacer(
-                Modifier.width(
-                    14.dp
-                )
+                modifier =
+                    Modifier.width(
+                        14.dp
+                    )
             )
 
             Column(
@@ -1924,7 +2763,13 @@ private fun SupportReferenceCard(
                         LaranjadaMutedText,
 
                     fontSize =
-                        12.sp
+                        if (
+                            isTablet
+                        ) {
+                            14.sp
+                        } else {
+                            12.sp
+                        }
                 )
 
                 Text(
@@ -1935,7 +2780,13 @@ private fun SupportReferenceCard(
                         LaranjadaText,
 
                     fontSize =
-                        16.sp,
+                        if (
+                            isTablet
+                        ) {
+                            18.sp
+                        } else {
+                            16.sp
+                        },
 
                     fontWeight =
                         FontWeight.ExtraBold,
@@ -1945,7 +2796,8 @@ private fun SupportReferenceCard(
 
                     modifier =
                         Modifier.padding(
-                            top = 3.dp
+                            top =
+                                3.dp
                         )
                 )
             }
@@ -1954,26 +2806,154 @@ private fun SupportReferenceCard(
 }
 
 @Composable
+private fun PlansButton(
+    onClick: () -> Unit,
+    isTablet: Boolean
+) {
+    Button(
+        onClick =
+            onClick,
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(
+                    if (
+                        isTablet
+                    ) {
+                        58.dp
+                    } else {
+                        52.dp
+                    }
+                ),
+
+        shape =
+            RoundedCornerShape(
+                if (
+                    isTablet
+                ) {
+                    10.dp
+                } else {
+                    8.dp
+                }
+            ),
+
+        colors =
+            ButtonDefaults
+                .buttonColors(
+                    containerColor =
+                        LaranjadaOrange,
+
+                    contentColor =
+                        Color.White
+                )
+    ) {
+        Text(
+            text =
+                "VER PLANOS",
+
+            fontSize =
+                if (
+                    isTablet
+                ) {
+                    16.sp
+                } else {
+                    14.sp
+                },
+
+            fontWeight =
+                FontWeight.ExtraBold
+        )
+
+        Spacer(
+            modifier =
+                Modifier.width(
+                    8.dp
+                )
+        )
+
+        Icon(
+            imageVector =
+                Icons.Rounded.OpenInNew,
+
+            contentDescription =
+                null,
+
+            modifier =
+                Modifier.size(
+                    if (
+                        isTablet
+                    ) {
+                        21.dp
+                    } else {
+                        18.dp
+                    }
+                )
+        )
+    }
+
+    Text(
+        text =
+            "A contratação continua pela página Web do Laranjada.",
+
+        color =
+            LaranjadaMutedText,
+
+        fontSize =
+            if (
+                isTablet
+            ) {
+                13.sp
+            } else {
+                11.sp
+            },
+
+        lineHeight =
+            if (
+                isTablet
+            ) {
+                18.sp
+            } else {
+                16.sp
+            },
+
+        textAlign =
+            TextAlign.Center,
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    top =
+                        8.dp
+                )
+    )
+}
+
+@Composable
 private fun SubscriptionStatusPill(
     text: String,
-    color: Color
+    color: Color,
+    isTablet: Boolean
 ) {
     Surface(
         shape =
             RoundedCornerShape(
-                50
+                50.dp
             ),
 
         color =
             color.copy(
-                alpha = 0.12f
+                alpha =
+                    0.12f
             ),
 
         border =
             BorderStroke(
                 1.dp,
                 color.copy(
-                    alpha = 0.30f
+                    alpha =
+                        0.30f
                 )
             )
     ) {
@@ -1985,7 +2965,13 @@ private fun SubscriptionStatusPill(
                 color,
 
             fontSize =
-                10.sp,
+                if (
+                    isTablet
+                ) {
+                    12.sp
+                } else {
+                    10.sp
+                },
 
             fontWeight =
                 FontWeight.Bold,
@@ -1995,8 +2981,23 @@ private fun SubscriptionStatusPill(
 
             modifier =
                 Modifier.padding(
-                    horizontal = 9.dp,
-                    vertical = 5.dp
+                    horizontal =
+                        if (
+                            isTablet
+                        ) {
+                            11.dp
+                        } else {
+                            9.dp
+                        },
+
+                    vertical =
+                        if (
+                            isTablet
+                        ) {
+                            6.dp
+                        } else {
+                            5.dp
+                        }
                 )
         )
     }
@@ -2005,17 +3006,19 @@ private fun SubscriptionStatusPill(
 @Composable
 private fun HistoryStatusPill(
     text: String,
-    color: Color
+    color: Color,
+    isTablet: Boolean
 ) {
     Surface(
         shape =
             RoundedCornerShape(
-                50
+                50.dp
             ),
 
         color =
             color.copy(
-                alpha = 0.12f
+                alpha =
+                    0.12f
             )
     ) {
         Text(
@@ -2026,7 +3029,13 @@ private fun HistoryStatusPill(
                 color,
 
             fontSize =
-                9.sp,
+                if (
+                    isTablet
+                ) {
+                    11.sp
+                } else {
+                    9.sp
+                },
 
             fontWeight =
                 FontWeight.Bold,
@@ -2036,8 +3045,23 @@ private fun HistoryStatusPill(
 
             modifier =
                 Modifier.padding(
-                    horizontal = 7.dp,
-                    vertical = 4.dp
+                    horizontal =
+                        if (
+                            isTablet
+                        ) {
+                            9.dp
+                        } else {
+                            7.dp
+                        },
+
+                    vertical =
+                        if (
+                            isTablet
+                        ) {
+                            5.dp
+                        } else {
+                            4.dp
+                        }
                 )
         )
     }
@@ -2048,19 +3072,17 @@ private fun DetailDivider() {
     HorizontalDivider(
         color =
             Color.White.copy(
-                alpha = 0.07f
+                alpha =
+                    0.07f
             )
     )
 }
 
 @Composable
-private fun SubscriptionLoadingState(
-    modifier: Modifier =
-        Modifier
-) {
+private fun SubscriptionLoadingState() {
     Box(
         modifier =
-            modifier
+            Modifier
                 .fillMaxSize()
                 .background(
                     LaranjadaBlack
@@ -2080,18 +3102,23 @@ private fun SubscriptionLoadingState(
 private fun SubscriptionErrorState(
     message: String,
     onRetry: () -> Unit,
-    modifier: Modifier =
-        Modifier
+    isTablet: Boolean
 ) {
     Column(
         modifier =
-            modifier
+            Modifier
                 .fillMaxSize()
                 .background(
                     LaranjadaBlack
                 )
                 .padding(
-                    28.dp
+                    if (
+                        isTablet
+                    ) {
+                        40.dp
+                    } else {
+                        28.dp
+                    }
                 ),
 
         horizontalAlignment =
@@ -2112,7 +3139,13 @@ private fun SubscriptionErrorState(
 
             modifier =
                 Modifier.size(
-                    40.dp
+                    if (
+                        isTablet
+                    ) {
+                        52.dp
+                    } else {
+                        40.dp
+                    }
                 )
         )
 
@@ -2124,7 +3157,13 @@ private fun SubscriptionErrorState(
                 LaranjadaText,
 
             fontSize =
-                18.sp,
+                if (
+                    isTablet
+                ) {
+                    23.sp
+                } else {
+                    18.sp
+                },
 
             fontWeight =
                 FontWeight.Bold,
@@ -2134,7 +3173,8 @@ private fun SubscriptionErrorState(
 
             modifier =
                 Modifier.padding(
-                    top = 14.dp
+                    top =
+                        14.dp
                 )
         )
 
@@ -2146,18 +3186,36 @@ private fun SubscriptionErrorState(
                 LaranjadaMutedText,
 
             fontSize =
-                13.sp,
+                if (
+                    isTablet
+                ) {
+                    15.sp
+                } else {
+                    13.sp
+                },
 
             lineHeight =
-                18.sp,
+                if (
+                    isTablet
+                ) {
+                    21.sp
+                } else {
+                    18.sp
+                },
 
             textAlign =
                 TextAlign.Center,
 
             modifier =
-                Modifier.padding(
-                    top = 7.dp
-                )
+                Modifier
+                    .widthIn(
+                        max =
+                            560.dp
+                    )
+                    .padding(
+                        top =
+                            7.dp
+                    )
         )
 
         Button(
@@ -2176,7 +3234,8 @@ private fun SubscriptionErrorState(
 
             modifier =
                 Modifier.padding(
-                    top = 20.dp
+                    top =
+                        20.dp
                 )
         ) {
             Text(
@@ -2190,10 +3249,22 @@ private fun SubscriptionErrorState(
     }
 }
 
+private fun hasSubscriptionDetails(
+    overview: SubscriptionOverview
+): Boolean {
+    return overview.plan !=
+            null ||
+            overview.access !=
+            null ||
+            overview.payment !=
+            null ||
+            overview.discount !=
+            null
+}
+
 private fun accessPeriodSubtitle(
     overview: SubscriptionOverview
 ): String {
-
     val endAt =
         overview.access
             ?.periodEndAt
@@ -2219,7 +3290,6 @@ private fun accessPeriodSubtitle(
 private fun historySubtitle(
     count: Int
 ): String {
-
     return when (
         count
     ) {
@@ -2237,7 +3307,6 @@ private fun historySubtitle(
 private fun shouldShowPlansButton(
     overview: SubscriptionOverview
 ): Boolean {
-
     if (
         overview.hasAccess
     ) {
@@ -2253,7 +3322,6 @@ private fun shouldShowPlansButton(
 private fun stateSupportingText(
     code: String
 ): String {
-
     return when (
         code
             .trim()
@@ -2279,7 +3347,6 @@ private fun stateSupportingText(
 private fun stateColor(
     code: String
 ): Color {
-
     return when (
         code
             .trim()
@@ -2303,7 +3370,6 @@ private fun stateColor(
 private fun historyToneColor(
     tone: String
 ): Color {
-
     return when (
         tone
             .trim()
@@ -2326,7 +3392,6 @@ private fun historyToneColor(
 private fun openPlansPage(
     context: Context
 ): Boolean {
-
     val url =
         ApiConfig.buildUrl(
             "/payments/plans/"
@@ -2351,7 +3416,6 @@ private fun openPlansPage(
 private fun formatSubscriptionDate(
     value: String?
 ): String {
-
     val raw =
         value
             ?.trim()
@@ -2363,13 +3427,6 @@ private fun formatSubscriptionDate(
         return "Não informado"
     }
 
-    /*
-     * SimpleDateFormat trabalha com milissegundos.
-     * A API pode devolver microssegundos.
-     *
-     * Reduzimos apenas a fração do segundo,
-     * preservando completamente o offset ISO.
-     */
     val normalized =
         raw.replace(
             Regex(
@@ -2423,7 +3480,8 @@ private fun formatSubscriptionDate(
                 .getOrNull()
 
         if (
-            date != null
+            date !=
+            null
         ) {
             return SimpleDateFormat(
                 "dd/MM/yyyy 'às' HH:mm",

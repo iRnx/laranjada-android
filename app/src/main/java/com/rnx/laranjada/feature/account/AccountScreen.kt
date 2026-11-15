@@ -31,7 +31,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -72,408 +71,194 @@ fun AccountScreen(
     logoutErrorMessage: String?,
     onBackClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    profiles: List<MenuProfileUi> =
-        emptyList(),
-    canCreateProfile: Boolean =
-        false,
-    onProfileClick: (MenuProfileUi) -> Unit =
-        {},
-    onCreateProfileClick: () -> Unit =
-        {},
-    onEditProfilesClick: () -> Unit =
-        {},
-    onSubscriptionClick: () -> Unit =
-        {},
-    onSupportClick: () -> Unit =
-        {},
-    onAccountDetailsClick: () -> Unit =
-        {},
-    onSearchClick: () -> Unit =
-        {}
+    profiles: List<MenuProfileUi> = emptyList(),
+    canCreateProfile: Boolean = false,
+    onProfileClick: (MenuProfileUi) -> Unit = {},
+    onCreateProfileClick: () -> Unit = {},
+    onEditProfilesClick: () -> Unit = {},
+    onSubscriptionClick: () -> Unit = {},
+    onSupportClick: () -> Unit = {},
+    onAccountDetailsClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {}
 ) {
     BoxWithConstraints(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Color.Black
-                )
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
     ) {
-        val isTablet =
-            maxWidth >=
-                    600.dp
+        val isTablet = maxWidth >= 600.dp
+        val isExpanded = maxWidth >= 840.dp
 
-        val isExpanded =
-            maxWidth >=
-                    840.dp
+        val horizontalPadding = when {
+            isExpanded -> 40.dp
+            isTablet -> 28.dp
+            else -> 18.dp
+        }
 
-        val horizontalPadding =
-            when {
-                isExpanded ->
-                    40.dp
+        val contentMaxWidth = when {
+            isExpanded -> 920.dp
+            isTablet -> 720.dp
+            else -> maxWidth
+        }
 
-                isTablet ->
-                    28.dp
+        val profileSize = when {
+            isExpanded -> 96.dp
+            isTablet -> 88.dp
+            else -> 72.dp
+        }
 
-                else ->
-                    18.dp
-            }
+        val profileItemWidth = when {
+            isExpanded -> 104.dp
+            isTablet -> 96.dp
+            else -> 72.dp
+        }
 
-        val contentMaxWidth =
-            when {
-                isExpanded ->
-                    920.dp
-
-                isTablet ->
-                    720.dp
-
-                else ->
-                    maxWidth
-            }
-
-        val profileSize =
-            when {
-                isExpanded ->
-                    96.dp
-
-                isTablet ->
-                    88.dp
-
-                else ->
-                    72.dp
-            }
-
-        val profileItemWidth =
-            when {
-                isExpanded ->
-                    104.dp
-
-                isTablet ->
-                    96.dp
-
-                else ->
-                    72.dp
-            }
-
-        val profileSpacing =
-            when {
-                isExpanded ->
-                    28.dp
-
-                isTablet ->
-                    24.dp
-
-                else ->
-                    18.dp
-            }
+        val profileSpacing = when {
+            isExpanded -> 28.dp
+            isTablet -> 24.dp
+            else -> 18.dp
+        }
 
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(
-                        WindowInsets.statusBars
-                    )
-                    .windowInsetsPadding(
-                        WindowInsets.navigationBars
-                    )
-                    .verticalScroll(
-                        rememberScrollState()
-                    ),
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .widthIn(
-                            max =
-                                contentMaxWidth
-                        )
-                        .padding(
-                            horizontal =
-                                horizontalPadding
-                        )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = contentMaxWidth)
+                    .padding(horizontal = horizontalPadding)
             ) {
                 AccountMenuHeader(
-                    isTablet =
-                        isTablet,
-
-                    onMenuClick =
-                        onBackClick,
-
-                    onSearchClick =
-                        onSearchClick
+                    isTablet = isTablet,
+                    onSearchClick = onSearchClick
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.height(
-                            if (
-                                isTablet
-                            ) {
-                                30.dp
-                            } else {
-                                22.dp
-                            }
-                        )
+                    modifier = Modifier.height(
+                        if (isTablet) 30.dp else 22.dp
+                    )
                 )
 
-                if (
-                    isTablet
-                ) {
+                if (isTablet) {
                     Text(
-                        text =
-                            "Quem está assistindo?",
-
-                        color =
-                            Color.White,
-
-                        fontSize =
-                            if (
-                                isExpanded
-                            ) {
-                                28.sp
-                            } else {
-                                24.sp
-                            },
-
-                        fontWeight =
-                            FontWeight.ExtraBold,
-
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    bottom = 22.dp
-                                ),
-
-                        textAlign =
-                            TextAlign.Start
+                        text = "Quem está assistindo?",
+                        color = Color.White,
+                        fontSize = if (isExpanded) 28.sp else 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 22.dp),
+                        textAlign = TextAlign.Start
                     )
                 }
 
                 ProfilesSection(
-                    profiles =
-                        profiles,
-
-                    canCreateProfile =
-                        canCreateProfile,
-
-                    profileSize =
-                        profileSize,
-
-                    profileItemWidth =
-                        profileItemWidth,
-
-                    profileSpacing =
-                        profileSpacing,
-
-                    onProfileClick =
-                        onProfileClick,
-
-                    onCreateProfileClick =
-                        onCreateProfileClick
+                    profiles = profiles,
+                    canCreateProfile = canCreateProfile,
+                    profileSize = profileSize,
+                    profileItemWidth = profileItemWidth,
+                    profileSpacing = profileSpacing,
+                    onProfileClick = onProfileClick,
+                    onCreateProfileClick = onCreateProfileClick
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.height(
-                            if (
-                                isTablet
-                            ) {
-                                40.dp
-                            } else {
-                                34.dp
-                            }
-                        )
+                    modifier = Modifier.height(
+                        if (isTablet) 40.dp else 34.dp
+                    )
                 )
 
                 EditProfilesButton(
-                    isTablet =
-                        isTablet,
-
-                    onClick =
-                        onEditProfilesClick
+                    isTablet = isTablet,
+                    onClick = onEditProfilesClick
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.height(
-                            if (
-                                isTablet
-                            ) {
-                                42.dp
-                            } else {
-                                34.dp
-                            }
-                        )
+                    modifier = Modifier.height(
+                        if (isTablet) 42.dp else 34.dp
+                    )
                 )
 
-                if (
-                    isTablet
-                ) {
+                if (isTablet) {
                     Text(
-                        text =
-                            "Conta",
-
-                        color =
-                            LaranjadaMutedText,
-
-                        fontSize =
-                            12.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        letterSpacing =
-                            0.8.sp,
-
-                        modifier =
-                            Modifier.padding(
-                                bottom = 6.dp
-                            )
+                        text = "Conta",
+                        color = LaranjadaMutedText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
 
                 AccountMenuItem(
-                    title =
-                        "Minha assinatura",
-
-                    isTablet =
-                        isTablet,
-
-                    onClick =
-                        onSubscriptionClick
+                    title = "Minha assinatura",
+                    isTablet = isTablet,
+                    onClick = onSubscriptionClick
                 )
 
                 AccountMenuItem(
-                    title =
-                        "Atendimento",
-
-                    isTablet =
-                        isTablet,
-
-                    onClick =
-                        onSupportClick
+                    title = "Atendimento",
+                    isTablet = isTablet,
+                    onClick = onSupportClick
                 )
 
                 AccountMenuItem(
-                    title =
-                        "Conta",
-
-                    isTablet =
-                        isTablet,
-
-                    onClick =
-                        onAccountDetailsClick
+                    title = "Conta",
+                    isTablet = isTablet,
+                    onClick = onAccountDetailsClick
                 )
 
                 AccountMenuItem(
-                    title =
-                        "Sair",
-
-                    isTablet =
-                        isTablet,
-
-                    enabled =
-                        !isLoggingOut,
-
-                    showLoading =
-                        isLoggingOut,
-
-                    onClick =
-                        onLogoutClick
+                    title = "Sair",
+                    isTablet = isTablet,
+                    enabled = !isLoggingOut,
+                    showLoading = isLoggingOut,
+                    onClick = onLogoutClick
                 )
 
-                if (
-                    !logoutErrorMessage
-                        .isNullOrBlank()
-                ) {
+                if (!logoutErrorMessage.isNullOrBlank()) {
                     Text(
-                        text =
-                            logoutErrorMessage,
-
-                        color =
-                            Color(
-                                0xFFFF9D9D
-                            ),
-
-                        fontSize =
-                            13.sp,
-
-                        modifier =
-                            Modifier.padding(
-                                top = 14.dp
-                            )
+                        text = logoutErrorMessage,
+                        color = Color(0xFFFF9D9D),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 14.dp)
                     )
                 }
 
                 Spacer(
-                    modifier =
-                        Modifier.height(
-                            26.dp
-                        )
+                    modifier = Modifier.height(26.dp)
                 )
 
                 Text(
-                    text =
-                        if (
-                            isTablet
-                        ) {
-                            "Versão: Android Tablet"
-                        } else {
-                            "Versão: Android Mobile"
-                        },
-
-                    color =
-                        Color(
-                            0xFF8E8E8E
-                        ),
-
-                    fontSize =
-                        14.sp
+                    text = if (isTablet) {
+                        "Versão: Android Tablet"
+                    } else {
+                        "Versão: Android Mobile"
+                    },
+                    color = Color(0xFF8E8E8E),
+                    fontSize = 14.sp
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.height(
-                            if (
-                                isTablet
-                            ) {
-                                54.dp
-                            } else {
-                                72.dp
-                            }
-                        )
+                    modifier = Modifier.height(
+                        if (isTablet) 54.dp else 72.dp
+                    )
                 )
 
                 Text(
-                    text =
-                        "LARANJADA",
-
-                    color =
-                        LaranjadaOrange,
-
-                    fontSize =
-                        14.sp,
-
-                    fontWeight =
-                        FontWeight.ExtraBold,
-
-                    letterSpacing =
-                        1.4.sp,
-
-                    modifier =
-                        Modifier
-                            .align(
-                                Alignment.CenterHorizontally
-                            )
-                            .padding(
-                                bottom = 22.dp
-                            )
+                    text = "LARANJADA",
+                    color = LaranjadaOrange,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.4.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 22.dp)
                 )
             }
         }
@@ -483,120 +268,37 @@ fun AccountScreen(
 @Composable
 private fun AccountMenuHeader(
     isTablet: Boolean,
-    onMenuClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
     Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(
-                    if (
-                        isTablet
-                    ) {
-                        76.dp
-                    } else {
-                        68.dp
-                    }
-                )
-    ) {
-        IconButton(
-            onClick =
-                onMenuClick,
-
-            modifier =
-                Modifier
-                    .align(
-                        Alignment.CenterStart
-                    )
-                    .size(
-                        48.dp
-                    )
-        ) {
-            Icon(
-                imageVector =
-                    Icons.Rounded.Menu,
-
-                contentDescription =
-                    "Menu",
-
-                tint =
-                    Color.White,
-
-                modifier =
-                    Modifier.size(
-                        if (
-                            isTablet
-                        ) {
-                            31.dp
-                        } else {
-                            29.dp
-                        }
-                    )
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(
+                if (isTablet) 76.dp else 68.dp
             )
-        }
-
+    ) {
         Text(
-            text =
-                "LARANJADA",
-
-            color =
-                LaranjadaOrange,
-
-            fontSize =
-                if (
-                    isTablet
-                ) {
-                    28.sp
-                } else {
-                    25.sp
-                },
-
-            fontWeight =
-                FontWeight.ExtraBold,
-
-            letterSpacing =
-                1.2.sp,
-
-            modifier =
-                Modifier.align(
-                    Alignment.Center
-                )
+            text = "LARANJADA",
+            color = LaranjadaOrange,
+            fontSize = if (isTablet) 28.sp else 25.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.align(Alignment.Center)
         )
 
         IconButton(
-            onClick =
-                onSearchClick,
-
-            modifier =
-                Modifier
-                    .align(
-                        Alignment.CenterEnd
-                    )
-                    .size(
-                        48.dp
-                    )
+            onClick = onSearchClick,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(48.dp)
         ) {
             Icon(
-                imageVector =
-                    Icons.Rounded.Search,
-
-                contentDescription =
-                    "Pesquisar",
-
-                tint =
-                    Color.White,
-
-                modifier =
-                    Modifier.size(
-                        if (
-                            isTablet
-                        ) {
-                            31.dp
-                        } else {
-                            30.dp
-                        }
-                    )
+                imageVector = Icons.Rounded.Search,
+                contentDescription = "Pesquisar",
+                tint = Color.White,
+                modifier = Modifier.size(
+                    if (isTablet) 31.dp else 30.dp
+                )
             )
         }
     }
@@ -613,58 +315,35 @@ private fun ProfilesSection(
     onCreateProfileClick: () -> Unit
 ) {
     LazyRow(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        horizontalArrangement =
-            Arrangement.spacedBy(
-                profileSpacing
-            )
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(
+            profileSpacing
+        )
     ) {
         items(
-            items =
-                profiles,
-
+            items = profiles,
             key = {
                 it.uuid
             }
-        ) {
-                profile ->
-
+        ) { profile ->
             MenuProfileItem(
-                profile =
-                    profile,
-
-                profileSize =
-                    profileSize,
-
-                itemWidth =
-                    profileItemWidth,
-
+                profile = profile,
+                profileSize = profileSize,
+                itemWidth = profileItemWidth,
                 onClick = {
-                    onProfileClick(
-                        profile
-                    )
+                    onProfileClick(profile)
                 }
             )
         }
 
-        if (
-            canCreateProfile
-        ) {
+        if (canCreateProfile) {
             item(
-                key =
-                    "create_profile"
+                key = "create_profile"
             ) {
                 CreateProfileItem(
-                    profileSize =
-                        profileSize,
-
-                    itemWidth =
-                        profileItemWidth,
-
-                    onClick =
-                        onCreateProfileClick
+                    profileSize = profileSize,
+                    itemWidth = profileItemWidth,
+                    onClick = onCreateProfileClick
                 )
             }
         }
@@ -678,222 +357,127 @@ private fun MenuProfileItem(
     itemWidth: Dp,
     onClick: () -> Unit
 ) {
-    val interactionSource =
-        remember {
-            MutableInteractionSource()
-        }
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
 
     val tabletScale =
-        profileSize >
-                72.dp
+        profileSize > 72.dp
 
     Column(
-        modifier =
-            Modifier
-                .width(
-                    itemWidth
-                )
-                .clickable(
-                    interactionSource =
-                        interactionSource,
-
-                    indication =
-                        null,
-
-                    onClick =
-                        onClick
-                ),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+        modifier = Modifier
+            .width(itemWidth)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box {
             Box(
-                modifier =
-                    Modifier
-                        .size(
-                            profileSize
-                        )
-                        .clip(
-                            CircleShape
-                        )
-                        .background(
-                            Color(
-                                0xFF28282C
+                modifier = Modifier
+                    .size(profileSize)
+                    .clip(CircleShape)
+                    .background(
+                        Color(0xFF28282C)
+                    )
+                    .border(
+                        width = if (profile.isSelected) {
+                            2.dp
+                        } else {
+                            1.dp
+                        },
+                        color = if (profile.isSelected) {
+                            LaranjadaOrange
+                        } else {
+                            Color.White.copy(
+                                alpha = 0.20f
                             )
-                        )
-                        .border(
-                            width =
-                                if (
-                                    profile.isSelected
-                                ) {
-                                    2.dp
-                                } else {
-                                    1.dp
-                                },
-
-                            color =
-                                if (
-                                    profile.isSelected
-                                ) {
-                                    LaranjadaOrange
-                                } else {
-                                    Color.White.copy(
-                                        alpha = 0.20f
-                                    )
-                                },
-
-                            shape =
-                                CircleShape
-                        ),
-
-                contentAlignment =
-                    Alignment.Center
+                        },
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                if (
-                    !profile.avatarUrl
-                        .isNullOrBlank()
-                ) {
+                if (!profile.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model =
-                            profile.avatarUrl,
-
-                        contentDescription =
-                            profile.name,
-
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .clip(
-                                    CircleShape
-                                ),
-
-                        contentScale =
-                            ContentScale.Crop
+                        model = profile.avatarUrl,
+                        contentDescription = profile.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     Text(
-                        text =
-                            profile.name
-                                .trim()
-                                .take(
-                                    1
-                                )
-                                .uppercase()
-                                .ifBlank {
-                                    "?"
-                                },
-
-                        color =
-                            Color.White,
-
-                        fontSize =
-                            if (
-                                tabletScale
-                            ) {
-                                31.sp
-                            } else {
-                                25.sp
+                        text = profile.name
+                            .trim()
+                            .take(1)
+                            .uppercase()
+                            .ifBlank {
+                                "?"
                             },
-
-                        fontWeight =
-                            FontWeight.ExtraBold
+                        color = Color.White,
+                        fontSize = if (tabletScale) {
+                            31.sp
+                        } else {
+                            25.sp
+                        },
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
 
-            if (
-                profile.hasPin
-            ) {
+            if (profile.hasPin) {
                 Box(
-                    modifier =
-                        Modifier
-                            .align(
-                                Alignment.BottomEnd
-                            )
-                            .size(
-                                if (
-                                    tabletScale
-                                ) {
-                                    24.dp
-                                } else {
-                                    20.dp
-                                }
-                            )
-                            .clip(
-                                CircleShape
-                            )
-                            .background(
-                                Color(
-                                    0xFF080808
-                                )
-                            ),
-
-                    contentAlignment =
-                        Alignment.Center
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(
+                            if (tabletScale) {
+                                24.dp
+                            } else {
+                                20.dp
+                            }
+                        )
+                        .clip(CircleShape)
+                        .background(
+                            Color(0xFF080808)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector =
-                            Icons.Rounded.Lock,
-
-                        contentDescription =
-                            "Perfil bloqueado",
-
-                        tint =
-                            Color.White,
-
-                        modifier =
-                            Modifier.size(
-                                if (
-                                    tabletScale
-                                ) {
-                                    12.dp
-                                } else {
-                                    10.dp
-                                }
-                            )
+                        imageVector = Icons.Rounded.Lock,
+                        contentDescription = "Perfil bloqueado",
+                        tint = Color.White,
+                        modifier = Modifier.size(
+                            if (tabletScale) {
+                                12.dp
+                            } else {
+                                10.dp
+                            }
+                        )
                     )
                 }
             }
         }
 
         Spacer(
-            modifier =
-                Modifier.height(
-                    if (
-                        tabletScale
-                    ) {
-                        10.dp
-                    } else {
-                        8.dp
-                    }
-                )
+            modifier = Modifier.height(
+                if (tabletScale) 10.dp else 8.dp
+            )
         )
 
         Text(
-            text =
-                profile.name,
-
-            color =
-                Color.White,
-
-            fontSize =
-                if (
-                    tabletScale
-                ) {
-                    14.sp
-                } else {
-                    13.sp
-                },
-
-            fontWeight =
-                FontWeight.ExtraBold,
-
-            maxLines =
-                1,
-
-            overflow =
-                TextOverflow.Ellipsis
+            text = profile.name,
+            color = Color.White,
+            fontSize = if (tabletScale) {
+                14.sp
+            } else {
+                13.sp
+            },
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -910,108 +494,64 @@ private fun CreateProfileItem(
         }
 
     val tabletScale =
-        profileSize >
-                72.dp
+        profileSize > 72.dp
 
     Column(
-        modifier =
-            Modifier
-                .width(
-                    itemWidth
-                )
-                .clickable(
-                    interactionSource =
-                        interactionSource,
-
-                    indication =
-                        null,
-
-                    onClick =
-                        onClick
-                ),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+        modifier = Modifier
+            .width(itemWidth)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            modifier =
-                Modifier
-                    .size(
-                        profileSize
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .border(
-                        width =
-                            2.dp,
-
-                        color =
-                            Color.White.copy(
-                                alpha = 0.27f
-                            ),
-
-                        shape =
-                            CircleShape
+            modifier = Modifier
+                .size(profileSize)
+                .clip(CircleShape)
+                .border(
+                    width = 2.dp,
+                    color = Color.White.copy(
+                        alpha = 0.27f
                     ),
-
-            contentAlignment =
-                Alignment.Center
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector =
-                    Icons.Rounded.Add,
-
-                contentDescription =
-                    "Novo perfil",
-
-                tint =
-                    Color.White,
-
-                modifier =
-                    Modifier.size(
-                        if (
-                            tabletScale
-                        ) {
-                            36.dp
-                        } else {
-                            30.dp
-                        }
-                    )
+                imageVector = Icons.Rounded.Add,
+                contentDescription = "Novo perfil",
+                tint = Color.White,
+                modifier = Modifier.size(
+                    if (tabletScale) {
+                        36.dp
+                    } else {
+                        30.dp
+                    }
+                )
             )
         }
 
         Spacer(
-            modifier =
-                Modifier.height(
-                    if (
-                        tabletScale
-                    ) {
-                        10.dp
-                    } else {
-                        8.dp
-                    }
-                )
+            modifier = Modifier.height(
+                if (tabletScale) {
+                    10.dp
+                } else {
+                    8.dp
+                }
+            )
         )
 
         Text(
-            text =
-                "Novo",
-
-            color =
-                Color.White,
-
-            fontSize =
-                if (
-                    tabletScale
-                ) {
-                    14.sp
-                } else {
-                    13.sp
-                },
-
-            fontWeight =
-                FontWeight.ExtraBold
+            text = "Novo",
+            color = Color.White,
+            fontSize = if (tabletScale) {
+                14.sp
+            } else {
+                13.sp
+            },
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }
@@ -1027,69 +567,44 @@ private fun EditProfilesButton(
         }
 
     Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(
-                    if (
-                        isTablet
-                    ) {
-                        58.dp
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(
+                if (isTablet) {
+                    58.dp
+                } else {
+                    54.dp
+                }
+            )
+            .clip(
+                RoundedCornerShape(
+                    if (isTablet) {
+                        10.dp
                     } else {
-                        54.dp
+                        6.dp
                     }
                 )
-                .clip(
-                    RoundedCornerShape(
-                        if (
-                            isTablet
-                        ) {
-                            10.dp
-                        } else {
-                            6.dp
-                        }
-                    )
-                )
-                .background(
-                    Color(
-                        0xFF35343D
-                    )
-                )
-                .clickable(
-                    interactionSource =
-                        interactionSource,
-
-                    indication =
-                        null,
-
-                    onClick =
-                        onClick
-                ),
-
-        contentAlignment =
-            Alignment.Center
+            )
+            .background(
+                Color(0xFF35343D)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            text =
-                "EDITAR PERFIS",
-
-            color =
-                Color.White,
-
-            fontSize =
-                if (
-                    isTablet
-                ) {
-                    17.sp
-                } else {
-                    16.sp
-                },
-
-            fontWeight =
-                FontWeight.ExtraBold,
-
-            letterSpacing =
-                0.6.sp
+            text = "EDITAR PERFIS",
+            color = Color.White,
+            fontSize = if (isTablet) {
+                17.sp
+            } else {
+                16.sp
+            },
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 0.6.sp
         )
     }
 }
@@ -1112,116 +627,67 @@ private fun AccountMenuItem(
             Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(
-                        if (
-                            isTablet
-                        ) {
-                            64.dp
-                        } else {
-                            59.dp
-                        }
-                    )
-                    .clickable(
-                        enabled =
-                            enabled,
-
-                        interactionSource =
-                            interactionSource,
-
-                        indication =
-                            null,
-
-                        onClick =
-                            onClick
-                    ),
-
-            verticalAlignment =
-                Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(
+                    if (isTablet) {
+                        64.dp
+                    } else {
+                        59.dp
+                    }
+                )
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text =
-                    title,
-
-                color =
-                    if (
-                        enabled
-                    ) {
-                        LaranjadaText
-                    } else {
-                        LaranjadaMutedText
-                    },
-
-                fontSize =
-                    if (
-                        isTablet
-                    ) {
-                        18.sp
-                    } else {
-                        17.sp
-                    },
-
-                fontWeight =
-                    FontWeight.ExtraBold,
-
-                modifier =
-                    Modifier.weight(
-                        1f
-                    )
+                text = title,
+                color = if (enabled) {
+                    LaranjadaText
+                } else {
+                    LaranjadaMutedText
+                },
+                fontSize = if (isTablet) {
+                    18.sp
+                } else {
+                    17.sp
+                },
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.weight(1f)
             )
 
-            if (
-                showLoading
-            ) {
+            if (showLoading) {
                 CircularProgressIndicator(
-                    modifier =
-                        Modifier.size(
-                            20.dp
-                        ),
-
-                    color =
-                        LaranjadaOrange,
-
-                    strokeWidth =
-                        2.dp
+                    modifier = Modifier.size(20.dp),
+                    color = LaranjadaOrange,
+                    strokeWidth = 2.dp
                 )
             } else {
                 Icon(
-                    imageVector =
-                        Icons.Rounded.ChevronRight,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        Color(
-                            0xFFB7D8E8
-                        ),
-
-                    modifier =
-                        Modifier.size(
-                            if (
-                                isTablet
-                            ) {
-                                30.dp
-                            } else {
-                                28.dp
-                            }
-                        )
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFFB7D8E8),
+                    modifier = Modifier.size(
+                        if (isTablet) {
+                            30.dp
+                        } else {
+                            28.dp
+                        }
+                    )
                 )
             }
         }
 
         HorizontalDivider(
-            thickness =
-                1.dp,
-
-            color =
-                Color.White.copy(
-                    alpha = 0.12f
-                )
+            modifier = Modifier.fillMaxWidth(),
+            thickness = 1.dp,
+            color = Color.White.copy(
+                alpha = 0.18f
+            )
         )
     }
 }

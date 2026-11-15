@@ -31,9 +31,9 @@ fun DetailRoute(
     onPlayClick: (
         contentType: String,
         uuid: String,
-        seriesUuid: String
-    ) -> Unit = { _, _, _ -> },
-    onRestartClick: () -> Unit = {},
+        seriesUuid: String,
+        initialPositionSeconds: Long
+    ) -> Unit = { _, _, _, _ -> },
     onFavoriteClick: (Boolean) -> Unit = {},
     onRelatedClick: (MediaItemUi) -> Unit = {},
     onEpisodeClick: (
@@ -114,7 +114,33 @@ fun DetailRoute(
                     onAccountClick,
 
                 onPlayClick = {
+                    val continueItem =
+                        viewModel
+                            .continueWatchingItem
+
                     if (
+                        continueItem != null
+                    ) {
+                        onPlayClick(
+                            continueItem
+                                .contentType
+                                .trim()
+                                .lowercase(),
+
+                            continueItem
+                                .contentUuid,
+
+                            continueItem
+                                .seriesUuid
+                                .orEmpty(),
+
+                            continueItem
+                                .positionSeconds
+                                .coerceAtLeast(
+                                    0L
+                                )
+                        )
+                    } else if (
                         uiState.isSeries
                     ) {
                         val firstEpisode =
@@ -124,31 +150,42 @@ fun DetailRoute(
                         if (
                             firstEpisode != null
                         ) {
-                            /*
-                             * Não transportamos mais
-                             * hls_url.
-                             *
-                             * O Player conhece apenas:
-                             *
-                             * episode + UUID.
-                             */
                             onPlayClick(
                                 "episode",
                                 firstEpisode.uuid,
-                                uiState.uuid
+                                uiState.uuid,
+                                0L
                             )
                         }
                     } else {
                         onPlayClick(
                             "movie",
                             uiState.uuid,
-                            ""
+                            "",
+                            0L
                         )
                     }
                 },
 
-                onRestartClick =
-                    onRestartClick,
+                onRestartClick = {
+                    viewModel
+                        .restartContinueWatching {
+                                item ->
+
+                            onPlayClick(
+                                item.contentType
+                                    .trim()
+                                    .lowercase(),
+
+                                item.contentUuid,
+
+                                item.seriesUuid
+                                    .orEmpty(),
+
+                                0L
+                            )
+                        }
+                },
 
                 onFavoriteClick =
                     onFavoriteClick,
@@ -175,11 +212,12 @@ fun DetailRoute(
 @Composable
 private fun DetailLoading() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                LaranjadaBlack
-            ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                ),
 
         contentAlignment =
             Alignment.Center
@@ -198,14 +236,15 @@ private fun DetailError(
     onRetryClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                LaranjadaBlack
-            )
-            .padding(
-                24.dp
-            ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    LaranjadaBlack
+                )
+                .padding(
+                    24.dp
+                ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally,
@@ -230,7 +269,8 @@ private fun DetailError(
 
             modifier =
                 Modifier.padding(
-                    top = 8.dp
+                    top =
+                        8.dp
                 )
         )
 
@@ -240,7 +280,8 @@ private fun DetailError(
 
             modifier =
                 Modifier.padding(
-                    top = 20.dp
+                    top =
+                        20.dp
                 )
         ) {
             Text(
@@ -255,7 +296,8 @@ private fun DetailError(
 
             modifier =
                 Modifier.padding(
-                    top = 10.dp
+                    top =
+                        10.dp
                 )
         ) {
             Text(
