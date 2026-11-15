@@ -29,6 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -42,8 +45,10 @@ import com.rnx.laranjada.core.network.ApiHttpClient
 import com.rnx.laranjada.core.network.DomainRecoveryCoordinator
 import com.rnx.laranjada.core.network.DomainRecoveryPhase
 import com.rnx.laranjada.feature.account.ProfileViewModel
+import com.rnx.laranjada.data.remote.api.AuthApiService
 import com.rnx.laranjada.feature.auth.AppSessionState
 import com.rnx.laranjada.feature.auth.AppSessionViewModel
+import com.rnx.laranjada.feature.auth.DisconnectedScreen
 import com.rnx.laranjada.feature.auth.DomainRecoveryScreen
 import com.rnx.laranjada.feature.auth.LoginScreen
 import com.rnx.laranjada.feature.home.components.BottomBarNavigationContext
@@ -51,7 +56,10 @@ import com.rnx.laranjada.feature.home.components.HomeBottomBar
 import com.rnx.laranjada.feature.home.components.LocalBottomBarNavigation
 import com.rnx.laranjada.feature.update.AppUpdateCoordinator
 import com.rnx.laranjada.feature.update.MobileUpdateDialog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,12 +69,35 @@ class MainActivity : ComponentActivity() {
         DomainRecoveryCoordinator.initialize(applicationContext)
         AppUpdateCoordinator.initialize(applicationContext)
 
+        // Consulta somente enquanto a Activity estiver em primeiro plano.
+        // Em caso de 401 o ApiHttpClient notifica a raiz Compose.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    if (ApiHttpClient.hasSessionCookie()) {
+                        try {
+                            AuthApiService.getCurrentUser()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            // Erro transitório não é revogação de sessão.
+                        }
+                    }
+                    delay(30_000L)
+                }
+            }
+        }
+
         setContent {
             LaranjadaTheme {
                 val domainChange by DomainRecoveryCoordinator.domainChange.collectAsState()
                 val recoveryStatus by DomainRecoveryCoordinator.status.collectAsState()
                 val restoredSequence by DomainRecoveryCoordinator.connectionRestored.collectAsState()
                 val updateState by AppUpdateCoordinator.state.collectAsState()
+                val revocationSequence by ApiHttpClient.authenticationRevocations.collectAsState()
+                var consumedRevocation by remember(domainChange) {
+                    androidx.compose.runtime.mutableLongStateOf(revocationSequence)
+                }
 
                 LaunchedEffect(domainChange) {
                     if (domainChange > 0L) AppUpdateCoordinator.onDomainChanged()
@@ -77,6 +108,15 @@ class MainActivity : ComponentActivity() {
                 // Novos cookies/dominio precisam de um estado de sessao independente.
                 val sessionViewModel: AppSessionViewModel =
                     viewModel(key = "mobile_session_domain_$domainChange")
+
+                LaunchedEffect(revocationSequence, domainChange, sessionViewModel) {
+                    if (revocationSequence > consumedRevocation) {
+                        consumedRevocation = revocationSequence
+                        if (sessionViewModel.sessionState is AppSessionState.Authenticated) {
+                            sessionViewModel.handleRemoteDisconnection()
+                        }
+                    }
+                }
 
                 LaunchedEffect(restoredSequence, sessionViewModel) {
                     if (restoredSequence > 0L &&
@@ -96,6 +136,9 @@ class MainActivity : ComponentActivity() {
                 } else {
                     when (val sessionState = sessionViewModel.sessionState) {
                         AppSessionState.Checking -> SessionLoadingScreen()
+                        AppSessionState.Disconnected -> DisconnectedScreen(
+                            onContinue = sessionViewModel::continueAfterRemoteDisconnection
+                        )
                         AppSessionState.Unauthenticated -> LoginScreen(
                             onLoginSuccess = sessionViewModel::onLoginSuccess
                         )
