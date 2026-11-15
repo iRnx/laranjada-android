@@ -9,6 +9,7 @@ import com.rnx.laranjada.core.network.ApiHttpClient
 import com.rnx.laranjada.data.repository.AuthRepositoryImpl
 import com.rnx.laranjada.domain.model.AuthenticatedUser
 import com.rnx.laranjada.domain.repository.AuthRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 sealed interface AppSessionState {
@@ -92,6 +93,8 @@ class AppSessionViewModel(
                             )
                     }
 
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (
                 exception:
                 Exception
@@ -161,6 +164,7 @@ class AppSessionViewModel(
             return
         }
 
+        val generation = sessionGeneration
         viewModelScope.launch {
             isLoggingOut =
                 true
@@ -170,16 +174,20 @@ class AppSessionViewModel(
 
             try {
                 repository.logout()
+                if (generation != sessionGeneration) return@launch
 
                 ++sessionGeneration
                 sessionState =
                     AppSessionState
                         .Unauthenticated
 
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (
                 exception:
                 Exception
             ) {
+                if (generation != sessionGeneration) return@launch
                 logoutErrorMessage =
                     exception.message
                         ?: "Não foi possível encerrar a sessão."
