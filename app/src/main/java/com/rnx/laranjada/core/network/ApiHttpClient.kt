@@ -3,6 +3,10 @@ package com.rnx.laranjada.core.network
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -50,6 +54,9 @@ object ApiHttpClient {
 
     private val originLock = Any()
     private lateinit var cookieStore: SecureCookieStore
+
+    private val _authenticationRevocations = MutableStateFlow(0L)
+    val authenticationRevocations: StateFlow<Long> = _authenticationRevocations.asStateFlow()
 
     fun initialize(context: Context) = synchronized(originLock) {
         if (!::cookieStore.isInitialized) {
@@ -108,7 +115,8 @@ object ApiHttpClient {
         val apiBase: String,
         val url: URL,
         val cookieHeader: String,
-        val csrfToken: String?
+        val csrfToken: String?,
+        val hadSession: Boolean
     )
 
     private fun requestContext(path: String, requiresCsrf: Boolean): RequestContext =
@@ -123,7 +131,8 @@ object ApiHttpClient {
                 apiBase = base,
                 url = URL(base + normalizedPath),
                 cookieHeader = cookies().buildCookieHeader(),
-                csrfToken = token
+                csrfToken = token,
+                hadSession = cookies().hasSessionCookie()
             )
         }
 
@@ -137,12 +146,32 @@ object ApiHttpClient {
     private fun captureResponse(
         request: RequestContext,
         headers: Map<String?, List<String>>,
-        statusCode: Int
+        statusCode: Int,
+        path: String
     ) = synchronized(originLock) {
         assertSameOrigin(request)
-        cookies().saveFromResponseHeaders(headers)
+        // Revogação remota: 401 de uma sessão realmente enviada.
+        // Não atribui a uma sessão nova um erro tardio da sessão antiga.
+        val isRevocation = statusCode == 401 &&
+            request.hadSession &&
+            !path.startsWith("/api/v1/auth/login/") &&
+            !path.startsWith("/api/v1/auth/logout/") &&
+            sessionCookie(request.cookieHeader) != null &&
+            sessionCookie(request.cookieHeader) == sessionCookie(cookies().buildCookieHeader())
+
+        if (isRevocation) {
+            cookies().clearAuthentication()
+            _authenticationRevocations.update { it + 1L }
+        } else if (statusCode != 401) {
+            cookies().saveFromResponseHeaders(headers)
+        }
         DomainRecoveryCoordinator.onApiResponse(request.url, statusCode)
     }
+
+    private fun sessionCookie(header: String): String? =
+        header.split(';').map { it.trim() }
+            .firstOrNull { it.startsWith("sessionid=") && it.length > "sessionid=".length }
+            ?.substringAfter('=')
 
     private fun reportNetworkError(request: RequestContext, exception: IOException) {
         if (ApiConfig.BASE_URL == request.apiBase) {
@@ -189,7 +218,7 @@ object ApiHttpClient {
             } else connection.errorStream
             val response = input?.bufferedReader(Charsets.UTF_8)
                 ?.use { it.readText() }.orEmpty()
-            captureResponse(request, connection.headerFields, statusCode)
+            captureResponse(request, connection.headerFields, statusCode, path)
             ApiHttpResponse(statusCode, response)
         } catch (ex: IOException) {
             reportNetworkError(request, ex)
@@ -227,7 +256,7 @@ object ApiHttpClient {
                         (key as String?) to values
                     }
                 val bodyText = response.body?.string().orEmpty()
-                captureResponse(request, headers, response.code)
+                captureResponse(request, headers, response.code, path)
                 ApiHttpResponse(response.code, bodyText)
             }
         } catch (ex: IOException) {
