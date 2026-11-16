@@ -110,7 +110,13 @@ class LoginViewModel(
         }
     }
 
-    fun consumeAuthenticatedUser() {
+    /** Descarta os campos da tentativa anterior ao concluir login ou sair da conta. */
+    fun clearCredentials() {
+        uiState = LoginUiState()
         authenticatedUser = null
+    }
+
+    fun consumeAuthenticatedUser() {
+        clearCredentials()
     }
 }

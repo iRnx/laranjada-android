@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.rnx.laranjada.BuildConfig
 import com.rnx.laranjada.core.design.theme.LaranjadaMutedText
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
@@ -242,11 +243,7 @@ fun AccountScreen(
                 )
 
                 Text(
-                    text = if (isTablet) {
-                        "Versão: Android Tablet"
-                    } else {
-                        "Versão: Android Mobile"
-                    },
+                    text = "Versão: ${BuildConfig.VERSION_NAME}",
                     color = Color(0xFF8E8E8E),
                     fontSize = 14.sp
                 )
