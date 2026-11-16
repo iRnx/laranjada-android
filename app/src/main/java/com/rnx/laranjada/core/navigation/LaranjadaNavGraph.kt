@@ -978,6 +978,19 @@ fun LaranjadaNavGraph(
                                 profileUuid
                     }
 
+            BackHandler {
+                profileViewModel
+                    .clearUpdateError()
+
+                profileViewModel
+                    .clearProfileEditAuthorization(
+                        profileUuid
+                    )
+
+                navController
+                    .popBackStack()
+            }
+
             EditProfileScreen(
                 profileUuid =
                     profileUuid,
