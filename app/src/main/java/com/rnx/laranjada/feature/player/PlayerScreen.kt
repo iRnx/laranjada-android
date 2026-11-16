@@ -589,6 +589,17 @@ private fun HlsPlayer(
     var nextEpisodeDismissedUuid by remember { mutableStateOf<String?>(null) }
     var nextEpisodeTransitioning by remember { mutableStateOf(false) }
 
+    // Uma falha ao reservar o próximo episódio libera o estado de
+    // transição, permitindo nova tentativa sem reiniciar a Activity.
+    val reserveError = playerViewModel.playbackUiState.reserveErrorMessage
+    val reservingNext = playerViewModel.playbackUiState.isReserving
+    LaunchedEffect(reserveError, reservingNext) {
+        if (nextEpisodeTransitioning && !reservingNext && !reserveError.isNullOrBlank()) {
+            nextEpisodeTransitioning = false
+            endInProgress = false
+        }
+    }
+
     val episodesUiState =
         playerViewModel
             .episodesUiState
