@@ -1105,6 +1105,11 @@ fun LaranjadaNavGraph(
                     profileViewModel
                         .clearUpdateError()
 
+                    profileViewModel
+                        .clearProfileEditAuthorization(
+                            profileUuid
+                        )
+
                     navController
                         .popBackStack()
                 },
