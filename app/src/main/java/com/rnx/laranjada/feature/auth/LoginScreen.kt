@@ -98,6 +98,14 @@ fun LoginScreen(
     val authenticatedUser =
         viewModel.authenticatedUser
 
+    // O ViewModel pode continuar no escopo da Activity após logout.
+    // Toda entrada na tela de login começa sem e-mail e senha antigos.
+    LaunchedEffect(viewModel) {
+        if (viewModel.authenticatedUser == null) {
+            viewModel.clearCredentials()
+        }
+    }
+
     LaunchedEffect(
         authenticatedUser
     ) {
