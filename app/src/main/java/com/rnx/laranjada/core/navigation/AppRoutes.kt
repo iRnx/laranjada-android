@@ -88,6 +88,23 @@ object AppRoutes {
         }
     }
 
+    object ProfileEditPin {
+        const val profileUuidArg =
+            "profileUuid"
+
+        const val route =
+            "profiles/edit-pin/{$profileUuidArg}"
+
+        fun createRoute(
+            profileUuid: String
+        ): String {
+            return "profiles/edit-pin/" +
+                    Uri.encode(
+                        profileUuid
+                    )
+        }
+    }
+
     object ProfilePin {
         const val profileUuidArg =
             "profileUuid"

@@ -51,6 +51,9 @@ import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 fun ProfilePinScreen(
     profileName: String,
     avatarUrl: String? = null,
+    title: String = profileName,
+    description: String = "Este perfil está bloqueado. Digite o PIN para continuar.",
+    submitLabel: String = "Entrar no perfil",
     isSubmitting: Boolean = false,
     errorMessage: String? = null,
     onBackClick: () -> Unit,
@@ -194,6 +197,15 @@ fun ProfilePinScreen(
                 avatarUrl =
                     avatarUrl,
 
+                title =
+                    title,
+
+                description =
+                    description,
+
+                submitLabel =
+                    submitLabel,
+
                 pin =
                     pin,
 
@@ -302,6 +314,9 @@ fun ProfilePinScreen(
 private fun ProfilePinCard(
     profileName: String,
     avatarUrl: String?,
+    title: String,
+    description: String,
+    submitLabel: String,
     pin: String,
     isSubmitting: Boolean,
     canSubmit: Boolean,
@@ -401,7 +416,7 @@ private fun ProfilePinCard(
 
         Text(
             text =
-                profileName,
+                title,
 
             color =
                 Color.White,
@@ -431,7 +446,7 @@ private fun ProfilePinCard(
 
         Text(
             text =
-                "Este perfil está bloqueado. Digite o PIN para continuar.",
+                description,
 
             color =
                 Color.White.copy(
@@ -685,7 +700,7 @@ private fun ProfilePinCard(
             } else {
                 Text(
                     text =
-                        "Entrar no perfil",
+                        submitLabel,
 
                     color =
                         Color.Black,

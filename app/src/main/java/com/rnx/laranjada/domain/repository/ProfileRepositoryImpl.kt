@@ -42,6 +42,25 @@ class ProfileRepositoryImpl(
             )
     }
 
+    override suspend fun verifyProfilePin(
+        profileUuid: String,
+        pin: String
+    ): Boolean {
+        apiService.verifyProfilePin(
+            profileUuid = profileUuid,
+            pin = pin
+        )
+        return true
+    }
+
+    override suspend fun clearProfileEditAuthorization(
+        profileUuid: String
+    ) {
+        apiService.clearProfileEditAuthorization(
+            profileUuid = profileUuid
+        )
+    }
+
     override suspend fun createProfile(
         name: String,
         usePin: Boolean,

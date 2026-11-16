@@ -500,7 +500,10 @@ fun LaranjadaNavGraph(
                         launchSingleTop =
                             true
                     }
-                }
+                },
+
+                selectionOnly =
+                    profileSelectionRequired
             )
         }
 
@@ -825,16 +828,120 @@ fun LaranjadaNavGraph(
                         .clearUpdateError()
 
                     navController.navigate(
-                        AppRoutes.EditProfile.createRoute(
-                            profileUuid =
-                                profile.uuid
-                        )
+                        if (profile.hasPin) {
+                            AppRoutes.ProfileEditPin.createRoute(
+                                profileUuid =
+                                    profile.uuid
+                            )
+                        } else {
+                            AppRoutes.EditProfile.createRoute(
+                                profileUuid =
+                                    profile.uuid
+                            )
+                        }
                     )
                 },
 
                 onDoneClick = {
                     navController
                         .popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route =
+                AppRoutes.ProfileEditPin.route,
+
+            arguments =
+                listOf(
+                    navArgument(
+                        AppRoutes.ProfileEditPin
+                            .profileUuidArg
+                    ) {
+                        type =
+                            NavType.StringType
+                    }
+                )
+        ) {
+                backStackEntry ->
+
+            val profileUuid =
+                backStackEntry.arguments
+                    ?.getString(
+                        AppRoutes.ProfileEditPin
+                            .profileUuidArg
+                    )
+                    .orEmpty()
+
+            val profile =
+                profileState.profiles
+                    .firstOrNull {
+                        it.uuid ==
+                                profileUuid
+                    }
+
+            ProfilePinScreen(
+                profileName =
+                    profile?.name
+                        ?: "Perfil",
+
+                avatarUrl =
+                    profile
+                        ?.avatar
+                        ?.imageUrl,
+
+                title =
+                    "Confirme o PIN",
+
+                description =
+                    "Para editar este perfil, confirme o PIN de acesso.",
+
+                submitLabel =
+                    "Continuar",
+
+                isSubmitting =
+                    profileState
+                        .isUpdatingProfile &&
+                            profileState
+                                .updatingProfileUuid ==
+                            profileUuid,
+
+                errorMessage =
+                    profileState
+                        .updateErrorMessage,
+
+                onBackClick = {
+                    profileViewModel
+                        .clearUpdateError()
+
+                    navController
+                        .popBackStack()
+                },
+
+                onSubmitClick = {
+                        pin ->
+
+                    profileViewModel
+                        .verifyProfileEditPin(
+                            profileUuid =
+                                profileUuid,
+
+                            pin =
+                                pin,
+
+                            onSuccess = {
+                                navController
+                                    .popBackStack()
+
+                                navController.navigate(
+                                    AppRoutes.EditProfile.createRoute(
+                                        profileUuid =
+                                            profileUuid
+                                    )
+                                )
+                            }
+                        )
                 }
             )
         }
@@ -871,6 +978,19 @@ fun LaranjadaNavGraph(
                                 profileUuid
                     }
 
+            BackHandler {
+                profileViewModel
+                    .clearUpdateError()
+
+                profileViewModel
+                    .clearProfileEditAuthorization(
+                        profileUuid
+                    )
+
+                navController
+                    .popBackStack()
+            }
+
             EditProfileScreen(
                 profileUuid =
                     profileUuid,
@@ -902,6 +1022,11 @@ fun LaranjadaNavGraph(
                 onBackClick = {
                     profileViewModel
                         .clearUpdateError()
+
+                    profileViewModel
+                        .clearProfileEditAuthorization(
+                            profileUuid
+                        )
 
                     navController
                         .popBackStack()
@@ -977,6 +1102,11 @@ fun LaranjadaNavGraph(
                                 pinPatch,
 
                             onSuccess = {
+                                profileViewModel
+                                    .clearProfileEditAuthorization(
+                                        profileUuid
+                                    )
+
                                 navController
                                     .popBackStack()
                             }
@@ -987,6 +1117,11 @@ fun LaranjadaNavGraph(
                 onCancelClick = {
                     profileViewModel
                         .clearUpdateError()
+
+                    profileViewModel
+                        .clearProfileEditAuthorization(
+                            profileUuid
+                        )
 
                     navController
                         .popBackStack()

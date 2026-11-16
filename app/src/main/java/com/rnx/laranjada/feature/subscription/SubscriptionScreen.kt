@@ -504,26 +504,6 @@ private fun SubscriptionContent(
                         )
 
                         if (
-                            overview.supportReference
-                                .isNotBlank()
-                        ) {
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        sectionSpacing
-                                    )
-                            )
-
-                            SupportReferenceCard(
-                                reference =
-                                    overview.supportReference,
-
-                                isTablet =
-                                    true
-                            )
-                        }
-
-                        if (
                             shouldShowPlansButton(
                                 overview
                             )
@@ -663,26 +643,6 @@ private fun SubscriptionContent(
                     isTablet =
                         isTablet
                 )
-
-                if (
-                    overview.supportReference
-                        .isNotBlank()
-                ) {
-                    Spacer(
-                        modifier =
-                            Modifier.height(
-                                sectionSpacing
-                            )
-                    )
-
-                    SupportReferenceCard(
-                        reference =
-                            overview.supportReference,
-
-                        isTablet =
-                            isTablet
-                    )
-                }
 
                 if (
                     shouldShowPlansButton(

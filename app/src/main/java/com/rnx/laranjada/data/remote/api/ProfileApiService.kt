@@ -94,6 +94,63 @@ object ProfileApiService {
         )
     }
 
+    suspend fun verifyProfilePin(
+        profileUuid: String,
+        pin: String
+    ): JSONObject {
+        ensureCsrf()
+
+        val response =
+            ApiHttpClient.postJson(
+                path =
+                    "$PROFILES_PATH${profileUuid.trim()}/verify-pin/",
+                body =
+                    JSONObject()
+                        .put(
+                            "pin",
+                            pin.trim()
+                        ),
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode == 200
+        ) {
+            return response.jsonObject()
+        }
+
+        throw buildException(
+            response = response,
+            fallbackMessage =
+                "Não foi possível confirmar o PIN do perfil."
+        )
+    }
+
+    suspend fun clearProfileEditAuthorization(
+        profileUuid: String
+    ) {
+        ensureCsrf()
+
+        val response =
+            ApiHttpClient.delete(
+                path =
+                    "$PROFILES_PATH${profileUuid.trim()}/verify-pin/",
+                requiresCsrf =
+                    true
+            )
+
+        if (
+            response.statusCode != 200
+        ) {
+            throw buildException(
+                response = response,
+                fallbackMessage =
+                    "Não foi possível encerrar a autorização de edição."
+            )
+        }
+    }
+
     suspend fun createProfile(
         name: String,
         usePin: Boolean,
