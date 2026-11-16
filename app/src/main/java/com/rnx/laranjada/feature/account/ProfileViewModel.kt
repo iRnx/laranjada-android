@@ -301,6 +301,59 @@ class ProfileViewModel(
         }
     }
 
+    fun verifyProfileEditPin(
+        profileUuid: String,
+        pin: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        if (uiState.isUpdatingProfile) return
+
+        viewModelScope.launch {
+            uiState = uiState.copy(
+                isUpdatingProfile = true,
+                updatingProfileUuid = profileUuid,
+                updateErrorMessage = null
+            )
+            try {
+                repository.verifyProfilePin(
+                    profileUuid = profileUuid,
+                    pin = pin
+                )
+                uiState = uiState.copy(
+                    isUpdatingProfile = false,
+                    updatingProfileUuid = null,
+                    updateErrorMessage = null
+                )
+                onSuccess()
+            } catch (exception: ProfileApiException) {
+                uiState = uiState.copy(
+                    isUpdatingProfile = false,
+                    updatingProfileUuid = null,
+                    updateErrorMessage = exception.message
+                )
+            } catch (exception: Exception) {
+                uiState = uiState.copy(
+                    isUpdatingProfile = false,
+                    updatingProfileUuid = null,
+                    updateErrorMessage = exception.message
+                        ?: "Não foi possível confirmar o PIN do perfil."
+                )
+            }
+        }
+    }
+
+    fun clearProfileEditAuthorization(
+        profileUuid: String
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                repository.clearProfileEditAuthorization(
+                    profileUuid = profileUuid
+                )
+            }
+        }
+    }
+
     fun createProfile(
         name: String,
         usePin: Boolean,
