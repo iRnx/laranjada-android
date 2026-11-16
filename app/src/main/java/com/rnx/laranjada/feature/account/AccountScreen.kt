@@ -243,11 +243,7 @@ fun AccountScreen(
                 )
 
                 Text(
-                    text = if (isTablet) {
-                        "Versão: Android Tablet"
-                    } else {
-                        "Versão: Android Mobile"
-                    },
+                    text = "Versão: ${BuildConfig.VERSION_NAME}",
                     color = Color(0xFF8E8E8E),
                     fontSize = 14.sp
                 )
