@@ -1,11 +1,13 @@
 package com.rnx.laranjada.core.playback
 
 import android.net.Uri
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.TransferListener
 
 @OptIn(
@@ -95,9 +97,23 @@ private class PlaybackHttpDataSource(
             )
         }
 
-        return upstream.open(
-            dataSpec
-        )
+        return try {
+            upstream.open(dataSpec)
+        } catch (error: HttpDataSource.InvalidResponseCodeException) {
+            // Diagnóstico sem expor Bearer nem query strings de URLs.
+            // 403 na playlist principal e 403 em uma playlist filha
+            // podem ter causas diferentes (escopo do token/gateway/origem).
+            val uri = dataSpec.uri
+            val requestedPath = uri.path.orEmpty()
+            Log.e(
+                "LaranjadaPlayback",
+                "HLS_HTTP_DENIED status=${error.responseCode} " +
+                    "host=${uri.host.orEmpty()} " +
+                    "path=${requestedPath} " +
+                    "authorizationAttached=${!authorizationHeader.isNullOrBlank()}",
+            )
+            throw error
+        }
     }
 
     override fun read(
