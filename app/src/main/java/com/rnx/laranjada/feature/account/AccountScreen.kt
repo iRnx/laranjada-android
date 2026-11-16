@@ -122,21 +122,59 @@ fun AccountScreen(
             else -> 18.dp
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        if (selectionOnly) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = horizontalPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = contentMaxWidth),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Quem está assistindo?",
+                        color = Color.White,
+                        fontSize = if (isExpanded) 30.sp else 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = if (isTablet) 28.dp else 24.dp),
+                        textAlign = TextAlign.Center
+                    )
+
+                    ProfilesSection(
+                        profiles = profiles,
+                        canCreateProfile = canCreateProfile,
+                        profileSize = profileSize,
+                        profileItemWidth = profileItemWidth,
+                        profileSpacing = profileSpacing,
+                        centerContent = true,
+                        onProfileClick = onProfileClick,
+                        onCreateProfileClick = onCreateProfileClick
+                    )
+                }
+            }
+        } else {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = contentMaxWidth)
-                    .padding(horizontal = horizontalPadding)
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (!selectionOnly) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = contentMaxWidth)
+                        .padding(horizontal = horizontalPadding)
+                ) {
                     AccountMenuHeader(
                         isTablet = isTablet,
                         onSearchClick = onSearchClick
@@ -147,51 +185,47 @@ fun AccountScreen(
                             if (isTablet) 30.dp else 22.dp
                         )
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(if (isTablet) 36.dp else 30.dp))
-                }
 
-                if (isTablet || selectionOnly) {
-                    Text(
-                        text = "Quem está assistindo?",
-                        color = Color.White,
-                        fontSize = if (isExpanded) 28.sp else 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 22.dp),
-                        textAlign = TextAlign.Start
+                    if (isTablet) {
+                        Text(
+                            text = "Quem está assistindo?",
+                            color = Color.White,
+                            fontSize = if (isExpanded) 28.sp else 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 22.dp),
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    ProfilesSection(
+                        profiles = profiles,
+                        canCreateProfile = canCreateProfile,
+                        profileSize = profileSize,
+                        profileItemWidth = profileItemWidth,
+                        profileSpacing = profileSpacing,
+                        onProfileClick = onProfileClick,
+                        onCreateProfileClick = onCreateProfileClick
                     )
-                }
 
-                ProfilesSection(
-                    profiles = profiles,
-                    canCreateProfile = canCreateProfile,
-                    profileSize = profileSize,
-                    profileItemWidth = profileItemWidth,
-                    profileSpacing = profileSpacing,
-                    onProfileClick = onProfileClick,
-                    onCreateProfileClick = onCreateProfileClick
-                )
-
-                if (!selectionOnly) {
                     Spacer(
                         modifier = Modifier.height(
                             if (isTablet) 40.dp else 34.dp
                         )
                     )
-    
+
                     EditProfilesButton(
                         isTablet = isTablet,
                         onClick = onEditProfilesClick
                     )
-    
+
                     Spacer(
                         modifier = Modifier.height(
                             if (isTablet) 42.dp else 34.dp
                         )
                     )
-    
+
                     if (isTablet) {
                         Text(
                             text = "Conta",
@@ -202,31 +236,31 @@ fun AccountScreen(
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
                     }
-    
+
                     AccountMenuItem(
                         title = "Minha assinatura",
                         isTablet = isTablet,
                         onClick = onSubscriptionClick
                     )
-    
+
                     AccountMenuItem(
                         title = "Atendimento",
                         isTablet = isTablet,
                         onClick = onSupportClick
                     )
-    
+
                     AccountMenuItem(
                         title = "Conta",
                         isTablet = isTablet,
                         onClick = onAccountDetailsClick
                     )
-    
+
                     AccountMenuItem(
                         title = "Verificar atualizações",
                         isTablet = isTablet,
                         onClick = onCheckUpdatesClick
                     )
-    
+
                     AccountMenuItem(
                         title = "Sair",
                         isTablet = isTablet,
@@ -234,7 +268,7 @@ fun AccountScreen(
                         showLoading = isLoggingOut,
                         onClick = onLogoutClick
                     )
-    
+
                     if (!logoutErrorMessage.isNullOrBlank()) {
                         Text(
                             text = logoutErrorMessage,
@@ -243,23 +277,23 @@ fun AccountScreen(
                             modifier = Modifier.padding(top = 14.dp)
                         )
                     }
-    
+
                     Spacer(
                         modifier = Modifier.height(26.dp)
                     )
-    
+
                     Text(
                         text = "Versão: ${BuildConfig.VERSION_NAME}",
                         color = Color(0xFF8E8E8E),
                         fontSize = 14.sp
                     )
-    
+
                     Spacer(
                         modifier = Modifier.height(
                             if (isTablet) 54.dp else 72.dp
                         )
                     )
-    
+
                     Text(
                         text = "LARANJADA",
                         color = LaranjadaOrange,
@@ -270,8 +304,6 @@ fun AccountScreen(
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 22.dp)
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(if (isTablet) 42.dp else 34.dp))
                 }
             }
         }
@@ -324,14 +356,23 @@ private fun ProfilesSection(
     profileSize: Dp,
     profileItemWidth: Dp,
     profileSpacing: Dp,
+    centerContent: Boolean = false,
     onProfileClick: (MenuProfileUi) -> Unit,
     onCreateProfileClick: () -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(
-            profileSpacing
-        )
+        horizontalArrangement =
+            if (centerContent) {
+                Arrangement.spacedBy(
+                    profileSpacing,
+                    Alignment.CenterHorizontally
+                )
+            } else {
+                Arrangement.spacedBy(
+                    profileSpacing
+                )
+            }
     ) {
         items(
             items = profiles,
