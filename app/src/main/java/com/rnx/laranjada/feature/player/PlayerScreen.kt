@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -240,7 +241,9 @@ fun PlayerScreen(
             }
 
             else -> {
-                HlsPlayer(
+                // Cada episodio recebe sua propria instancia Media3, como uma nova pagina Web.
+                key(reservation.contentType, reservation.contentUuid) {
+                    HlsPlayer(
                     playbackUrl =
                         reservation
                             .playback
@@ -322,7 +325,8 @@ fun PlayerScreen(
 
                     modifier =
                         Modifier.fillMaxSize()
-                )
+                    )
+                }
             }
         }
     }
@@ -588,6 +592,17 @@ private fun HlsPlayer(
 
     var nextEpisodeDismissedUuid by remember { mutableStateOf<String?>(null) }
     var nextEpisodeTransitioning by remember { mutableStateOf(false) }
+
+    // Uma falha ao reservar o próximo episódio libera o estado de
+    // transição, permitindo nova tentativa sem reiniciar a Activity.
+    val reserveError = playerViewModel.playbackUiState.reserveErrorMessage
+    val reservingNext = playerViewModel.playbackUiState.isReserving
+    LaunchedEffect(reserveError, reservingNext) {
+        if (nextEpisodeTransitioning && !reservingNext && !reserveError.isNullOrBlank()) {
+            nextEpisodeTransitioning = false
+            endInProgress = false
+        }
+    }
 
     val episodesUiState =
         playerViewModel
@@ -924,6 +939,9 @@ private fun HlsPlayer(
         exoPlayer.pause()
         val position = exoPlayer.currentPosition.coerceAtLeast(0L)
         val duration = exoPlayer.safeDuration()
+        // Interrompe buscas HLS do episódio anterior antes de trocar o Bearer.
+        // Somente pausar não cancela requisições de playlist/segmentos em voo.
+        exoPlayer.stop()
         val hasKnownProgress = knownProgressContentUuid == activeContentUuid
 
         watchingProgressViewModel.saveExitProgress(
@@ -943,7 +961,8 @@ private fun HlsPlayer(
                             contentType = "episode",
                             contentUuid = episodeUuid
                         )
-                        nextEpisodeTransitioning = false
+                        // A flag permanece ativa até a sessão nova ser
+                        // entregue ao player. Evita erro da sessão anterior.
                     }
                 )
             }
@@ -1038,21 +1057,21 @@ private fun HlsPlayer(
                                 false,
 
                             onComplete = {
-                                endInProgress =
-                                    false
-
-                                controlsVisible =
-                                    true
+                                controlsVisible = true
 
                                 if (
                                     nextEpisode != null &&
                                     nextEpisodeDismissedUuid != activeContentUuid &&
                                     !nextEpisodeTransitioning
                                 ) {
+                                    nextEpisodeTransitioning = true
+                                    exoPlayer.stop()
                                     playerViewModel.startPlayback(
                                         contentType = "episode",
                                         contentUuid = nextEpisode.uuid
                                     )
+                                } else {
+                                    endInProgress = false
                                 }
                             }
                         )
@@ -1420,18 +1439,45 @@ private fun HlsPlayer(
                     error:
                     PlaybackException
                 ) {
-                    playerErrorMessage =
-                        error.message
-                            ?: "Falha ao carregar a mídia."
+                    val currentSession =
+                        playerViewModel.playbackUiState.reservation?.sessionUuid
 
-                    playerViewModel
-                        .stopPlayback(
-                            status =
-                                "error",
-
-                            clearLocalAfter =
-                                false
+                    // Durante Stop/Reserve o ExoPlayer pode avisar sobre
+                    // requisições da sessão antiga, já sem autorização.
+                    // Esse erro não pode encerrar a reserva seguinte.
+                    if (
+                        nextEpisodeTransitioning ||
+                        endInProgress ||
+                        isSwitchingPlayback ||
+                        isStoppingPlayback ||
+                        currentSession != playbackSessionUuid
+                    ) {
+                        Log.w(
+                            "LaranjadaPlayback",
+                            "Ignorando erro HLS de transição. " +
+                                "oldSession=$playbackSessionUuid " +
+                                "currentSession=$currentSession " +
+                                "code=${error.errorCodeName}",
+                            error
                         )
+                        return
+                    }
+
+                    // Não incluir URL assinada nem bearer no Logcat.
+                    Log.e(
+                        "LaranjadaPlayback",
+                        "Falha HLS. content=$activeContentType:$activeContentUuid " +
+                            "session=$playbackSessionUuid " +
+                            "code=${error.errorCodeName}",
+                        error
+                    )
+                    playerErrorMessage =
+                        error.message ?: "Falha ao carregar a mídia."
+
+                    playerViewModel.stopPlayback(
+                        status = "error",
+                        clearLocalAfter = false
+                    )
                 }
             }
 
