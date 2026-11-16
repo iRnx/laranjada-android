@@ -81,7 +81,8 @@ fun AccountScreen(
     onSupportClick: () -> Unit = {},
     onAccountDetailsClick: () -> Unit = {},
     onCheckUpdatesClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {},
+    selectionOnly: Boolean = false
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -135,18 +136,22 @@ fun AccountScreen(
                     .widthIn(max = contentMaxWidth)
                     .padding(horizontal = horizontalPadding)
             ) {
-                AccountMenuHeader(
-                    isTablet = isTablet,
-                    onSearchClick = onSearchClick
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        if (isTablet) 30.dp else 22.dp
+                if (!selectionOnly) {
+                    AccountMenuHeader(
+                        isTablet = isTablet,
+                        onSearchClick = onSearchClick
                     )
-                )
 
-                if (isTablet) {
+                    Spacer(
+                        modifier = Modifier.height(
+                            if (isTablet) 30.dp else 22.dp
+                        )
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(if (isTablet) 36.dp else 30.dp))
+                }
+
+                if (isTablet || selectionOnly) {
                     Text(
                         text = "Quem está assistindo?",
                         color = Color.White,
@@ -169,101 +174,105 @@ fun AccountScreen(
                     onCreateProfileClick = onCreateProfileClick
                 )
 
-                Spacer(
-                    modifier = Modifier.height(
-                        if (isTablet) 40.dp else 34.dp
+                if (!selectionOnly) {
+                    Spacer(
+                        modifier = Modifier.height(
+                            if (isTablet) 40.dp else 34.dp
+                        )
                     )
-                )
-
-                EditProfilesButton(
-                    isTablet = isTablet,
-                    onClick = onEditProfilesClick
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        if (isTablet) 42.dp else 34.dp
+    
+                    EditProfilesButton(
+                        isTablet = isTablet,
+                        onClick = onEditProfilesClick
                     )
-                )
-
-                if (isTablet) {
+    
+                    Spacer(
+                        modifier = Modifier.height(
+                            if (isTablet) 42.dp else 34.dp
+                        )
+                    )
+    
+                    if (isTablet) {
+                        Text(
+                            text = "Conta",
+                            color = LaranjadaMutedText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+    
+                    AccountMenuItem(
+                        title = "Minha assinatura",
+                        isTablet = isTablet,
+                        onClick = onSubscriptionClick
+                    )
+    
+                    AccountMenuItem(
+                        title = "Atendimento",
+                        isTablet = isTablet,
+                        onClick = onSupportClick
+                    )
+    
+                    AccountMenuItem(
+                        title = "Conta",
+                        isTablet = isTablet,
+                        onClick = onAccountDetailsClick
+                    )
+    
+                    AccountMenuItem(
+                        title = "Verificar atualizações",
+                        isTablet = isTablet,
+                        onClick = onCheckUpdatesClick
+                    )
+    
+                    AccountMenuItem(
+                        title = "Sair",
+                        isTablet = isTablet,
+                        enabled = !isLoggingOut,
+                        showLoading = isLoggingOut,
+                        onClick = onLogoutClick
+                    )
+    
+                    if (!logoutErrorMessage.isNullOrBlank()) {
+                        Text(
+                            text = logoutErrorMessage,
+                            color = Color(0xFFFF9D9D),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 14.dp)
+                        )
+                    }
+    
+                    Spacer(
+                        modifier = Modifier.height(26.dp)
+                    )
+    
                     Text(
-                        text = "Conta",
-                        color = LaranjadaMutedText,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        text = "Versão: ${BuildConfig.VERSION_NAME}",
+                        color = Color(0xFF8E8E8E),
+                        fontSize = 14.sp
                     )
-                }
-
-                AccountMenuItem(
-                    title = "Minha assinatura",
-                    isTablet = isTablet,
-                    onClick = onSubscriptionClick
-                )
-
-                AccountMenuItem(
-                    title = "Atendimento",
-                    isTablet = isTablet,
-                    onClick = onSupportClick
-                )
-
-                AccountMenuItem(
-                    title = "Conta",
-                    isTablet = isTablet,
-                    onClick = onAccountDetailsClick
-                )
-
-                AccountMenuItem(
-                    title = "Verificar atualizações",
-                    isTablet = isTablet,
-                    onClick = onCheckUpdatesClick
-                )
-
-                AccountMenuItem(
-                    title = "Sair",
-                    isTablet = isTablet,
-                    enabled = !isLoggingOut,
-                    showLoading = isLoggingOut,
-                    onClick = onLogoutClick
-                )
-
-                if (!logoutErrorMessage.isNullOrBlank()) {
+    
+                    Spacer(
+                        modifier = Modifier.height(
+                            if (isTablet) 54.dp else 72.dp
+                        )
+                    )
+    
                     Text(
-                        text = logoutErrorMessage,
-                        color = Color(0xFFFF9D9D),
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 14.dp)
+                        text = "LARANJADA",
+                        color = LaranjadaOrange,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.4.sp,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = 22.dp)
                     )
+                } else {
+                    Spacer(modifier = Modifier.height(if (isTablet) 42.dp else 34.dp))
                 }
-
-                Spacer(
-                    modifier = Modifier.height(26.dp)
-                )
-
-                Text(
-                    text = "Versão: ${BuildConfig.VERSION_NAME}",
-                    color = Color(0xFF8E8E8E),
-                    fontSize = 14.sp
-                )
-
-                Spacer(
-                    modifier = Modifier.height(
-                        if (isTablet) 54.dp else 72.dp
-                    )
-                )
-
-                Text(
-                    text = "LARANJADA",
-                    color = LaranjadaOrange,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.4.sp,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(bottom = 22.dp)
-                )
             }
         }
     }
