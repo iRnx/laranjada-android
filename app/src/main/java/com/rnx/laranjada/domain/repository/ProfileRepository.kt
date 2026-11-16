@@ -14,6 +14,15 @@ interface ProfileRepository {
         pin: String? = null
     ): ViewerProfile
 
+    suspend fun verifyProfilePin(
+        profileUuid: String,
+        pin: String
+    ): Boolean
+
+    suspend fun clearProfileEditAuthorization(
+        profileUuid: String
+    )
+
     suspend fun createProfile(
         name: String,
         usePin: Boolean,
