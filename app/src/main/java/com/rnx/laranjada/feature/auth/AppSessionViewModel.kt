@@ -25,7 +25,9 @@ sealed interface AppSessionState {
 
     data class Authenticated(
         val user:
-        AuthenticatedUser
+        AuthenticatedUser,
+        val profileSessionKey:
+        Long
     ) : AppSessionState
 
     data class Unavailable(
@@ -89,7 +91,9 @@ class AppSessionViewModel(
                         AppSessionState
                             .Authenticated(
                                 user =
-                                    user
+                                    user,
+                                profileSessionKey =
+                                    generation
                             )
                     }
 
@@ -129,7 +133,9 @@ class AppSessionViewModel(
         user:
         AuthenticatedUser
     ) {
-        ++sessionGeneration
+        val generation =
+            ++sessionGeneration
+
         logoutErrorMessage =
             null
 
@@ -137,7 +143,9 @@ class AppSessionViewModel(
             AppSessionState
                 .Authenticated(
                     user =
-                        user
+                        user,
+                    profileSessionKey =
+                        generation
                 )
     }
 
