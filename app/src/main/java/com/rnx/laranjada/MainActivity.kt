@@ -183,7 +183,11 @@ private fun AuthenticatedApp(
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
-    val profileViewModel: ProfileViewModel = viewModel()
+    val profileViewModel: ProfileViewModel =
+        viewModel(
+            key =
+                "mobile_profiles_${sessionState.profileSessionKey}"
+        )
     val profileState = profileViewModel.uiState
     val selectedProfile = profileState.profiles.firstOrNull { profile ->
         profile.uuid == profileState.selectedProfileUuid
@@ -273,6 +277,7 @@ private fun AuthenticatedApp(
                 LaranjadaNavGraph(
                     navController = navController,
                     currentUser = sessionState.user,
+                    profileViewModel = profileViewModel,
                     isLoggingOut = isLoggingOut,
                     logoutErrorMessage = logoutErrorMessage,
                     onLogoutClick = onLogoutClick,

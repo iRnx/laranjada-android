@@ -3,7 +3,6 @@ package com.rnx.laranjada.core.navigation
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -40,6 +39,7 @@ import java.net.URLDecoder
 fun LaranjadaNavGraph(
     navController: NavHostController,
     currentUser: AuthenticatedUser,
+    profileViewModel: ProfileViewModel,
     isLoggingOut: Boolean,
     logoutErrorMessage: String?,
     onLogoutClick: () -> Unit,
@@ -47,10 +47,6 @@ fun LaranjadaNavGraph(
     startDestination: String =
         AppRoutes.Home.route
 ) {
-    val profileViewModel:
-            ProfileViewModel =
-        viewModel()
-
     val profileState =
         profileViewModel.uiState
 
