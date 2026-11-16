@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -621,10 +622,17 @@ private fun HlsPlayer(
         ?.flatMap { season -> season.episodes.sortedBy { it.episodeNumber } }
         .orEmpty()
     val activeEpisodeIndex = sortedEpisodes.indexOfFirst { it.uuid == activeContentUuid }
-    val nextEpisode = if (activeContentType == "episode" && seriesUuid.isNotBlank()) {
-        sortedEpisodes.getOrNull(activeEpisodeIndex + 1)
-            ?.takeIf { activeEpisodeIndex >= 0 && it.hasVideo }
+    // Assim como na TV, ignora episódios sem vídeo em vez de interromper a sequência.
+    val nextEpisode = if (activeContentType == "episode" &&
+        seriesUuid.isNotBlank() && activeEpisodeIndex >= 0
+    ) {
+        sortedEpisodes.drop(activeEpisodeIndex + 1).firstOrNull { it.hasVideo }
     } else null
+
+    // Os callbacks de progresso/Stop terminam de forma assíncrona.
+    // Consultar os valores mais recentes evita usar uma lista antiga de episódios.
+    val latestNextEpisode by rememberUpdatedState(nextEpisode)
+    val latestDismissedEpisodeUuid by rememberUpdatedState(nextEpisodeDismissedUuid)
 
     var controlsVisible by remember {
         mutableStateOf(
@@ -1009,6 +1017,11 @@ private fun HlsPlayer(
             exoPlayer
                 .safeDuration()
 
+        // STATE_ENDED não deve deixar o Media3 fazer novas leituras após o
+        // Stop da WatchingSession invalidar a autorização deste episódio.
+        // Os valores de progresso já foram capturados acima.
+        exoPlayer.stop()
+
         Log.d(
             "LaranjadaProgress",
             "Fim natural detectado. " +
@@ -1059,16 +1072,26 @@ private fun HlsPlayer(
                             onComplete = {
                                 controlsVisible = true
 
-                                if (
-                                    nextEpisode != null &&
-                                    nextEpisodeDismissedUuid != activeContentUuid &&
+                                val upcoming = latestNextEpisode
+                                val canAdvance = upcoming != null &&
+                                    latestDismissedEpisodeUuid != activeContentUuid &&
                                     !nextEpisodeTransitioning
-                                ) {
+
+                                Log.d(
+                                    "LaranjadaPlayback",
+                                    "AutoNext após Stop. content=$activeContentUuid " +
+                                        "episodes=${sortedEpisodes.size} " +
+                                        "currentIndex=$activeEpisodeIndex " +
+                                        "next=${upcoming?.uuid ?: "none"} " +
+                                        "dismissed=${latestDismissedEpisodeUuid == activeContentUuid} " +
+                                        "willAdvance=$canAdvance"
+                                )
+
+                                if (canAdvance && upcoming != null) {
                                     nextEpisodeTransitioning = true
-                                    exoPlayer.stop()
                                     playerViewModel.startPlayback(
                                         contentType = "episode",
-                                        contentUuid = nextEpisode.uuid
+                                        contentUuid = upcoming.uuid
                                     )
                                 } else {
                                     endInProgress = false
