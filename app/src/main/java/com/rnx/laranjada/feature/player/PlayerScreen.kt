@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -240,7 +241,9 @@ fun PlayerScreen(
             }
 
             else -> {
-                HlsPlayer(
+                // Cada episodio recebe sua propria instancia Media3, como uma nova pagina Web.
+                key(reservation.contentType, reservation.contentUuid) {
+                    HlsPlayer(
                     playbackUrl =
                         reservation
                             .playback
@@ -322,7 +325,8 @@ fun PlayerScreen(
 
                     modifier =
                         Modifier.fillMaxSize()
-                )
+                    )
+                }
             }
         }
     }
