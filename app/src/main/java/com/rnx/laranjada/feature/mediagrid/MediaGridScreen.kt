@@ -514,6 +514,27 @@ fun MediaGridScreen(
                         }
                     }
                 }
+
+                // Paginação repetida após os cards: o usuário avança
+                // sem precisar rolar novamente até o topo da lista.
+                if (state.items.isNotEmpty() && error == null && !isLoading) {
+                    item(
+                        span = { GridItemSpan(maxLineSpan) }
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CatalogFilterToolbar(
+                                rangeLabel = rangeLabel,
+                                canPrevious = state.hasPreviousPage,
+                                canNext = state.hasNextPage,
+                                onPrevious = viewModel::previousPage,
+                                onNext = viewModel::nextPage,
+                                onSort = { orderSheetOpen = true },
+                                onFilters = { filtersSheetOpen = true }
+                            )
+                        }
+                    }
+                }
             }
         }
 
