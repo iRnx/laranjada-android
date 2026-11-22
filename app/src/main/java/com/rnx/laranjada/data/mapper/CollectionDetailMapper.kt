@@ -244,7 +244,22 @@ object CollectionDetailMapper {
                             uuid,
 
                         contentType =
-                            contentType
+                            contentType,
+
+                        locked =
+                            item.optBoolean(
+                                "is_locked",
+                                false
+                            ),
+
+                        accessMessage =
+                            item.optJSONObject(
+                                "watch_access"
+                            )
+                                ?.optNullableString(
+                                    "message"
+                                )
+                                .orEmpty()
                     )
                 )
             }
