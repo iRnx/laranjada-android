@@ -14,8 +14,8 @@ data class Favorite(
     val isFavorite: Boolean,
     val canWatch: Boolean,
     val isLocked: Boolean,
-    val accessMessage: String = "",
-    val createdAt: String
+    val createdAt: String,
+    val accessMessage: String = ""
 ) {
     val stableKey: String
         get() = "$contentType:$contentUuid"
