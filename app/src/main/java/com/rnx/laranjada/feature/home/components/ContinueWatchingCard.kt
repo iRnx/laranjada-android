@@ -34,6 +34,7 @@ import coil3.compose.AsyncImage
 import com.rnx.laranjada.core.design.theme.LaranjadaMutedText
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+import com.rnx.laranjada.feature.catalog.components.ContentLockIcon
 import com.rnx.laranjada.feature.home.ContinueWatchingUi
 
 @Composable
@@ -150,6 +151,29 @@ fun ContinueWatchingCard(
                     modifier =
                         Modifier.size(
                             27.dp
+                        )
+                )
+            }
+
+            if (item.locked) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Color.Black.copy(
+                                alpha = 0.20f
+                            )
+                        )
+                )
+
+                ContentLockIcon(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(
+                            start = 8.dp,
+                            bottom = 12.dp
                         )
                 )
             }
