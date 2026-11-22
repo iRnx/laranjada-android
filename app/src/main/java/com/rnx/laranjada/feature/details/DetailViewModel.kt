@@ -150,6 +150,63 @@ class DetailViewModel(
         }
     }
 
+    fun refreshAccessMetadata() {
+        val current =
+            uiState
+                ?: return
+
+        val expectedKey =
+            currentKey
+                ?: return
+
+        viewModelScope.launch {
+            try {
+                val detail =
+                    repository.getDetail(
+                        contentType =
+                            current.contentTypeForApi,
+
+                        uuid =
+                            current.uuid
+                    )
+
+                if (
+                    currentKey !=
+                    expectedKey
+                ) {
+                    return@launch
+                }
+
+                uiState =
+                    detail.copy(
+                        watchProgress =
+                            uiState?.watchProgress
+                    )
+
+                loadRelatedContent(
+                    contentType =
+                        detail.contentTypeForApi,
+
+                    uuid =
+                        detail.uuid
+                )
+            } catch (
+                exception:
+                Exception
+            ) {
+                if (
+                    currentKey ==
+                    expectedKey
+                ) {
+                    Log.w(
+                        TAG,
+                        "Falha ao atualizar acesso da Detail: ${exception.message}"
+                    )
+                }
+            }
+        }
+    }
+
     fun refreshContinueWatching() {
         val detail =
             uiState
