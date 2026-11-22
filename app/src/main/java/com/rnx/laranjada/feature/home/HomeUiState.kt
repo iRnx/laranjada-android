@@ -71,7 +71,9 @@ data class ContinueWatchingUi(
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
 
-    val lastWatchedAt: String = ""
+    val lastWatchedAt: String = "",
+    val locked: Boolean = false,
+    val accessMessage: String = ""
 )
 
 data class HomeContentSectionUi(
@@ -88,7 +90,9 @@ data class MediaItemUi(
     val progress: Float? = null,
     val gradientColors: List<Color>,
     val uuid: String,
-    val contentType: String
+    val contentType: String,
+    val locked: Boolean = false,
+    val accessMessage: String = ""
 )
 
 data class CollectionUi(

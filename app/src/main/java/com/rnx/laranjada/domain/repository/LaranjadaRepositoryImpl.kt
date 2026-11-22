@@ -326,7 +326,23 @@ class LaranjadaRepositoryImpl(
                         lastWatchedAt =
                             item.optString(
                                 "last_watched_at"
+                            ),
+
+                        locked =
+                            item.optBoolean(
+                                "is_locked",
+                                false
+                            ),
+
+                        accessMessage =
+                            item.optJSONObject(
+                                "watch_access"
                             )
+                                ?.optString(
+                                    "message"
+                                )
+                                .orEmpty()
+                                .trim()
                     )
                 )
             }

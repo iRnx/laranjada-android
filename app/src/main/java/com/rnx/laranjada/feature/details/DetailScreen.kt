@@ -72,6 +72,7 @@ import com.rnx.laranjada.core.design.theme.LaranjadaSurface
 import com.rnx.laranjada.core.design.theme.LaranjadaSurfaceLight
 import com.rnx.laranjada.core.design.theme.LaranjadaText
 import com.rnx.laranjada.feature.details.components.DetailFavoriteActionsRow
+import com.rnx.laranjada.feature.catalog.components.ContentLockIcon
 import com.rnx.laranjada.feature.home.MediaItemUi
 import com.rnx.laranjada.feature.home.components.HomeBottomBar
 
@@ -1022,6 +1023,11 @@ private fun TabletPortraitHeroContent(
                 )
         )
 
+        DetailAccessNotice(
+            uiState = uiState,
+            isTablet = true
+        )
+
         Button(
             onClick =
                 onPlayClick,
@@ -1861,6 +1867,19 @@ private fun TabletPortraitRelatedCard(
                             )
                         )
             )
+
+            if (item.locked) {
+                ContentLockIcon(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(
+                            start = 8.dp,
+                            bottom = 8.dp
+                        )
+                )
+            }
         }
 
         Spacer(
@@ -2504,6 +2523,11 @@ private fun LandscapeHeroContent(
                 Modifier.height(
                     17.dp
                 )
+        )
+
+        DetailAccessNotice(
+            uiState = uiState,
+            isTablet = true
         )
 
         Row(
@@ -3599,6 +3623,11 @@ private fun DetailMainInfo(
                 )
         )
 
+        DetailAccessNotice(
+            uiState = uiState,
+            isTablet = isTablet
+        )
+
         Button(
             onClick =
                 onPlayClick,
@@ -3796,6 +3825,41 @@ private fun DetailMainInfo(
                         26.dp
                     }
                 )
+        )
+    }
+}
+
+@Composable
+private fun DetailAccessNotice(
+    uiState: DetailUiState,
+    isTablet: Boolean
+) {
+    if (
+        !uiState.locked ||
+        uiState.accessMessage.isBlank()
+    ) {
+        return
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                bottom = if (isTablet) 14.dp else 12.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(
+            8.dp
+        )
+    ) {
+        ContentLockIcon()
+
+        Text(
+            text = uiState.accessMessage,
+            color = Color(0xFFFFD62C),
+            fontSize = if (isTablet) 14.sp else 13.sp,
+            lineHeight = if (isTablet) 19.sp else 18.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -5091,6 +5155,19 @@ private fun RelatedContentCard(
                             )
                         )
             )
+
+            if (item.locked) {
+                ContentLockIcon(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(
+                            start = 8.dp,
+                            bottom = 8.dp
+                        )
+                )
+            }
         }
 
         Text(

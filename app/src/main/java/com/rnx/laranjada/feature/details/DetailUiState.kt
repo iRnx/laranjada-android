@@ -21,7 +21,9 @@ data class DetailUiState(
     val hlsUrl: String = "",
     val hasVideo: Boolean = false,
     val watchProgress: WatchProgressUi? = null,
-    val seasons: List<SeasonUi> = emptyList()
+    val seasons: List<SeasonUi> = emptyList(),
+    val locked: Boolean = false,
+    val accessMessage: String = ""
 ) {
     val isSeries: Boolean
         get() =

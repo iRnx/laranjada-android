@@ -93,6 +93,16 @@ object FavoritesMapper {
                                 false
                             ),
 
+                        accessMessage =
+                            obj.optJSONObject(
+                                "watch_access"
+                            )
+                                ?.optString(
+                                    "message"
+                                )
+                                .orEmpty()
+                                .trim(),
+
                         createdAt =
                             obj.optString("created_at")
                     )

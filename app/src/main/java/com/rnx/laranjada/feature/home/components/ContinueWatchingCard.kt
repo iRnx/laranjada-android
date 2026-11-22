@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -34,6 +35,7 @@ import coil3.compose.AsyncImage
 import com.rnx.laranjada.core.design.theme.LaranjadaMutedText
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.core.design.theme.LaranjadaText
+import com.rnx.laranjada.feature.catalog.components.ContentLockIcon
 import com.rnx.laranjada.feature.home.ContinueWatchingUi
 
 @Composable
@@ -115,6 +117,18 @@ fun ContinueWatchingCard(
                         )
             )
 
+            if (item.locked) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Color.Black.copy(
+                                alpha = 0.20f
+                            )
+                        )
+                )
+            }
+
             Box(
                 modifier =
                     Modifier
@@ -150,6 +164,19 @@ fun ContinueWatchingCard(
                     modifier =
                         Modifier.size(
                             27.dp
+                        )
+                )
+            }
+
+            if (item.locked) {
+                ContentLockIcon(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(
+                            start = 8.dp,
+                            bottom = 12.dp
                         )
                 )
             }

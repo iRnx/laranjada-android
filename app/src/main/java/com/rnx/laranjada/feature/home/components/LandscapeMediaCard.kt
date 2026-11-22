@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.rnx.laranjada.feature.catalog.components.ContentLockIcon
 import com.rnx.laranjada.feature.home.MediaItemUi
 
 @Composable
@@ -103,5 +105,28 @@ fun LandscapeMediaCard(
                         )
                     )
         )
+
+        if (item.locked) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        androidx.compose.ui.graphics.Color.Black.copy(
+                            alpha = 0.20f
+                        )
+                    )
+            )
+
+            ContentLockIcon(
+                modifier = Modifier
+                    .align(
+                        androidx.compose.ui.Alignment.BottomStart
+                    )
+                    .padding(
+                        start = 8.dp,
+                        bottom = 8.dp
+                    )
+            )
+        }
     }
 }

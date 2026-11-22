@@ -166,6 +166,22 @@ object SearchMapper {
                 optString(
                     "content_type"
                 )
+                    .trim(),
+
+            locked =
+                optBoolean(
+                    "is_locked",
+                    false
+                ),
+
+            accessMessage =
+                optJSONObject(
+                    "watch_access"
+                )
+                    ?.optString(
+                        "message"
+                    )
+                    .orEmpty()
                     .trim()
         )
     }

@@ -96,6 +96,29 @@ fun CatalogMediaCard(
                     .aspectRatio(16f / 9f),
                 contentScale = ContentScale.Crop
             )
+
+            if (item.locked) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Color.Black.copy(
+                                alpha = 0.20f
+                            )
+                        )
+                )
+
+                ContentLockIcon(
+                    modifier = Modifier
+                        .align(
+                            Alignment.BottomStart
+                        )
+                        .padding(
+                            start = 8.dp,
+                            bottom = 8.dp
+                        )
+                )
+            }
         }
 
         Text(

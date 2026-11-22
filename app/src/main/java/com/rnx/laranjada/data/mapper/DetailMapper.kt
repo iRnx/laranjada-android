@@ -53,6 +53,11 @@ object DetailMapper {
                 json.optNullableString("hls_url")
             ),
             hasVideo = json.optBoolean("has_video", false),
+            locked = json.optBoolean("is_locked", false),
+            accessMessage = json
+                .optJSONObject("watch_access")
+                ?.optNullableString("message")
+                .orEmpty(),
             watchProgress = null,
             seasons = seasons
         )

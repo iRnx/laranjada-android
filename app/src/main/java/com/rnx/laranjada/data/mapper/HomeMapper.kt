@@ -456,7 +456,22 @@ object HomeMapper {
                             item.optNullableString(
                                 "content_type"
                             )
-                                ?: fallbackContentType
+                                ?: fallbackContentType,
+
+                        locked =
+                            item.optBoolean(
+                                "is_locked",
+                                false
+                            ),
+
+                        accessMessage =
+                            item.optJSONObject(
+                                "watch_access"
+                            )
+                                ?.optNullableString(
+                                    "message"
+                                )
+                                .orEmpty()
                     )
                 )
             }
