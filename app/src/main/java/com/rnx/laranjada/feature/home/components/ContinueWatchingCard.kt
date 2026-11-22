@@ -117,6 +117,18 @@ fun ContinueWatchingCard(
                         )
             )
 
+            if (item.locked) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Color.Black.copy(
+                                alpha = 0.20f
+                            )
+                        )
+                )
+            }
+
             Box(
                 modifier =
                     Modifier
@@ -157,16 +169,6 @@ fun ContinueWatchingCard(
             }
 
             if (item.locked) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Color.Black.copy(
-                                alpha = 0.20f
-                            )
-                        )
-                )
-
                 ContentLockIcon(
                     modifier = Modifier
                         .align(
