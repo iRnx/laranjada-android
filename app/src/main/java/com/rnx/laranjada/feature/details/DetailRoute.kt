@@ -79,13 +79,7 @@ fun DetailRoute(
                     Lifecycle.Event.ON_RESUME &&
                     viewModel.uiState != null
                 ) {
-                    viewModel.loadDetail(
-                        contentType =
-                            contentType,
-
-                        uuid =
-                            uuid
-                    )
+                    viewModel.refreshAccessMetadata()
                 }
             }
 
