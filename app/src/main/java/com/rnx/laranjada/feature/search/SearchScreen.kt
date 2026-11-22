@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
 import com.rnx.laranjada.feature.catalog.components.CatalogMediaCard
@@ -90,6 +94,41 @@ fun SearchScreen(
             else ->
                 2
         }
+
+    val lifecycleOwner =
+        LocalLifecycleOwner.current
+
+    DisposableEffect(
+        lifecycleOwner,
+        viewModel
+    ) {
+        val observer =
+            LifecycleEventObserver {
+                    _,
+                    event ->
+
+                if (
+                    event ==
+                    Lifecycle.Event.ON_RESUME &&
+                    viewModel.uiState.hasSearched &&
+                    viewModel.uiState.submittedQuery.isNotBlank()
+                ) {
+                    viewModel.retry()
+                }
+            }
+
+        lifecycleOwner.lifecycle
+            .addObserver(
+                observer
+            )
+
+        onDispose {
+            lifecycleOwner.lifecycle
+                .removeObserver(
+                    observer
+                )
+        }
+    }
 
     /*
      * Cada nova busca concluída
