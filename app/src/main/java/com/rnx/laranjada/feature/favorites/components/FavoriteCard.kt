@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.rnx.laranjada.core.design.theme.LaranjadaOrange
+import com.rnx.laranjada.feature.catalog.components.ContentLockIcon
 import com.rnx.laranjada.domain.model.Favorite
 import java.util.Locale
 
@@ -79,22 +79,25 @@ fun FavoriteCard(
             )
 
             if (item.isLocked) {
-                Icon(
-                    imageVector =
-                        Icons.Rounded.Lock,
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Color.Black.copy(
+                                alpha = 0.20f
+                            )
+                        )
+                )
 
-                    contentDescription =
-                        "Bloqueado no seu plano",
-
-                    tint =
-                        Color.White,
-
+                ContentLockIcon(
                     modifier = Modifier
                         .align(
-                            Alignment.TopStart
+                            Alignment.BottomStart
                         )
-                        .padding(7.dp)
-                        .size(17.dp)
+                        .padding(
+                            start = 8.dp,
+                            bottom = 8.dp
+                        )
                 )
             }
 
