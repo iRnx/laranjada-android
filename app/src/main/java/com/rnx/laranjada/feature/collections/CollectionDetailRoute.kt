@@ -52,7 +52,8 @@ fun CollectionDetailRoute(
 
                 if (
                     event ==
-                    Lifecycle.Event.ON_RESUME
+                    Lifecycle.Event.ON_RESUME &&
+                    !viewModel.isLoading
                 ) {
                     viewModel.loadCollection()
                 }
