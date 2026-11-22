@@ -46,7 +46,20 @@ object RelatedContentMapper {
                             Color(0xFF050505)
                         ),
                         uuid = uuid,
-                        contentType = contentType
+                        contentType = contentType,
+                        locked = item.optBoolean(
+                            "is_locked",
+                            false
+                        ),
+                        accessMessage = item
+                            .optJSONObject(
+                                "watch_access"
+                            )
+                            ?.optString(
+                                "message"
+                            )
+                            .orEmpty()
+                            .trim()
                     )
                 )
             }
