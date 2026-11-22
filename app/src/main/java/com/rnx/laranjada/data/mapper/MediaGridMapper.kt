@@ -298,7 +298,23 @@ object MediaGridMapper {
             contentType =
                 optString(
                     "content_type"
-                ).orEmpty()
+                ).orEmpty(),
+
+            locked =
+                optBoolean(
+                    "is_locked",
+                    false
+                ),
+
+            accessMessage =
+                optJSONObject(
+                    "watch_access"
+                )
+                    ?.optString(
+                        "message"
+                    )
+                    .orEmpty()
+                    .trim()
         )
     }
 
