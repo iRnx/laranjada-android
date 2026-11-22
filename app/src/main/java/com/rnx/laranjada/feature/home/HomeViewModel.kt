@@ -12,6 +12,7 @@ import com.rnx.laranjada.data.repository.WatchingProgressRepositoryImpl
 import com.rnx.laranjada.domain.repository.LaranjadaRepository
 import com.rnx.laranjada.domain.repository.WatchingProgressRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
 class HomeViewModel(
     private val repository: LaranjadaRepository =
@@ -108,6 +109,43 @@ class HomeViewModel(
             } finally {
                 isLoading = false
             }
+        }
+    }
+
+    suspend fun refreshHomeContent() {
+        if (isLoading) {
+            return
+        }
+
+        try {
+            val freshHome =
+                repository.getHome(
+                    forceRefresh = true
+                )
+
+            uiState =
+                freshHome.copy(
+                    continueWatching =
+                        uiState.continueWatching
+                )
+
+            Log.d(
+                TAG,
+                "Home atualizada. sections=${freshHome.contentSections.size}"
+            )
+        } catch (
+            cancelled:
+            CancellationException
+        ) {
+            throw cancelled
+        } catch (
+            exception:
+            Exception
+        ) {
+            Log.w(
+                TAG,
+                "Falha ao atualizar metadados da Home: ${exception.message}"
+            )
         }
     }
 

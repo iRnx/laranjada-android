@@ -1,5 +1,7 @@
 package com.rnx.laranjada.feature.details
 
+import android.util.Log
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,6 +14,8 @@ import com.rnx.laranjada.domain.repository.WatchingProgressRepository
 import com.rnx.laranjada.feature.home.ContinueWatchingUi
 import com.rnx.laranjada.feature.home.MediaItemUi
 import kotlinx.coroutines.launch
+
+private const val TAG = "LaranjadaDetail"
 
 class DetailViewModel(
     private val repository: LaranjadaRepository =
@@ -145,6 +149,63 @@ class DetailViewModel(
                 ) {
                     isLoading =
                         false
+                }
+            }
+        }
+    }
+
+    fun refreshAccessMetadata() {
+        val current =
+            uiState
+                ?: return
+
+        val expectedKey =
+            currentKey
+                ?: return
+
+        viewModelScope.launch {
+            try {
+                val detail =
+                    repository.getDetail(
+                        contentType =
+                            current.contentTypeForApi,
+
+                        uuid =
+                            current.uuid
+                    )
+
+                if (
+                    currentKey !=
+                    expectedKey
+                ) {
+                    return@launch
+                }
+
+                uiState =
+                    detail.copy(
+                        watchProgress =
+                            uiState?.watchProgress
+                    )
+
+                loadRelatedContent(
+                    contentType =
+                        detail.contentTypeForApi,
+
+                    uuid =
+                        detail.uuid
+                )
+            } catch (
+                exception:
+                Exception
+            ) {
+                if (
+                    currentKey ==
+                    expectedKey
+                ) {
+                    Log.w(
+                        TAG,
+                        "Falha ao atualizar acesso da Detail: ${exception.message}"
+                    )
                 }
             }
         }

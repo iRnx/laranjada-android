@@ -12,8 +12,9 @@ import com.rnx.laranjada.feature.search.SearchResponseUi
 
 interface LaranjadaRepository {
 
-    suspend fun getHome():
-            HomeUiState
+    suspend fun getHome(
+        forceRefresh: Boolean = false
+    ): HomeUiState
 
     suspend fun getContinueWatching():
             List<ContinueWatchingUi>

@@ -6,9 +6,21 @@ import java.net.URLEncoder
 
 object LaranjadaApiService {
 
-    suspend fun getHome(): JSONObject {
+    suspend fun getHome(
+        forceRefresh: Boolean = false
+    ): JSONObject {
         return getJson(
-            "/api/v1/home/"
+            path =
+                "/api/v1/home/",
+            queryParams =
+                if (forceRefresh) {
+                    mapOf(
+                        "_mobile_refresh" to
+                                System.currentTimeMillis().toString()
+                    )
+                } else {
+                    emptyMap()
+                }
         )
     }
 

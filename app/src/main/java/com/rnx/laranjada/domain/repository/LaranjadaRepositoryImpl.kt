@@ -28,11 +28,15 @@ class LaranjadaRepositoryImpl(
         LaranjadaApiService
 ) : LaranjadaRepository {
 
-    override suspend fun getHome():
-            HomeUiState {
+    override suspend fun getHome(
+        forceRefresh: Boolean
+    ): HomeUiState {
 
         return HomeMapper.fromJson(
-            apiService.getHome()
+            apiService.getHome(
+                forceRefresh =
+                    forceRefresh
+            )
         )
     }
 

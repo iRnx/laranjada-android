@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import com.rnx.laranjada.feature.home.components.CategoryChipsRow
 import com.rnx.laranjada.feature.home.components.CollectionsSection
 import com.rnx.laranjada.feature.home.components.ContinueWatchingCard
@@ -94,6 +95,18 @@ fun HomeScreen(
     ) {
         viewModel
             .refreshContinueWatching()
+
+        viewModel
+            .refreshHomeContent()
+
+        while (true) {
+            delay(
+                60_000L
+            )
+
+            viewModel
+                .refreshHomeContent()
+        }
     }
 
     val firstContinueWatchingMarker =
