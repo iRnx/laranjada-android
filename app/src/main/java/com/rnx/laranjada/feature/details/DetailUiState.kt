@@ -20,6 +20,8 @@ data class DetailUiState(
     val imageThumbUrl: String,
     val hlsUrl: String = "",
     val hasVideo: Boolean = false,
+    val locked: Boolean = false,
+    val accessMessage: String = "",
     val watchProgress: WatchProgressUi? = null,
     val seasons: List<SeasonUi> = emptyList()
 ) {
