@@ -282,8 +282,13 @@ fun AccountScreen(
                         modifier = Modifier.height(26.dp)
                     )
 
+                    val displayVersion =
+                        BuildConfig.VERSION_NAME
+                            .substringBefore("-")
+                            .trim()
+
                     Text(
-                        text = "Versão: ${BuildConfig.VERSION_NAME}",
+                        text = "Versão: $displayVersion",
                         color = Color(0xFF8E8E8E),
                         fontSize = 14.sp
                     )
